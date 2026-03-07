@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Legacy material colors (kept if used elsewhere) -->
+    <color name="purple_200">#BB86FC</color>
+    <color name="purple_500">#6200EE</color>
+    <color name="purple_700">#3700B3</color>
+    <color name="teal_200">#03DAC5</color>
+    <color name="teal_700">#018786</color>
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
+
+    <!-- App palette (base / light values) -->
+    <color name="background_primary">#F5F6FA</color>
+    <color name="surface_primary">#FFFFFF</color>
+
+    <color name="primary">#7C3AED</color>
+    <color name="on_primary">#FFFFFF</color>
+
+    <color name="text_primary">#111827</color>
+    <color name="text_secondary">#6B7280</color>
+
+    <color name="accent_positive">#22C55E</color>
+</resources>

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.frienddebt">
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.FriendDebtSimplifier">
+
+        <!-- MAIN SCREEN -->
+        <activity
+            android:name=".ui.Splash"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".ui.LandingPage"
+            android:exported="true" />
+
+        <activity
+            android:name=".ui.Login"
+            android:exported="true" />
+
+        <activity
+            android:name=".ui.SignUp"
+            android:exported="true" />
+
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="false" />
+
+        <!-- GROUP DETAILS SCREEN -->
+        <activity
+            android:name=".ui.GroupDetailActivity"
+            android:exported="false" />
+
+        <!-- ADD EXPENSE SCREEN -->
+        <activity
+            android:name=".ui.AddExpenseActivity"
+            android:exported="false" />
+
+        <!-- SETTLEMENT SUGGESTIONS SCREEN -->
+        <activity
+            android:name=".ui.SettlementSuggestionsActivity"
+            android:exported="false" />
+
+        <!-- ✅ JOIN GROUP SCREEN (NEW) -->
+        <activity
+            android:name=".ui.JoinGroupActivity"
+            android:exported="false" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+    </application>
+
+</manifest>

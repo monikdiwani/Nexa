@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/debt_item_background"
+    android:padding="12dp"
+    android:layout_marginBottom="8dp">
+    <!-- Main debt text -->
+    <TextView
+        android:id="@+id/txtDebt"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="User owes User ₹0"
+        android:textSize="16sp"
+        android:textColor="@color/text_primary"
+        android:textStyle="bold"
+        android:paddingBottom="4dp" />
+
+    <!-- Optional additional info (like notes or date) -->
+    <TextView
+        android:id="@+id/txtDebtDetails"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Due tomorrow"
+        android:textSize="14sp"
+        android:textColor="@color/text_secondary"
+        android:paddingStart="8dp"
+        android:visibility="gone" />
+
+</LinearLayout>
