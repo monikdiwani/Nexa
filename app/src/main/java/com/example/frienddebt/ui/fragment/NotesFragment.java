@@ -87,6 +87,7 @@ public class NotesFragment extends Fragment {
     }
 
     public void loadNotes() {
+        if (auth == null || db == null) return;
         if (auth.getCurrentUser() == null) return;
         String userId = auth.getCurrentUser().getUid();
 

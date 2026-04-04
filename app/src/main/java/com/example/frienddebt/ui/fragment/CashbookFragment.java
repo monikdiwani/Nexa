@@ -105,6 +105,7 @@ public class CashbookFragment extends Fragment {
     }
 
     public void loadData() {
+        if (auth == null || db == null) return;
         if (auth.getCurrentUser() == null) return;
         String userId = auth.getCurrentUser().getUid();
 
