@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Legacy material colors (kept if used elsewhere) -->
+    <!-- Legacy material colors (kept for compatibility) -->
     <color name="purple_200">#BB86FC</color>
     <color name="purple_500">#6200EE</color>
     <color name="purple_700">#3700B3</color>
@@ -9,15 +9,70 @@
     <color name="black">#000000</color>
     <color name="white">#FFFFFF</color>
 
-    <!-- App palette (base / light values) -->
-    <color name="background_primary">#F5F6FA</color>
-    <color name="surface_primary">#FFFFFF</color>
+    <!-- ═══════════ NEXA COLOR PALETTE ═══════════ -->
 
-    <color name="primary">#7C3AED</color>
+    <!-- Primary Brand -->
+    <color name="primary">#6C63FF</color>
+    <color name="primary_dark">#5A52D5</color>
+    <color name="primary_light">#9D97FF</color>
+    <color name="primary_surface">#EEEDFF</color>
     <color name="on_primary">#FFFFFF</color>
 
-    <color name="text_primary">#111827</color>
-    <color name="text_secondary">#6B7280</color>
+    <!-- Secondary / Accent -->
+    <color name="secondary">#FF6B6B</color>
+    <color name="secondary_dark">#E05555</color>
+    <color name="on_secondary">#FFFFFF</color>
 
-    <color name="accent_positive">#22C55E</color>
+    <!-- Background & Surface -->
+    <color name="background_primary">#F8F9FE</color>
+    <color name="surface_primary">#FFFFFF</color>
+    <color name="surface_elevated">#FFFFFF</color>
+    <color name="surface_card">#FFFFFF</color>
+
+    <!-- Text -->
+    <color name="text_primary">#1A1A2E</color>
+    <color name="text_secondary">#6B7280</color>
+    <color name="text_hint">#9CA3AF</color>
+    <color name="text_on_dark">#FFFFFF</color>
+
+    <!-- Semantic Colors -->
+    <color name="accent_positive">#00C897</color>
+    <color name="accent_negative">#FF5252</color>
+    <color name="accent_warning">#FFB020</color>
+    <color name="accent_info">#3B82F6</color>
+
+    <!-- Cashbook specific -->
+    <color name="cash_in">#00C897</color>
+    <color name="cash_in_bg">#E6FAF4</color>
+    <color name="cash_out">#FF5252</color>
+    <color name="cash_out_bg">#FFEBEE</color>
+    <color name="bank_color">#3B82F6</color>
+    <color name="bank_color_bg">#EBF2FF</color>
+
+    <!-- Priority colors -->
+    <color name="priority_high">#FF5252</color>
+    <color name="priority_medium">#FFB020</color>
+    <color name="priority_low">#00C897</color>
+
+    <!-- Gradient colors -->
+    <color name="gradient_purple_start">#6C63FF</color>
+    <color name="gradient_purple_end">#A78BFA</color>
+    <color name="gradient_green_start">#00C897</color>
+    <color name="gradient_green_end">#6EE7B7</color>
+    <color name="gradient_red_start">#FF5252</color>
+    <color name="gradient_red_end">#FCA5A5</color>
+    <color name="gradient_blue_start">#3B82F6</color>
+    <color name="gradient_blue_end">#93C5FD</color>
+    <color name="gradient_amber_start">#FFB020</color>
+    <color name="gradient_amber_end">#FCD34D</color>
+
+    <!-- Bottom nav -->
+    <color name="nav_selected">#6C63FF</color>
+    <color name="nav_unselected">#9CA3AF</color>
+
+    <!-- Divider -->
+    <color name="divider">#E5E7EB</color>
+
+    <!-- Ripple -->
+    <color name="ripple_primary">#1A6C63FF</color>
 </resources>

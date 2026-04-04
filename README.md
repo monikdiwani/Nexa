@@ -1,6 +1,6 @@
-# Fair Share
+# Nexa
 
-Android project for the Fair Share app.
+Android project for the Nexa app.
 
 ## Requirements
 

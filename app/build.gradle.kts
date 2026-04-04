@@ -45,6 +45,13 @@ dependencies {
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
 
+    // ✅ WorkManager for scheduled background tasks (daily/night summaries)
+    implementation("androidx.work:work-runtime:2.10.1")
+    implementation("com.google.guava:guava:33.2.1-android")
+
+    // ✅ ViewPager2 for tab swiping
+    implementation("androidx.viewpager2:viewpager2:1.1.0")
+
     implementation(libs.credentials)
     implementation(libs.credentials.play.services.auth)
     implementation(libs.googleid)

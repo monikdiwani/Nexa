@@ -1,0 +1,325 @@
+package com.example.frienddebt.ui;
+
+import android.content.Intent;
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.CheckBox;
+import android.widget.ImageButton;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.frienddebt.R;
+import com.example.frienddebt.model.Task;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
+import com.google.firebase.firestore.Query;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+
+public class TasksActivity extends AppCompatActivity {
+
+    private ImageButton btnBack;
+    private TextView chipAll, chipToday, chipWeek, chipCompleted, txtEmptyTasks;
+    private RecyclerView rvTasks;
+    private FloatingActionButton fabAddTask;
+
+    private FirebaseFirestore db;
+    private FirebaseAuth auth;
+    private ListenerRegistration tasksListener;
+
+    private List<Task> allTasks = new ArrayList<>();
+    private List<Task> filteredTasks = new ArrayList<>();
+    private TasksAdapter adapter;
+
+    private String activeFilter = "ALL"; // ALL, TODAY, WEEK, COMPLETED
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_tasks);
+
+        auth = FirebaseAuth.getInstance();
+        db = FirebaseFirestore.getInstance();
+
+        // Bind Views
+        btnBack = findViewById(R.id.btnBack);
+        chipAll = findViewById(R.id.chipAll);
+        chipToday = findViewById(R.id.chipToday);
+        chipWeek = findViewById(R.id.chipWeek);
+        chipCompleted = findViewById(R.id.chipCompleted);
+        txtEmptyTasks = findViewById(R.id.txtEmptyTasks);
+        rvTasks = findViewById(R.id.rvTasks);
+        fabAddTask = findViewById(R.id.fabAddTask);
+
+        btnBack.setOnClickListener(v -> finish());
+
+        rvTasks.setLayoutManager(new LinearLayoutManager(this));
+        adapter = new TasksAdapter(filteredTasks);
+        rvTasks.setAdapter(adapter);
+
+        setupFilters();
+
+        fabAddTask.setOnClickListener(v -> {
+            v.startAnimation(android.view.animation.AnimationUtils.loadAnimation(this, R.anim.button_pop));
+            startActivity(new Intent(TasksActivity.this, AddTaskActivity.class));
+        });
+
+        loadTasks();
+    }
+
+    private void setupFilters() {
+        chipAll.setOnClickListener(v -> setFilter("ALL", chipAll));
+        chipToday.setOnClickListener(v -> setFilter("TODAY", chipToday));
+        chipWeek.setOnClickListener(v -> setFilter("WEEK", chipWeek));
+        chipCompleted.setOnClickListener(v -> setFilter("COMPLETED", chipCompleted));
+    }
+
+    private void setFilter(String filter, TextView activeChip) {
+        activeFilter = filter;
+        resetChipStyles();
+        activeChip.setBackgroundResource(R.drawable.rounded_button);
+        activeChip.setTextColor(getResources().getColor(R.color.on_primary));
+        applyFilter();
+    }
+
+    private void resetChipStyles() {
+        TextView[] chips = {chipAll, chipToday, chipWeek, chipCompleted};
+        for (TextView chip : chips) {
+            chip.setBackgroundResource(R.drawable.chip_background);
+            chip.setTextColor(getResources().getColor(R.color.text_secondary));
+        }
+    }
+
+    private void loadTasks() {
+        if (auth.getCurrentUser() == null) return;
+        String userId = auth.getCurrentUser().getUid();
+
+        tasksListener = db.collection("users")
+                .document(userId)
+                .collection("tasks")
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .addSnapshotListener((snapshots, e) -> {
+                    if (snapshots == null) return;
+                    allTasks.clear();
+                    for (DocumentSnapshot doc : snapshots) {
+                        allTasks.add(Task.fromDocument(doc));
+                    }
+                    applyFilter();
+                });
+    }
+
+    private void applyFilter() {
+        filteredTasks.clear();
+
+        Calendar cal = Calendar.getInstance();
+        long now = cal.getTimeInMillis();
+
+        List<Task> incomplete = new ArrayList<>();
+        List<Task> completed = new ArrayList<>();
+
+        for (Task task : allTasks) {
+            boolean matches = false;
+            switch (activeFilter) {
+                case "ALL":
+                    matches = true;
+                    break;
+                case "TODAY":
+                    if (!task.isCompleted() && task.getDueDate() != null) {
+                        cal.set(Calendar.HOUR_OF_DAY, 0);
+                        cal.set(Calendar.MINUTE, 0);
+                        cal.set(Calendar.SECOND, 0);
+                        cal.set(Calendar.MILLISECOND, 0);
+                        long startOfDay = cal.getTimeInMillis();
+                        cal.set(Calendar.HOUR_OF_DAY, 23);
+                        cal.set(Calendar.MINUTE, 59);
+                        cal.set(Calendar.SECOND, 59);
+                        cal.set(Calendar.MILLISECOND, 999);
+                        long endOfDay = cal.getTimeInMillis();
+                        matches = task.getDueDate() >= startOfDay && task.getDueDate() <= endOfDay;
+                    }
+                    break;
+                case "WEEK":
+                    if (!task.isCompleted() && task.getDueDate() != null) {
+                        cal.set(Calendar.DAY_OF_WEEK, cal.getFirstDayOfWeek());
+                        cal.set(Calendar.HOUR_OF_DAY, 0);
+                        cal.set(Calendar.MINUTE, 0);
+                        cal.set(Calendar.SECOND, 0);
+                        cal.set(Calendar.MILLISECOND, 0);
+                        long startOfWeek = cal.getTimeInMillis();
+                        cal.add(Calendar.DAY_OF_YEAR, 7);
+                        long endOfWeek = cal.getTimeInMillis();
+                        matches = task.getDueDate() >= startOfWeek && task.getDueDate() <= endOfWeek;
+                    }
+                    break;
+                case "COMPLETED":
+                    matches = task.isCompleted();
+                    break;
+            }
+
+            if (matches) {
+                if (task.isCompleted()) {
+                    completed.add(task);
+                } else {
+                    incomplete.add(task);
+                }
+            }
+        }
+
+        // Sort incomplete tasks by Priority: High -> Medium -> Low
+        incomplete.sort((t1, t2) -> getPriorityValue(t2.getPriority()) - getPriorityValue(t1.getPriority()));
+
+        filteredTasks.addAll(incomplete);
+        filteredTasks.addAll(completed);
+
+        adapter.notifyDataSetChanged();
+
+        if (filteredTasks.isEmpty()) {
+            txtEmptyTasks.setVisibility(View.VISIBLE);
+            rvTasks.setVisibility(View.GONE);
+        } else {
+            txtEmptyTasks.setVisibility(View.GONE);
+            rvTasks.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private int getPriorityValue(String priority) {
+        if ("HIGH".equalsIgnoreCase(priority)) return 3;
+        if ("MEDIUM".equalsIgnoreCase(priority)) return 2;
+        return 1;
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (tasksListener != null) {
+            tasksListener.remove();
+        }
+    }
+
+    // Recycler Adapter
+    private class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.ViewHolder> {
+        private final List<Task> list;
+
+        public TasksAdapter(List<Task> list) {
+            this.list = list;
+        }
+
+        @NonNull
+        @Override
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_task, parent, false);
+            return new ViewHolder(view);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            Task task = list.get(position);
+
+            holder.txtTitle.setText(task.getTitle());
+
+            // Checkbox logic
+            holder.cbStatus.setOnCheckedChangeListener(null);
+            holder.cbStatus.setChecked(task.isCompleted());
+
+            if (task.isCompleted()) {
+                holder.txtTitle.setPaintFlags(holder.txtTitle.getPaintFlags() | android.graphics.Paint.STRIKE_THRU_TEXT_FLAG);
+                holder.txtTitle.setTextColor(getResources().getColor(R.color.text_hint));
+            } else {
+                holder.txtTitle.setPaintFlags(holder.txtTitle.getPaintFlags() & (~android.graphics.Paint.STRIKE_THRU_TEXT_FLAG));
+                holder.txtTitle.setTextColor(getResources().getColor(R.color.text_primary));
+            }
+
+            holder.cbStatus.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                if (auth.getCurrentUser() != null) {
+                    db.collection("users")
+                            .document(auth.getCurrentUser().getUid())
+                            .collection("tasks")
+                            .document(task.getId())
+                            .update(
+                                    "isCompleted", isChecked,
+                                    "completedAt", isChecked ? System.currentTimeMillis() : null
+                            )
+                            .addOnSuccessListener(aVoid -> {
+                                Toast.makeText(TasksActivity.this, isChecked ? "Task completed!" : "Task updated!", Toast.LENGTH_SHORT).show();
+                            });
+                }
+            });
+
+            // Due Date
+            if (task.getDueDate() != null && task.getDueDate() > 0) {
+                holder.txtDueDate.setVisibility(View.VISIBLE);
+                SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
+                holder.txtDueDate.setText("Due: " + sdf.format(new Date(task.getDueDate())));
+            } else {
+                holder.txtDueDate.setVisibility(View.GONE);
+            }
+
+            // Priority styling
+            holder.txtPriority.setText(task.getPriority());
+            int priorityColorBg = R.color.priority_medium;
+            if ("HIGH".equalsIgnoreCase(task.getPriority())) {
+                priorityColorBg = R.color.priority_high;
+            } else if ("LOW".equalsIgnoreCase(task.getPriority())) {
+                priorityColorBg = R.color.priority_low;
+            }
+            holder.txtPriority.setBackgroundColor(getResources().getColor(priorityColorBg));
+
+            // Delete action
+            holder.itemView.setOnLongClickListener(v -> {
+                showDeleteDialog(task);
+                return true;
+            });
+        }
+
+        @Override
+        public int getItemCount() {
+            return list.size();
+        }
+
+        private void showDeleteDialog(Task task) {
+            new AlertDialog.Builder(TasksActivity.this)
+                    .setTitle("Delete Task")
+                    .setMessage("Are you sure you want to delete this task?")
+                    .setPositiveButton("Delete", (dialog, which) -> {
+                        if (auth.getCurrentUser() != null) {
+                            db.collection("users")
+                                    .document(auth.getCurrentUser().getUid())
+                                    .collection("tasks")
+                                    .document(task.getId())
+                                    .delete();
+                        }
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        }
+
+        class ViewHolder extends RecyclerView.ViewHolder {
+            CheckBox cbStatus;
+            TextView txtTitle, txtDueDate, txtPriority;
+
+            public ViewHolder(@NonNull View itemView) {
+                super(itemView);
+                cbStatus = itemView.findViewById(R.id.cbTaskStatus);
+                txtTitle = itemView.findViewById(R.id.txtTaskTitle);
+                txtDueDate = itemView.findViewById(R.id.txtTaskDueDate);
+                txtPriority = itemView.findViewById(R.id.txtTaskPriority);
+            }
+        }
+    }
+}

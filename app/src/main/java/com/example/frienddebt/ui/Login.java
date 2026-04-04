@@ -111,8 +111,8 @@ public class Login extends AppCompatActivity {
     }
 
     private void navigateToMainActivity() {
-        // Navigate to MainActivity (your groups list) instead of GroupDetailActivity
-        startActivity(new Intent(Login.this, MainActivity.class));
+        // Navigate to DashboardActivity instead of MainActivity
+        startActivity(new Intent(Login.this, DashboardActivity.class));
         finish();
     }
 }

@@ -133,13 +133,16 @@ public class SettlementSuggestionsActivity extends AppCompatActivity {
                             users.add(getOrCreateUser(p));
                         }
 
+                        Long updatedAtVal = doc.getLong("updatedAt");
+                        long txTimestamp = (updatedAtVal != null) ? updatedAtVal : System.currentTimeMillis();
+
                         Transaction t = new Transaction(
                                 group,
                                 payer,
                                 users,
                                 amount != null ? amount : 0,
                                 desc != null ? desc : "",
-                                System.currentTimeMillis()
+                                txTimestamp
                         );
                         transactions.add(t);
                     }

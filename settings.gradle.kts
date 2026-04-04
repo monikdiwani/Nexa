@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "FriendDebtSimplifier"
+rootProject.name = "Nexa"
 include(":app")

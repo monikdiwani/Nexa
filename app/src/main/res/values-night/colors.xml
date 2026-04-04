@@ -1,14 +1,69 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Dark mode overrides -->
-    <color name="background_primary">#020617</color> <!-- very dark blue/black -->
-    <color name="surface_primary">#0B1120</color>    <!-- card / surface -->
+    <!-- ═══════════ NEXA DARK MODE COLORS ═══════════ -->
 
-    <color name="primary">#7C3AED</color>
+    <!-- Primary Brand (slightly brighter in dark) -->
+    <color name="primary">#7B73FF</color>
+    <color name="primary_dark">#6C63FF</color>
+    <color name="primary_light">#A9A3FF</color>
+    <color name="primary_surface">#1E1B3A</color>
     <color name="on_primary">#FFFFFF</color>
 
-    <color name="text_primary">#F9FAFB</color>
-    <color name="text_secondary">#9CA3AF</color>
+    <!-- Secondary -->
+    <color name="secondary">#FF7B7B</color>
+    <color name="secondary_dark">#FF6B6B</color>
+    <color name="on_secondary">#FFFFFF</color>
 
-    <color name="accent_positive">#22C55E</color>
+    <!-- Background & Surface -->
+    <color name="background_primary">#0B0B1A</color>
+    <color name="surface_primary">#141428</color>
+    <color name="surface_elevated">#1C1C36</color>
+    <color name="surface_card">#1A1A30</color>
+
+    <!-- Text -->
+    <color name="text_primary">#F1F1F6</color>
+    <color name="text_secondary">#9CA3AF</color>
+    <color name="text_hint">#6B7280</color>
+    <color name="text_on_dark">#FFFFFF</color>
+
+    <!-- Semantic Colors -->
+    <color name="accent_positive">#34D399</color>
+    <color name="accent_negative">#FF6B6B</color>
+    <color name="accent_warning">#FBBF24</color>
+    <color name="accent_info">#60A5FA</color>
+
+    <!-- Cashbook specific -->
+    <color name="cash_in">#34D399</color>
+    <color name="cash_in_bg">#0D2A22</color>
+    <color name="cash_out">#FF6B6B</color>
+    <color name="cash_out_bg">#2A0D0D</color>
+    <color name="bank_color">#60A5FA</color>
+    <color name="bank_color_bg">#0D1A2A</color>
+
+    <!-- Priority colors -->
+    <color name="priority_high">#FF6B6B</color>
+    <color name="priority_medium">#FBBF24</color>
+    <color name="priority_low">#34D399</color>
+
+    <!-- Gradient colors -->
+    <color name="gradient_purple_start">#6C63FF</color>
+    <color name="gradient_purple_end">#9D97FF</color>
+    <color name="gradient_green_start">#00C897</color>
+    <color name="gradient_green_end">#34D399</color>
+    <color name="gradient_red_start">#FF5252</color>
+    <color name="gradient_red_end">#FF8A80</color>
+    <color name="gradient_blue_start">#3B82F6</color>
+    <color name="gradient_blue_end">#60A5FA</color>
+    <color name="gradient_amber_start">#FFB020</color>
+    <color name="gradient_amber_end">#FBBF24</color>
+
+    <!-- Bottom nav -->
+    <color name="nav_selected">#7B73FF</color>
+    <color name="nav_unselected">#6B7280</color>
+
+    <!-- Divider -->
+    <color name="divider">#2D2D4A</color>
+
+    <!-- Ripple -->
+    <color name="ripple_primary">#336C63FF</color>
 </resources>
