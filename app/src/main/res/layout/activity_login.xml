@@ -1,155 +1,224 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:animateLayoutChanges="true"
     android:background="@color/background_primary">
 
-    <TextView
-        android:id="@+id/textView2"
+    <!-- Top Gradient Header Background -->
+    <View
+        android:id="@+id/header_bg"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textAlignment="center"
-        android:textColor="@color/text_primary"
-        android:textSize="29sp"
-        android:textStyle="bold"
-        android:layout_marginTop="80dp"
-        android:text="Welcome Back" />
+        android:layout_height="260dp"
+        android:background="@drawable/bg_gradient_auth"
+        app:layout_constraintTop_toTopOf="parent" />
 
-    <TextView
-        android:id="@+id/textView3"
+    <!-- Scrollable container for forms (safe for keyboards) -->
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textColor="@color/text_secondary"
-        android:layout_marginTop="6dp"
-        android:textAlignment="center"
-        android:text="Log in to your account to continue" />
+        android:layout_height="match_parent"
+        android:fillViewport="true">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="29dp"
-        android:paddingTop="8dp"
-        android:paddingStart="20dp"
-        android:paddingEnd="20dp"
-        android:paddingBottom="12dp"
-        android:orientation="vertical">
-
-        <TextView
-            android:id="@+id/emailLabel"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:paddingBottom="6dp"
-            android:text="Email"
-            android:textColor="@color/text_secondary"
-            android:textSize="19sp" />
-
-        <EditText
-            android:id="@+id/emailInput"
+        <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@drawable/rounded_edittext"
-            android:hint="Enter your email"
-            android:inputType="textEmailAddress"
-            android:padding="15dp"
-            android:textColorHint="@color/text_secondary" />
-    </LinearLayout>
+            android:padding="24dp">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingTop="8dp"
-        android:paddingStart="20dp"
-        android:paddingEnd="20dp"
-        android:paddingBottom="12dp"
-        android:orientation="vertical">
+            <!-- Brand Logo & Header Text -->
+            <ImageView
+                android:id="@+id/logo_icon"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:layout_marginTop="32dp"
+                android:src="@drawable/ic_logo_n"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                android:contentDescription="Nexa Logo" />
 
-        <TextView
-            android:id="@+id/password"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:paddingBottom="6dp"
-            android:text="Password"
-            android:textColor="@color/text_secondary"
-            android:textSize="19sp" />
+            <TextView
+                android:id="@+id/welcome_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Welcome Back"
+                android:textColor="#FFFFFF"
+                android:textSize="32sp"
+                android:textStyle="bold"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/logo_icon" />
 
-        <EditText
-            android:id="@+id/editTextTextPassword"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ems="10"
-            android:padding="15dp"
-            android:textColorHint="@color/text_secondary"
-            android:hint="Enter your password"
-            android:background="@drawable/rounded_edittext"
-            android:inputType="textPassword" />
-    </LinearLayout>
+            <TextView
+                android:id="@+id/welcome_subtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Log in to your account to continue"
+                android:textColor="#B0FFFFFF"
+                android:textSize="14sp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/welcome_title" />
 
-    <TextView
-        android:id="@+id/forgot"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textColor="@color/primary"
-        android:textSize="15sp"
-        android:layout_marginTop="8dp"
-        android:paddingEnd="20dp"
-        android:gravity="end"
-        android:text="Forgot Password?" />
+            <!-- Login Form Card -->
+            <LinearLayout
+                android:id="@+id/form_card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="32dp"
+                android:background="@drawable/card_elevated"
+                android:elevation="4dp"
+                android:orientation="vertical"
+                android:padding="20dp"
+                app:layout_constraintTop_toBottomOf="@id/welcome_subtitle">
 
-    <androidx.appcompat.widget.AppCompatButton
-        android:id="@+id/btnStartNav"
-        android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:layout_marginStart="20dp"
-        android:layout_marginTop="60dp"
-        android:layout_marginEnd="20dp"
-        android:background="@drawable/rounded_button"
-        android:text="Login"
-        android:textAllCaps="false"
-        android:textColor="@android:color/white"
-        android:textSize="18sp" />
+                <!-- Email field -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Email"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
 
-    <androidx.appcompat.widget.AppCompatButton
-        android:id="@+id/btnGoogleLogin"
-        android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:layout_marginStart="20dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="20dp"
-        android:background="@drawable/rounded_edittext"
-        android:drawableStart="@android:drawable/ic_menu_info_details"
-        android:paddingStart="20dp"
-        android:text="Continue with Google"
-        android:textAllCaps="false"
-        android:textColor="@color/text_primary"
-        android:textSize="16sp" />
+                <EditText
+                    android:id="@+id/emailInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="16dp"
+                    android:background="@drawable/rounded_edittext"
+                    android:hint="Enter your email"
+                    android:inputType="textEmailAddress"
+                    android:padding="16dp"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_hint"
+                    android:textSize="16sp" />
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:layout_marginTop="24dp"
-        android:orientation="horizontal">
+                <!-- Password field -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Password"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Don't have an account? "
-            android:textColor="@color/text_secondary"
-            android:textSize="15sp" />
+                <EditText
+                    android:id="@+id/editTextTextPassword"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/rounded_edittext"
+                    android:hint="Enter your password"
+                    android:inputType="textPassword"
+                    android:padding="16dp"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_hint"
+                    android:textSize="16sp" />
 
-        <TextView
-            android:id="@+id/signUpLink"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Sign Up"
-            android:textColor="@color/primary"
-            android:textSize="15sp"
-            android:textStyle="bold" />
-    </LinearLayout>
+                <!-- Forgot Password -->
+                <TextView
+                    android:id="@+id/forgot"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="end"
+                    android:layout_marginTop="12dp"
+                    android:padding="4dp"
+                    android:text="Forgot Password?"
+                    android:textColor="@color/primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
 
-</LinearLayout>
+                <!-- Login Button -->
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/btnStartNav"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="24dp"
+                    android:background="@drawable/rounded_button"
+                    android:text="Login"
+                    android:textAllCaps="false"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <!-- Divider -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:gravity="center"
+                    android:orientation="horizontal">
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_weight="1"
+                        android:background="@color/divider" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="16dp"
+                        android:text="OR"
+                        android:textColor="@color/text_hint"
+                        android:textSize="12sp" />
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_weight="1"
+                        android:background="@color/divider" />
+                </LinearLayout>
+
+                <!-- Google Sign In Button -->
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/btnGoogleLogin"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="20dp"
+                    android:background="@drawable/rounded_edittext"
+                    android:drawableStart="@drawable/ic_google"
+                    android:drawablePadding="12dp"
+                    android:paddingStart="24dp"
+                    android:text="Continue with Google"
+                    android:textAllCaps="false"
+                    android:textColor="@color/text_primary"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
+
+            <!-- Bottom Registration Link -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="32dp"
+                android:orientation="horizontal"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/form_card">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Don't have an account? "
+                    android:textColor="@color/text_secondary"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/signUpLink"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Sign Up"
+                    android:textColor="@color/primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.core.widget.NestedScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

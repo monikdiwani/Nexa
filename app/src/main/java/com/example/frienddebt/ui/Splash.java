@@ -20,7 +20,6 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.example.frienddebt.R;
-import com.example.frienddebt.ui.LandingPage;
 import com.example.frienddebt.ui.DashboardActivity;
 import com.google.firebase.auth.FirebaseAuth;
 
@@ -51,6 +50,43 @@ public class Splash extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+
+        // Setup Views for Animation
+        android.widget.ImageView logo = findViewById(R.id.splash_logo);
+        android.widget.TextView title = findViewById(R.id.splash_title);
+        android.widget.TextView tagline = findViewById(R.id.splash_tagline);
+
+        if (logo != null && title != null && tagline != null) {
+            logo.setAlpha(0f);
+            logo.setScaleX(0.7f);
+            logo.setScaleY(0.7f);
+            title.setAlpha(0f);
+            title.setTranslationY(30f);
+            tagline.setAlpha(0f);
+            tagline.setTranslationY(20f);
+
+            logo.animate()
+                    .alpha(1f)
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .setDuration(1000)
+                    .setInterpolator(new android.view.animation.OvershootInterpolator())
+                    .start();
+
+            title.animate()
+                    .alpha(1f)
+                    .translationY(0f)
+                    .setDuration(800)
+                    .setStartDelay(200)
+                    .start();
+
+            tagline.animate()
+                    .alpha(1f)
+                    .translationY(0f)
+                    .setDuration(800)
+                    .setStartDelay(500)
+                    .start();
+        }
 
         // DELAY AND CHECK AUTO-LOGIN
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
@@ -90,14 +126,14 @@ public class Splash extends AppCompatActivity {
     private void checkAutoLoginAndNavigate() {
         if (hasNavigated) return;
         hasNavigated = true;
-
+ 
         FirebaseAuth auth = FirebaseAuth.getInstance();
         if (auth.getCurrentUser() != null) {
             Intent intent = new Intent(Splash.this, DashboardActivity.class);
             startActivity(intent);
             finish();
         } else {
-            Intent intent = new Intent(Splash.this, LandingPage.class);
+            Intent intent = new Intent(Splash.this, Login.class);
             startActivity(intent);
             finish();
         }

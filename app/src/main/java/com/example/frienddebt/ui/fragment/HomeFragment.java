@@ -123,14 +123,19 @@ public class HomeFragment extends Fragment {
         txtGreeting.setText(greeting);
 
         if (auth.getCurrentUser() != null) {
-            String email = auth.getCurrentUser().getEmail();
-            if (email != null) {
-                int index = email.indexOf('@');
-                String name = index != -1 ? email.substring(0, index) : email;
-                if (name.length() > 0) {
-                    name = name.substring(0, 1).toUpperCase() + name.substring(1);
+            String displayName = auth.getCurrentUser().getDisplayName();
+            if (displayName != null && !displayName.trim().isEmpty()) {
+                txtUserName.setText(displayName);
+            } else {
+                String email = auth.getCurrentUser().getEmail();
+                if (email != null) {
+                    int index = email.indexOf('@');
+                    String name = index != -1 ? email.substring(0, index) : email;
+                    if (name.length() > 0) {
+                        name = name.substring(0, 1).toUpperCase() + name.substring(1);
+                    }
+                    txtUserName.setText(name);
                 }
-                txtUserName.setText(name);
             }
         }
     }

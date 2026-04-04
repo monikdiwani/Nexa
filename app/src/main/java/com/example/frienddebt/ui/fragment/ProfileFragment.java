@@ -66,11 +66,18 @@ public class ProfileFragment extends Fragment {
             Animation pop = AnimationUtils.loadAnimation(requireContext(), R.anim.button_pop);
             v.startAnimation(pop);
 
-            auth.signOut();
-            Intent intent = new Intent(requireActivity(), Login.class);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(intent);
-            requireActivity().finish();
+            new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                    .setTitle("Logout")
+                    .setMessage("Are you sure you want to log out?")
+                    .setPositiveButton("Logout", (dialog, which) -> {
+                        auth.signOut();
+                        Intent intent = new Intent(requireActivity(), Login.class);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                        startActivity(intent);
+                        requireActivity().finish();
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
         });
 
         return view;

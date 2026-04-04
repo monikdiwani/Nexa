@@ -1,69 +1,101 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- ═══════════ NEXA DARK MODE COLORS ═══════════ -->
+    <!-- ═══════════════════════════════════════════════════════
+         NEXA COLOR SYSTEM — Dark Mode
+         Primary: Lightened Indigo/Violet for readability
+    ═══════════════════════════════════════════════════════ -->
 
-    <!-- Primary Brand (slightly brighter in dark) -->
-    <color name="primary">#7B73FF</color>
-    <color name="primary_dark">#6C63FF</color>
-    <color name="primary_light">#A9A3FF</color>
-    <color name="primary_surface">#1E1B3A</color>
-    <color name="on_primary">#FFFFFF</color>
+    <!-- Legacy compat names (kept to avoid any stale references) -->
+    <color name="purple_200">#B39DDB</color>
+    <color name="purple_500">#7986CB</color>
+    <color name="purple_700">#5C6BC0</color>
+    <color name="teal_200">#80DEEA</color>
+    <color name="teal_700">#4DD0E1</color>
+    <color name="black">#FFFFFF</color>
+    <color name="white">#0F0F1A</color>
 
-    <!-- Secondary -->
-    <color name="secondary">#FF7B7B</color>
-    <color name="secondary_dark">#FF6B6B</color>
-    <color name="on_secondary">#FFFFFF</color>
+    <!-- Primary Brand — Lightened Indigo -->
+    <color name="primary">#7986CB</color>
+    <color name="primary_dark">#5C6BC0</color>
+    <color name="primary_light">#C5CAE9</color>
+    <color name="primary_surface">#28293E</color>
+    <color name="on_primary">#1A1A2E</color>
 
-    <!-- Background & Surface -->
-    <color name="background_primary">#0B0B1A</color>
-    <color name="surface_primary">#141428</color>
-    <color name="surface_elevated">#1C1C36</color>
-    <color name="surface_card">#1A1A30</color>
+    <!-- Secondary / Accent — Lightened Teal -->
+    <color name="secondary">#80DEEA</color>
+    <color name="secondary_dark">#4DD0E1</color>
+    <color name="on_secondary">#1A1A2E</color>
+
+    <!-- Backgrounds and Surfaces -->
+    <color name="background_primary">#0F0F1A</color>
+    <color name="surface_primary">#1A1A2E</color>
+    <color name="surface_elevated">#24243E</color>
+    <color name="surface_card">#1A1A2E</color>
 
     <!-- Text -->
-    <color name="text_primary">#F1F1F6</color>
-    <color name="text_secondary">#9CA3AF</color>
-    <color name="text_hint">#6B7280</color>
+    <color name="text_primary">#E8E8F0</color>
+    <color name="text_secondary">#A5A5C0</color>
+    <color name="text_hint">#6E6E85</color>
     <color name="text_on_dark">#FFFFFF</color>
 
-    <!-- Semantic Colors -->
-    <color name="accent_positive">#34D399</color>
-    <color name="accent_negative">#FF6B6B</color>
-    <color name="accent_warning">#FBBF24</color>
-    <color name="accent_info">#60A5FA</color>
+    <!-- Semantic / Status -->
+    <color name="accent_positive">#81C784</color>
+    <color name="accent_negative">#E57373</color>
+    <color name="accent_warning">#FFB74D</color>
+    <color name="accent_info">#64B5F6</color>
 
     <!-- Cashbook specific -->
-    <color name="cash_in">#34D399</color>
-    <color name="cash_in_bg">#0D2A22</color>
-    <color name="cash_out">#FF6B6B</color>
-    <color name="cash_out_bg">#2A0D0D</color>
-    <color name="bank_color">#60A5FA</color>
-    <color name="bank_color_bg">#0D1A2A</color>
+    <color name="cash_in">#81C784</color>
+    <color name="cash_in_bg">#1E382A</color>
+    <color name="cash_out">#E57373</color>
+    <color name="cash_out_bg">#3D2024</color>
+    <color name="bank_color">#64B5F6</color>
+    <color name="bank_color_bg">#1B2F44</color>
 
     <!-- Priority colors -->
-    <color name="priority_high">#FF6B6B</color>
-    <color name="priority_medium">#FBBF24</color>
-    <color name="priority_low">#34D399</color>
+    <color name="priority_high">#E57373</color>
+    <color name="priority_medium">#FFB74D</color>
+    <color name="priority_low">#81C784</color>
 
-    <!-- Gradient colors -->
-    <color name="gradient_purple_start">#6C63FF</color>
-    <color name="gradient_purple_end">#9D97FF</color>
-    <color name="gradient_green_start">#00C897</color>
-    <color name="gradient_green_end">#34D399</color>
-    <color name="gradient_red_start">#FF5252</color>
-    <color name="gradient_red_end">#FF8A80</color>
-    <color name="gradient_blue_start">#3B82F6</color>
-    <color name="gradient_blue_end">#60A5FA</color>
-    <color name="gradient_amber_start">#FFB020</color>
-    <color name="gradient_amber_end">#FBBF24</color>
+    <!-- Note card backgrounds (dark mode muted tones) -->
+    <color name="note_bg_1">#2D2D20</color>
+    <color name="note_bg_2">#202D20</color>
+    <color name="note_bg_3">#202D30</color>
+    <color name="note_bg_4">#30202D</color>
+    <color name="note_bg_5">#2B2520</color>
+    <color name="note_bg_6">#252B2D</color>
+
+    <!-- Gradient pairs for feature cards -->
+    <color name="gradient_purple_start">#7986CB</color>
+    <color name="gradient_purple_end">#5C6BC0</color>
+    <color name="gradient_green_start">#81C784</color>
+    <color name="gradient_green_end">#43A047</color>
+    <color name="gradient_red_start">#E57373</color>
+    <color name="gradient_red_end">#E53935</color>
+    <color name="gradient_blue_start">#64B5F6</color>
+    <color name="gradient_blue_end">#1E88E5</color>
+    <color name="gradient_amber_start">#FFB74D</color>
+    <color name="gradient_amber_end">#FB8C00</color>
+    <color name="gradient_teal_start">#80DEEA</color>
+    <color name="gradient_teal_end">#00ACC1</color>
+
+    <!-- Auth gradient -->
+    <color name="auth_gradient_top">#0F0F1A</color>
+    <color name="auth_gradient_bottom">#1A1A2E</color>
+
+    <!-- Splash -->
+    <color name="splash_bg_top">#0F0F1A</color>
+    <color name="splash_bg_bottom">#1A1A2E</color>
 
     <!-- Bottom nav -->
-    <color name="nav_selected">#7B73FF</color>
-    <color name="nav_unselected">#6B7280</color>
+    <color name="nav_selected">#7986CB</color>
+    <color name="nav_unselected">#6E6E85</color>
 
-    <!-- Divider -->
-    <color name="divider">#2D2D4A</color>
+    <!-- Divider / stroke -->
+    <color name="divider">#2D2D44</color>
+    <color name="stroke_light">#3D3D5C</color>
 
     <!-- Ripple -->
-    <color name="ripple_primary">#336C63FF</color>
+    <color name="ripple_primary">#1A7986CB</color>
+    <color name="ripple_negative">#1AE57373</color>
 </resources>

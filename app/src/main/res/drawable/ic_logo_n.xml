@@ -1,0 +1,14 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="96dp"
+    android:height="96dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+  <!-- Modern clean geometric N -->
+  <path
+      android:fillColor="#FFFFFFFF"
+      android:pathData="M16,12h8l16,26V12h8v40h-8L24,26v26h-8V12z" />
+  <!-- Small dot accent for modern brand look -->
+  <path
+      android:fillColor="@color/secondary"
+      android:pathData="M48,52a4,4 0,1,0 8,0a4,4 0,1,0 -8,0z"/>
+</vector>

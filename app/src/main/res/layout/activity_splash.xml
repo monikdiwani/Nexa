@@ -1,11 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background_primary">
+    android:background="@drawable/bg_gradient_splash">
 
+    <LinearLayout
+        android:id="@+id/logo_container"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <ImageView
+            android:id="@+id/splash_logo"
+            android:layout_width="96dp"
+            android:layout_height="96dp"
+            android:src="@drawable/ic_logo_n"
+            android:contentDescription="Nexa Logo" />
+
+        <TextView
+            android:id="@+id/splash_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="NEXA"
+            android:textColor="#FFFFFF"
+            android:textSize="36sp"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif-condensed"
+            android:letterSpacing="0.15"
+            android:layout_marginTop="16dp" />
+
+        <TextView
+            android:id="@+id/splash_tagline"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Your Life, Organized."
+            android:textColor="#B0FFFFFF"
+            android:textSize="16sp"
+            android:letterSpacing="0.05"
+            android:layout_marginTop="8dp" />
+
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

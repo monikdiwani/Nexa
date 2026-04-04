@@ -148,6 +148,25 @@ public class NotesFragment extends Fragment {
             SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
             holder.txtDate.setText(sdf.format(new Date(note.getUpdatedAt())));
 
+            // Dynamic pastel background color based on ID hash code
+            int[] pastelColors = {
+                R.color.note_bg_1,
+                R.color.note_bg_2,
+                R.color.note_bg_3,
+                R.color.note_bg_4,
+                R.color.note_bg_5,
+                R.color.note_bg_6
+            };
+            int colorIndex = Math.abs(note.getId() != null ? note.getId().hashCode() : position) % pastelColors.length;
+            int colorVal = androidx.core.content.ContextCompat.getColor(holder.itemView.getContext(), pastelColors[colorIndex]);
+            android.graphics.drawable.Drawable background = holder.itemView.getBackground();
+            if (background instanceof android.graphics.drawable.GradientDrawable) {
+                android.graphics.drawable.GradientDrawable gd = (android.graphics.drawable.GradientDrawable) background.mutate();
+                gd.setColor(colorVal);
+            } else {
+                holder.itemView.setBackgroundColor(colorVal);
+            }
+
             holder.itemView.setOnClickListener(v -> {
                 Intent intent = new Intent(requireActivity(), AddEditNoteActivity.class);
                 intent.putExtra("NOTE_ID", note.getId());
@@ -155,7 +174,28 @@ public class NotesFragment extends Fragment {
             });
 
             holder.itemView.setOnLongClickListener(v -> {
-                showDeleteDialog(note);
+                android.widget.PopupMenu popup = new android.widget.PopupMenu(holder.itemView.getContext(), holder.itemView);
+                popup.getMenu().add("Edit");
+                popup.getMenu().add("Delete");
+                popup.getMenu().add("Share");
+                popup.setOnMenuItemClickListener(item -> {
+                    String titleSelected = item.getTitle().toString();
+                    if ("Edit".equals(titleSelected)) {
+                        Intent intent = new Intent(requireActivity(), AddEditNoteActivity.class);
+                        intent.putExtra("NOTE_ID", note.getId());
+                        startActivity(intent);
+                    } else if ("Delete".equals(titleSelected)) {
+                        showDeleteDialog(note);
+                    } else if ("Share".equals(titleSelected)) {
+                        Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                        shareIntent.setType("text/plain");
+                        shareIntent.putExtra(Intent.EXTRA_SUBJECT, note.getTitle());
+                        shareIntent.putExtra(Intent.EXTRA_TEXT, note.getContent());
+                        startActivity(Intent.createChooser(shareIntent, "Share Note"));
+                    }
+                    return true;
+                });
+                popup.show();
                 return true;
             });
         }

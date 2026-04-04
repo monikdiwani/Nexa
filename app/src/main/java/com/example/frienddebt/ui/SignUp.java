@@ -30,7 +30,7 @@ import java.util.concurrent.Executor;
 public class SignUp extends AppCompatActivity {
 
     private static final String TAG = "SignUpActivity";
-    EditText emailInput, passwordInput, confirmPasswordInput;
+    EditText nameInput, emailInput, passwordInput, confirmPasswordInput;
     Button btnStartNav, btnGoogleSignUp;
     TextView tvLogin;
     FirebaseAuth firebaseAuth;
@@ -44,6 +44,7 @@ public class SignUp extends AppCompatActivity {
         firebaseAuth = FirebaseAuth.getInstance();
         credentialManager = CredentialManager.create(this);
 
+        nameInput             = findViewById(R.id.nameInput);
         emailInput            = findViewById(R.id.emailInput);
         passwordInput         = findViewById(R.id.editTextTextPassword);
         confirmPasswordInput  = findViewById(R.id.confrimPassword);
@@ -73,12 +74,13 @@ public class SignUp extends AppCompatActivity {
     }
 
     private void createUser() {
+        String name = nameInput.getText().toString().trim();
         String email = emailInput.getText().toString().trim();
         String pass = passwordInput.getText().toString().trim();
         String confirm = confirmPasswordInput.getText().toString().trim();
 
         // Validation
-        if (email.isEmpty() || pass.isEmpty() || confirm.isEmpty()) {
+        if (name.isEmpty() || email.isEmpty() || pass.isEmpty() || confirm.isEmpty()) {
             Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show();
             return;
         }
@@ -105,22 +107,37 @@ public class SignUp extends AppCompatActivity {
 
         firebaseAuth.createUserWithEmailAndPassword(email, pass)
                 .addOnCompleteListener(task -> {
-                    // Re-enable button
-                    btnStartNav.setEnabled(true);
-                    btnStartNav.setText("Create Account");
+                    if (task.isSuccessful()) {
+                        com.google.firebase.auth.FirebaseUser user = firebaseAuth.getCurrentUser();
+                        if (user != null) {
+                            com.google.firebase.auth.UserProfileChangeRequest profileUpdates = new com.google.firebase.auth.UserProfileChangeRequest.Builder()
+                                    .setDisplayName(name)
+                                    .build();
+                            user.updateProfile(profileUpdates).addOnCompleteListener(profileTask -> {
+                                btnStartNav.setEnabled(true);
+                                btnStartNav.setText("Create Account");
+                                Toast.makeText(SignUp.this, "Account Created Successfully!", Toast.LENGTH_SHORT).show();
 
-                    if(task.isSuccessful()){
-                        Toast.makeText(this, "Account Created Successfully!", Toast.LENGTH_SHORT).show();
+                                // Clear input fields
+                                nameInput.setText("");
+                                emailInput.setText("");
+                                passwordInput.setText("");
+                                confirmPasswordInput.setText("");
 
-                        // Clear input fields
-                        emailInput.setText("");
-                        passwordInput.setText("");
-                        confirmPasswordInput.setText("");
-
-                        // Redirect straight to Dashboard
-                        startActivity(new Intent(SignUp.this, DashboardActivity.class));
-                        finish();
+                                // Redirect straight to Dashboard
+                                startActivity(new Intent(SignUp.this, DashboardActivity.class));
+                                finish();
+                            });
+                        } else {
+                            btnStartNav.setEnabled(true);
+                            btnStartNav.setText("Create Account");
+                            Toast.makeText(this, "Account Created Successfully!", Toast.LENGTH_SHORT).show();
+                            startActivity(new Intent(SignUp.this, DashboardActivity.class));
+                            finish();
+                        }
                     } else {
+                        btnStartNav.setEnabled(true);
+                        btnStartNav.setText("Create Account");
                         String errorMessage = task.getException() != null ?
                                 task.getException().getMessage() : "Registration failed";
                         Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show();
