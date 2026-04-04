@@ -9,17 +9,32 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+import androidx.credentials.CredentialManager;
+import androidx.credentials.GetCredentialRequest;
+import androidx.credentials.GetCredentialResponse;
+import androidx.credentials.exceptions.GetCredentialException;
 
 import com.example.frienddebt.R;
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
+import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.GoogleAuthProvider;
+
+import android.util.Log;
+import java.util.concurrent.Executor;
 
 public class SignUp extends AppCompatActivity {
 
+    private static final String TAG = "SignUpActivity";
     EditText emailInput, passwordInput, confirmPasswordInput;
-    Button btnStartNav;
+    Button btnStartNav, btnGoogleSignUp;
     TextView tvLogin;
     FirebaseAuth firebaseAuth;
+    CredentialManager credentialManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,11 +42,13 @@ public class SignUp extends AppCompatActivity {
         setContentView(R.layout.activity_sign_up);
 
         firebaseAuth = FirebaseAuth.getInstance();
+        credentialManager = CredentialManager.create(this);
 
         emailInput            = findViewById(R.id.emailInput);
         passwordInput         = findViewById(R.id.editTextTextPassword);
         confirmPasswordInput  = findViewById(R.id.confrimPassword);
         btnStartNav           = findViewById(R.id.btnStartNav);
+        btnGoogleSignUp       = findViewById(R.id.btnGoogleSignUp);
         tvLogin               = findViewById(R.id.textView4);
 
         // Animate the whole screen on entry
@@ -41,6 +58,11 @@ public class SignUp extends AppCompatActivity {
         btnStartNav.setOnClickListener(v -> {
             v.startAnimation(AnimationUtils.loadAnimation(this, R.anim.button_pop));
             createUser();
+        });
+
+        btnGoogleSignUp.setOnClickListener(v -> {
+            v.startAnimation(AnimationUtils.loadAnimation(this, R.anim.button_pop));
+            signInWithGoogle();
         });
 
         // Handle "Already have an account? Login" click
@@ -95,12 +117,62 @@ public class SignUp extends AppCompatActivity {
                         passwordInput.setText("");
                         confirmPasswordInput.setText("");
 
-                        startActivity(new Intent(SignUp.this, Login.class));
+                        // Redirect straight to Dashboard
+                        startActivity(new Intent(SignUp.this, DashboardActivity.class));
                         finish();
                     } else {
                         String errorMessage = task.getException() != null ?
                                 task.getException().getMessage() : "Registration failed";
                         Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show();
+                    }
+                });
+    }
+
+    private void signInWithGoogle() {
+        GetGoogleIdOption googleIdOption = new GetGoogleIdOption.Builder()
+                .setFilterByAuthorizedAccounts(false)
+                .setServerClientId(getString(R.string.default_web_client_id))
+                .setAutoSelectEnabled(true)
+                .build();
+
+        GetCredentialRequest request = new GetCredentialRequest.Builder()
+                .addCredentialOption(googleIdOption)
+                .build();
+
+        Executor executor = ContextCompat.getMainExecutor(this);
+
+        credentialManager.getCredentialAsync(this, request, null, executor, new androidx.credentials.CredentialManagerCallback<GetCredentialResponse, GetCredentialException>() {
+            @Override
+            public void onResult(GetCredentialResponse result) {
+                try {
+                    GoogleIdTokenCredential googleIdTokenCredential = GoogleIdTokenCredential.createFrom(result.getCredential().getData());
+                    String idToken = googleIdTokenCredential.getIdToken();
+                    firebaseAuthWithGoogle(idToken);
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to parse Google ID Token: " + e.getMessage(), e);
+                    Toast.makeText(SignUp.this, "Failed to parse credentials: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                }
+            }
+
+            @Override
+            public void onError(@NonNull GetCredentialException e) {
+                Log.e(TAG, "Google Sign-In Error: " + e.getMessage(), e);
+                Toast.makeText(SignUp.this, "Google Sign-In Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private void firebaseAuthWithGoogle(String idToken) {
+        AuthCredential credential = GoogleAuthProvider.getCredential(idToken, null);
+        firebaseAuth.signInWithCredential(credential)
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        Toast.makeText(SignUp.this, "Google Registration Successful", Toast.LENGTH_SHORT).show();
+                        startActivity(new Intent(SignUp.this, DashboardActivity.class));
+                        finish();
+                    } else {
+                        String errMsg = task.getException() != null ? task.getException().getMessage() : "Unknown error";
+                        Toast.makeText(SignUp.this, "Firebase Auth Failed: " + errMsg, Toast.LENGTH_LONG).show();
                     }
                 });
     }

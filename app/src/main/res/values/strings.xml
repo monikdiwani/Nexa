@@ -1,5 +1,7 @@
 <resources>
     <string name="app_name">Nexa</string>
+    <!-- Actual Web Client ID from Firebase Console -->
+    <string name="default_web_client_id">681079299904-u1c973gd7rkbvam5442jqnuhm568gcgl.apps.googleusercontent.com</string>
 
     <!-- Dashboard -->
     <string name="nav_home">Home</string>

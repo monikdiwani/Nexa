@@ -131,6 +131,21 @@
         android:textColor="@android:color/white"
         android:textSize="18sp" />
 
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btnGoogleSignUp"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="20dp"
+        android:background="@drawable/rounded_edittext"
+        android:drawableStart="@android:drawable/ic_menu_info_details"
+        android:paddingStart="20dp"
+        android:text="Continue with Google"
+        android:textAllCaps="false"
+        android:textColor="@color/text_primary"
+        android:textSize="16sp" />
+
     <TextView
         android:id="@+id/textView4"
         android:layout_width="match_parent"
