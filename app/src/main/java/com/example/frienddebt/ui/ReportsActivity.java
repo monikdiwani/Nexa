@@ -29,7 +29,10 @@ public class ReportsActivity extends AppCompatActivity {
 
     private ImageButton btnBack;
     private TextView chip7Days, chip30Days;
-    private TextView txtTotalCashIn, txtTotalCashOut, txtNetBalance, txtTaskProgressLabel;
+    private TextView txtTotalCashIn, txtTotalCashOut, txtNetBalance;
+    private TextView txtAvgDaily, txtHighestDay, txtTransactions;
+    private TextView txtChartTitle, txtZeroSpendDays;
+    private TextView txtTaskProgressLabel, txtTaskProgressPercent, txtTaskCounts;
     private CircularProgressIndicator taskProgress;
     private SimpleBarChartView barChart;
     private LinearLayout categoryContainer;
@@ -56,7 +59,14 @@ public class ReportsActivity extends AppCompatActivity {
         txtTotalCashIn = findViewById(R.id.txtTotalCashIn);
         txtTotalCashOut = findViewById(R.id.txtTotalCashOut);
         txtNetBalance = findViewById(R.id.txtNetBalance);
+        txtAvgDaily = findViewById(R.id.txtAvgDaily);
+        txtHighestDay = findViewById(R.id.txtHighestDay);
+        txtTransactions = findViewById(R.id.txtTransactions);
+        txtChartTitle = findViewById(R.id.txtChartTitle);
+        txtZeroSpendDays = findViewById(R.id.txtZeroSpendDays);
         txtTaskProgressLabel = findViewById(R.id.txtTaskProgressLabel);
+        txtTaskProgressPercent = findViewById(R.id.txtTaskProgressPercent);
+        txtTaskCounts = findViewById(R.id.txtTaskCounts);
         taskProgress = findViewById(R.id.taskProgress);
         barChart = findViewById(R.id.barChart);
         categoryContainer = findViewById(R.id.categoryContainer);
@@ -74,7 +84,7 @@ public class ReportsActivity extends AppCompatActivity {
         activeChip.setBackgroundResource(R.drawable.rounded_button);
         activeChip.setTextColor(getResources().getColor(R.color.on_primary));
 
-        inactiveChip.setBackgroundResource(R.drawable.chip_background);
+        inactiveChip.setBackgroundColor(android.graphics.Color.TRANSPARENT);
         inactiveChip.setTextColor(getResources().getColor(R.color.text_secondary));
 
         calculateReports();
@@ -114,28 +124,50 @@ public class ReportsActivity extends AppCompatActivity {
         cal.add(Calendar.DAY_OF_YEAR, -activeDays);
         long cutoffTime = cal.getTimeInMillis();
 
+        // Filter entries to period
         List<CashbookEntry> filteredEntries = new ArrayList<>();
-        double totalIn = 0;
-        double totalOut = 0;
-
         for (CashbookEntry entry : cashbookEntries) {
             if (entry.getDate() >= cutoffTime) {
                 filteredEntries.add(entry);
-                if ("CASH_IN".equalsIgnoreCase(entry.getType())) {
-                    totalIn += entry.getAmount();
-                } else if ("CASH_OUT".equalsIgnoreCase(entry.getType())) {
-                    totalOut += entry.getAmount();
-                }
             }
         }
 
-        txtTotalCashIn.setText(String.format(Locale.getDefault(), "₹%.2f", totalIn));
-        txtTotalCashOut.setText(String.format(Locale.getDefault(), "₹%.2f", totalOut));
-        txtNetBalance.setText(String.format(Locale.getDefault(), "₹%.2f", totalIn - totalOut));
+        // Calculate totals
+        double totalIn = ReportCalculator.getTotalCashIn(filteredEntries);
+        double totalOut = ReportCalculator.getTotalCashOut(filteredEntries);
+        double netBalance = totalIn - totalOut;
 
+        txtTotalCashIn.setText(formatCurrency(totalIn));
+        txtTotalCashOut.setText(formatCurrency(totalOut));
+        txtNetBalance.setText(formatCurrency(netBalance));
+        txtNetBalance.setTextColor(getResources().getColor(
+                netBalance >= 0 ? R.color.accent_positive : R.color.accent_negative));
+
+        // Insight stats
+        double avgDaily = ReportCalculator.getAverageDailySpending(filteredEntries, activeDays);
+        double highestDay = ReportCalculator.getHighestDaySpending(filteredEntries, activeDays);
+        int transactionCount = ReportCalculator.getTransactionCount(filteredEntries);
+        int zeroSpendDays = ReportCalculator.getZeroSpendDays(filteredEntries, activeDays);
+
+        txtAvgDaily.setText(formatCurrencyShort(avgDaily));
+        txtHighestDay.setText(formatCurrencyShort(highestDay));
+        txtTransactions.setText(String.valueOf(transactionCount));
+
+        // Chart title and zero-spend badge
+        if (activeDays <= 7) {
+            txtChartTitle.setText("📈  Daily Outflow Trend");
+        } else {
+            txtChartTitle.setText("📈  Weekly Outflow Trend");
+        }
+        txtZeroSpendDays.setText(zeroSpendDays + " zero days");
+        txtZeroSpendDays.setTextColor(getResources().getColor(
+                zeroSpendDays > 0 ? R.color.accent_positive : R.color.text_hint));
+
+        // Bar chart data
         Map<String, Double> trend = ReportCalculator.getDailyTrend(filteredEntries, activeDays);
         barChart.setData(trend);
 
+        // Category breakdown
         categoryContainer.removeAllViews();
         Map<String, Double> breakdown = ReportCalculator.getCategoryBreakdown(filteredEntries);
 
@@ -143,8 +175,21 @@ public class ReportsActivity extends AppCompatActivity {
             TextView txtEmpty = new TextView(this);
             txtEmpty.setText("No category data found for this period");
             txtEmpty.setTextColor(getResources().getColor(R.color.text_hint));
+            txtEmpty.setTextSize(13f);
+            txtEmpty.setPadding(0, 12, 0, 12);
             categoryContainer.addView(txtEmpty);
         } else {
+            // Assign colors to categories
+            int[] catColors = {
+                    getResources().getColor(R.color.primary),
+                    getResources().getColor(R.color.accent_negative),
+                    getResources().getColor(R.color.accent_warning),
+                    getResources().getColor(R.color.accent_positive),
+                    getResources().getColor(R.color.accent_info),
+                    getResources().getColor(R.color.secondary),
+            };
+            int colorIdx = 0;
+
             for (Map.Entry<String, Double> item : breakdown.entrySet()) {
                 String cat = item.getKey();
                 double amount = item.getValue();
@@ -156,8 +201,13 @@ public class ReportsActivity extends AppCompatActivity {
                 ProgressBar progress = row.findViewById(R.id.progressCat);
 
                 txtName.setText(cat);
-                txtAmount.setText(String.format(Locale.getDefault(), "₹%.2f (%.1f%%)", amount, percent));
+                txtAmount.setText(String.format(Locale.getDefault(), "%s (%.0f%%)", formatCurrency(amount), percent));
                 progress.setProgress((int) percent);
+
+                // Color the progress bar by category
+                int barColor = catColors[colorIdx % catColors.length];
+                progress.setProgressTintList(android.content.res.ColorStateList.valueOf(barColor));
+                colorIdx++;
 
                 categoryContainer.addView(row);
             }
@@ -167,6 +217,32 @@ public class ReportsActivity extends AppCompatActivity {
     private void calculateTaskAnalytics() {
         int rate = ReportCalculator.getTaskCompletionRate(taskList);
         taskProgress.setProgress(rate);
-        txtTaskProgressLabel.setText("Completion Rate: " + rate + "%");
+        txtTaskProgressPercent.setText(rate + "%");
+
+        int completed = 0;
+        for (Task t : taskList) {
+            if (t.isCompleted()) completed++;
+        }
+        txtTaskCounts.setText(completed + " completed / " + taskList.size() + " total");
+    }
+
+    private String formatCurrency(double amount) {
+        if (Math.abs(amount) >= 100000) {
+            return String.format(Locale.getDefault(), "₹%.1fL", amount / 100000);
+        } else if (Math.abs(amount) >= 1000) {
+            return String.format(Locale.getDefault(), "₹%.1fk", amount / 1000);
+        } else {
+            return String.format(Locale.getDefault(), "₹%.0f", amount);
+        }
+    }
+
+    private String formatCurrencyShort(double amount) {
+        if (Math.abs(amount) >= 100000) {
+            return String.format(Locale.getDefault(), "₹%.0fL", amount / 100000);
+        } else if (Math.abs(amount) >= 1000) {
+            return String.format(Locale.getDefault(), "₹%.1fk", amount / 1000);
+        } else {
+            return String.format(Locale.getDefault(), "₹%.0f", amount);
+        }
     }
 }
