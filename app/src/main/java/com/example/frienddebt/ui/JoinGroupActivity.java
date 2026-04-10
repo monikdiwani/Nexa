@@ -71,8 +71,17 @@ public class JoinGroupActivity extends AppCompatActivity {
                             .getParent()      // user doc
                             .getId();         // owner userId
 
+                    String currentUserName = auth.getCurrentUser().getDisplayName();
+                    if (currentUserName == null || currentUserName.isEmpty()) {
+                        // fallback to email prefix if display name is not set
+                        currentUserName = auth.getCurrentUser().getEmail() != null ? auth.getCurrentUser().getEmail().split("@")[0] : "Unknown User";
+                    }
+                    String memberDocId = currentUserName.trim().toLowerCase().replace(" ", "_");
+
                     Map<String, Object> member = new HashMap<>();
                     member.put("uid", auth.getCurrentUser().getUid());
+                    member.put("name", currentUserName.trim());
+                    member.put("role", "viewer");
                     member.put("joinedAt", System.currentTimeMillis());
 
                     // 1️⃣ Add user as member in OWNER'S group
@@ -81,7 +90,7 @@ public class JoinGroupActivity extends AppCompatActivity {
                             .collection("groups")
                             .document(groupId)
                             .collection("members")
-                            .document(auth.getCurrentUser().getUid())
+                            .document(memberDocId)
                             .set(member)
                             .addOnSuccessListener(r -> {
 

@@ -139,7 +139,13 @@ public class GroupDetailActivity extends AppCompatActivity {
         });
 
         // Add member button
-        btnAddMember.setOnClickListener(v -> showAddMemberDialog());
+        boolean isAdmin = auth.getCurrentUser().getUid().equals(ownerId);
+        if (isAdmin) {
+            btnAddMember.setVisibility(View.VISIBLE);
+            btnAddMember.setOnClickListener(v -> showAddMemberDialog());
+        } else {
+            btnAddMember.setVisibility(View.GONE);
+        }
 
         db.collection("users")
                 .document(ownerId)
@@ -196,30 +202,33 @@ public class GroupDetailActivity extends AppCompatActivity {
 
                             Chip chip = new Chip(this);
                             chip.setText(name);
-                            chip.setCloseIconVisible(true);
+                            boolean isOwner = auth.getCurrentUser().getUid().equals(ownerId);
+                            chip.setCloseIconVisible(isOwner);
                             chip.setChipBackgroundColorResource(R.color.primary_surface);
                             chip.setTextColor(getResources().getColor(R.color.text_primary));
-                            chip.setOnCloseIconClickListener(v -> {
-                                // Delete member
-                                new AlertDialog.Builder(this)
-                                        .setTitle("Remove Member")
-                                        .setMessage("Remove " + name + " from this group?")
-                                        .setPositiveButton("Remove", (dialog, which) -> {
-                                            db.collection("users")
-                                                    .document(ownerId)
-                                                    .collection("groups")
-                                                    .document(groupId)
-                                                    .collection("members")
-                                                    .document(doc.getId())
-                                                    .delete()
-                                                    .addOnSuccessListener(aVoid ->
-                                                            Toast.makeText(this, name + " removed", Toast.LENGTH_SHORT).show())
-                                                    .addOnFailureListener(err ->
-                                                            Toast.makeText(this, "Failed: " + err.getMessage(), Toast.LENGTH_LONG).show());
-                                        })
-                                        .setNegativeButton("Cancel", null)
-                                        .show();
-                            });
+                            if (isOwner) {
+                                chip.setOnCloseIconClickListener(v -> {
+                                    // Delete member
+                                    new AlertDialog.Builder(this)
+                                            .setTitle("Remove Member")
+                                            .setMessage("Remove " + name + " from this group?")
+                                            .setPositiveButton("Remove", (dialog, which) -> {
+                                                db.collection("users")
+                                                        .document(ownerId)
+                                                        .collection("groups")
+                                                        .document(groupId)
+                                                        .collection("members")
+                                                        .document(doc.getId())
+                                                        .delete()
+                                                        .addOnSuccessListener(aVoid ->
+                                                                Toast.makeText(this, name + " removed", Toast.LENGTH_SHORT).show())
+                                                        .addOnFailureListener(err ->
+                                                                Toast.makeText(this, "Failed: " + err.getMessage(), Toast.LENGTH_LONG).show());
+                                            })
+                                            .setNegativeButton("Cancel", null)
+                                            .show();
+                                });
+                            }
 
                             chipGroupMembers.addView(chip);
                         }
@@ -268,6 +277,7 @@ public class GroupDetailActivity extends AppCompatActivity {
         String memberDocId = name.trim().toLowerCase().replace(" ", "_");
         Map<String, Object> member = new HashMap<>();
         member.put("name", name.trim());
+        member.put("role", "viewer");
         member.put("addedAt", System.currentTimeMillis());
 
         db.collection("users")
@@ -667,36 +677,48 @@ public class GroupDetailActivity extends AppCompatActivity {
             }
             holder.txtParticipants.setText(sb.toString());
 
-            holder.btnEdit.setOnClickListener(v -> {
-                Intent i = new Intent(GroupDetailActivity.this, AddExpenseActivity.class);
-                i.putExtra(EXTRA_GROUP_ID, groupId);
-                i.putExtra(EXTRA_OWNER_ID, ownerId);
-                i.putExtra("EXPENSE_ID", tx.getFirestoreId());
-                startActivity(i);
-            });
+            boolean isOwnerOrPayer = auth.getCurrentUser().getUid().equals(ownerId) 
+                    || (tx.getPaidBy() != null && auth.getCurrentUser().getDisplayName() != null 
+                        && auth.getCurrentUser().getDisplayName().equals(tx.getPaidBy().getName()));
 
-            holder.btnDelete.setOnClickListener(v -> {
-                new AlertDialog.Builder(GroupDetailActivity.this)
-                        .setTitle("Delete expense")
-                        .setMessage("Are you sure you want to delete this expense?")
-                        .setPositiveButton("Delete", (dialog, which) -> {
-                            db.collection("users")
-                                    .document(ownerId)
-                                    .collection("groups")
-                                    .document(groupId)
-                                    .collection("expenses")
-                                    .document(tx.getFirestoreId())
-                                    .delete()
-                                    .addOnSuccessListener(aVoid ->
-                                            Toast.makeText(GroupDetailActivity.this, "Deleted", Toast.LENGTH_SHORT).show()
-                                    )
-                                    .addOnFailureListener(e ->
-                                            Toast.makeText(GroupDetailActivity.this, e.getMessage(), Toast.LENGTH_LONG).show()
-                                    );
-                        })
-                        .setNegativeButton("Cancel", null)
-                        .show();
-            });
+            if (isOwnerOrPayer) {
+                holder.btnEdit.setVisibility(View.VISIBLE);
+                holder.btnDelete.setVisibility(View.VISIBLE);
+                
+                holder.btnEdit.setOnClickListener(v -> {
+                    Intent i = new Intent(GroupDetailActivity.this, AddExpenseActivity.class);
+                    i.putExtra(EXTRA_GROUP_ID, groupId);
+                    i.putExtra(EXTRA_OWNER_ID, ownerId);
+                    i.putExtra("EXPENSE_ID", tx.getFirestoreId());
+                    startActivity(i);
+                });
+
+                holder.btnDelete.setOnClickListener(v -> {
+                    new AlertDialog.Builder(GroupDetailActivity.this)
+                            .setTitle("Delete expense")
+                            .setMessage("Are you sure you want to delete this expense?")
+                            .setPositiveButton("Delete", (dialog, which) -> {
+                                db.collection("users")
+                                        .document(ownerId)
+                                        .collection("groups")
+                                        .document(groupId)
+                                        .collection("expenses")
+                                        .document(tx.getFirestoreId())
+                                        .delete()
+                                        .addOnSuccessListener(aVoid ->
+                                                Toast.makeText(GroupDetailActivity.this, "Deleted", Toast.LENGTH_SHORT).show()
+                                        )
+                                        .addOnFailureListener(e ->
+                                                Toast.makeText(GroupDetailActivity.this, e.getMessage(), Toast.LENGTH_LONG).show()
+                                        );
+                            })
+                            .setNegativeButton("Cancel", null)
+                            .show();
+                });
+            } else {
+                holder.btnEdit.setVisibility(View.GONE);
+                holder.btnDelete.setVisibility(View.GONE);
+            }
         }
 
         @Override

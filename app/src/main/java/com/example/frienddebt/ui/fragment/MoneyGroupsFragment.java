@@ -344,9 +344,23 @@ public class MoneyGroupsFragment extends Fragment {
                 .document(userId)
                 .collection("groups")
                 .add(group)
-                .addOnSuccessListener(ref ->
-                        Toast.makeText(requireContext(), "Group created! Invite code: " + inviteCode, Toast.LENGTH_LONG).show()
-                )
+                .addOnSuccessListener(ref -> {
+                    Toast.makeText(requireContext(), "Group created! Invite code: " + inviteCode, Toast.LENGTH_LONG).show();
+                    
+                    // Add creator to members subcollection as admin
+                    String currentUserName = auth.getCurrentUser().getDisplayName();
+                    if (currentUserName == null || currentUserName.isEmpty()) {
+                        currentUserName = auth.getCurrentUser().getEmail() != null ? auth.getCurrentUser().getEmail().split("@")[0] : "Owner";
+                    }
+                    String memberDocId = currentUserName.trim().toLowerCase().replace(" ", "_");
+                    
+                    Map<String, Object> member = new HashMap<>();
+                    member.put("name", currentUserName.trim());
+                    member.put("role", "admin");
+                    member.put("addedAt", System.currentTimeMillis());
+                    
+                    ref.collection("members").document(memberDocId).set(member);
+                })
                 .addOnFailureListener(e ->
                         Toast.makeText(requireContext(), e.getMessage(), Toast.LENGTH_LONG).show()
                 );
