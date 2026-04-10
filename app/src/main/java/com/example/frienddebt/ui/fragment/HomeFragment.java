@@ -144,7 +144,7 @@ public class HomeFragment extends Fragment {
         btnQuickExpense.setOnClickListener(v -> {
             playButtonPop(v);
             if (requireActivity() instanceof DashboardActivity) {
-                ((DashboardActivity) requireActivity()).selectTab(R.id.nav_cashbook);
+                ((DashboardActivity) requireActivity()).selectMoneyTab(0); // Personal sub-tab
             }
         });
 
@@ -176,7 +176,7 @@ public class HomeFragment extends Fragment {
         cardGroups.setOnClickListener(v -> {
             playButtonPop(v);
             if (requireActivity() instanceof DashboardActivity) {
-                ((DashboardActivity) requireActivity()).selectTab(R.id.nav_groups);
+                ((DashboardActivity) requireActivity()).selectMoneyTab(1); // Groups sub-tab
             }
         });
 

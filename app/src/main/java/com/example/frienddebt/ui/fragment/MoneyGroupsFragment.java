@@ -8,6 +8,7 @@ import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -15,6 +16,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.frienddebt.R;
@@ -24,37 +26,61 @@ import com.example.frienddebt.ui.JoinGroupActivity;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-public class FairShareFragment extends Fragment {
+/**
+ * Groups sub-tab inside MoneyFragment.
+ * Shows groups with create/join and enhanced cards showing expense + member info.
+ */
+public class MoneyGroupsFragment extends Fragment {
 
-    private androidx.recyclerview.widget.RecyclerView rvGroups;
-    private Button btnAddGroup, btnJoinGroup;
+    private RecyclerView rvGroups;
+    private LinearLayout emptyGroupsState;
+    private Button btnCreateGroup, btnJoinGroup;
 
     private GroupsAdapter adapter;
-    private List<Group> groups = new ArrayList<>();
+    private List<GroupInfo> groups = new ArrayList<>();
 
     private FirebaseFirestore db;
     private FirebaseAuth auth;
 
     private Set<String> loadedGroupIds = new HashSet<>();
 
+    // Enhanced group info with member count and expense total
+    public static class GroupInfo {
+        public final String id;
+        public final String name;
+        public final String ownerId;
+        public int memberCount = 0;
+        public double totalExpense = 0;
+        public boolean isSettled = true;
+
+        public GroupInfo(String id, String name, String ownerId) {
+            this.id = id;
+            this.name = name;
+            this.ownerId = ownerId;
+        }
+    }
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_fair_share, container, false);
+        View view = inflater.inflate(R.layout.fragment_money_groups, container, false);
 
         rvGroups = view.findViewById(R.id.rvGroups);
-        btnAddGroup = view.findViewById(R.id.btnAddGroup);
+        emptyGroupsState = view.findViewById(R.id.emptyGroupsState);
+        btnCreateGroup = view.findViewById(R.id.btnCreateGroup);
         btnJoinGroup = view.findViewById(R.id.btnJoinGroup);
 
-        rvGroups.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(requireContext()));
+        rvGroups.setLayoutManager(new LinearLayoutManager(requireContext()));
         adapter = new GroupsAdapter(groups);
         rvGroups.setAdapter(adapter);
 
@@ -65,7 +91,7 @@ public class FairShareFragment extends Fragment {
             loadGroupsFromFirestore();
         }
 
-        btnAddGroup.setOnClickListener(v -> {
+        btnCreateGroup.setOnClickListener(v -> {
             playButtonPop(v);
             showCreateGroupDialog();
         });
@@ -103,10 +129,15 @@ public class FairShareFragment extends Fragment {
 
                         if (!loadedGroupIds.contains(id)) {
                             loadedGroupIds.add(id);
-                            groups.add(new Group(id, name, userId));
+                            GroupInfo gi = new GroupInfo(id, name, userId);
+                            groups.add(gi);
+
+                            // Load extra info (member count + total expense)
+                            loadGroupExtras(gi, userId);
                         }
                     }
                     adapter.notifyDataSetChanged();
+                    updateEmptyState();
                 });
 
         // 2. Groups joined by this user
@@ -134,8 +165,12 @@ public class FairShareFragment extends Fragment {
 
                                         if (!loadedGroupIds.contains(groupId)) {
                                             loadedGroupIds.add(groupId);
-                                            groups.add(new Group(groupId, name, ownerId));
+                                            GroupInfo gi = new GroupInfo(groupId, name, ownerId);
+                                            groups.add(gi);
+
+                                            loadGroupExtras(gi, ownerId);
                                             adapter.notifyDataSetChanged();
+                                            updateEmptyState();
                                         }
                                     }
                                 });
@@ -143,11 +178,62 @@ public class FairShareFragment extends Fragment {
                 });
     }
 
-    // RecyclerView Adapter for Groups
-    private class GroupsAdapter extends RecyclerView.Adapter<GroupsAdapter.ViewHolder> {
-        private final List<Group> list;
+    private void loadGroupExtras(GroupInfo gi, String ownerId) {
+        // Load member count from members subcollection
+        db.collection("users")
+                .document(ownerId)
+                .collection("groups")
+                .document(gi.id)
+                .collection("members")
+                .get()
+                .addOnSuccessListener(snap -> {
+                    gi.memberCount = snap.size();
+                    adapter.notifyDataSetChanged();
+                });
 
-        public GroupsAdapter(List<Group> list) {
+        // Load total expense
+        db.collection("users")
+                .document(ownerId)
+                .collection("groups")
+                .document(gi.id)
+                .collection("expenses")
+                .get()
+                .addOnSuccessListener(snap -> {
+                    double total = 0;
+                    for (QueryDocumentSnapshot doc : snap) {
+                        Double amount = doc.getDouble("amount");
+                        if (amount != null) total += amount;
+                    }
+                    gi.totalExpense = total;
+                    gi.isSettled = total == 0;
+                    adapter.notifyDataSetChanged();
+                });
+    }
+
+    private void updateEmptyState() {
+        if (groups.isEmpty()) {
+            emptyGroupsState.setVisibility(View.VISIBLE);
+            rvGroups.setVisibility(View.GONE);
+        } else {
+            emptyGroupsState.setVisibility(View.GONE);
+            rvGroups.setVisibility(View.VISIBLE);
+        }
+    }
+
+    // ─── RecyclerView Adapter ──────────────────────────────────────
+    private class GroupsAdapter extends RecyclerView.Adapter<GroupsAdapter.ViewHolder> {
+        private final List<GroupInfo> list;
+
+        // Avatar gradient backgrounds cycling
+        private final int[] avatarBgs = {
+                R.drawable.card_gradient_purple,
+                R.drawable.card_gradient_blue,
+                R.drawable.card_gradient_green,
+                R.drawable.card_gradient_amber,
+                R.drawable.card_gradient_red
+        };
+
+        public GroupsAdapter(List<GroupInfo> list) {
             this.list = list;
         }
 
@@ -160,21 +246,48 @@ public class FairShareFragment extends Fragment {
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            Group g = list.get(position);
-            holder.txtGroupName.setText(g.getName() != null ? g.getName() : "");
+            GroupInfo gi = list.get(position);
 
-            boolean isOwner = auth.getCurrentUser() != null && auth.getCurrentUser().getUid().equals(g.getOwnerId());
-            if (isOwner) {
-                holder.txtDetails.setText("👑 Created • Tap to manage");
+            // Avatar — first letter of group name
+            String initial = (gi.name != null && !gi.name.isEmpty()) ? gi.name.substring(0, 1).toUpperCase() : "G";
+            holder.txtGroupAvatar.setText(initial);
+            holder.txtGroupAvatar.setBackgroundResource(avatarBgs[position % avatarBgs.length]);
+
+            // Group name
+            holder.txtGroupName.setText(gi.name != null ? gi.name : "");
+
+            // Role
+            boolean isOwner = auth.getCurrentUser() != null && auth.getCurrentUser().getUid().equals(gi.ownerId);
+            holder.txtGroupRole.setText(isOwner ? "👑 Owner" : "👥 Member");
+
+            // Member count
+            holder.txtGroupMembers.setText(gi.memberCount > 0 ? gi.memberCount + " members" : "");
+
+            // Total expense
+            if (gi.totalExpense > 0) {
+                holder.txtGroupExpense.setText(String.format(Locale.getDefault(), "₹%.0f", gi.totalExpense));
+                holder.txtGroupExpense.setVisibility(View.VISIBLE);
             } else {
-                holder.txtDetails.setText("👥 Joined • Tap to manage");
+                holder.txtGroupExpense.setText("₹0");
+                holder.txtGroupExpense.setVisibility(View.VISIBLE);
             }
-            holder.txtDetails.setVisibility(View.VISIBLE);
+
+            // Settlement status
+            if (gi.totalExpense == 0) {
+                holder.txtGroupStatus.setText("No expenses");
+                holder.txtGroupStatus.setTextColor(getResources().getColor(R.color.text_hint));
+            } else if (gi.isSettled) {
+                holder.txtGroupStatus.setText("Settled ✓");
+                holder.txtGroupStatus.setTextColor(getResources().getColor(R.color.accent_positive));
+            } else {
+                holder.txtGroupStatus.setText("Active");
+                holder.txtGroupStatus.setTextColor(getResources().getColor(R.color.accent_warning));
+            }
 
             holder.itemView.setOnClickListener(v -> {
                 Intent intent = new Intent(requireActivity(), GroupDetailActivity.class);
-                intent.putExtra("GROUP_ID", g.getId());
-                intent.putExtra("OWNER_ID", g.getOwnerId());
+                intent.putExtra("GROUP_ID", gi.id);
+                intent.putExtra("OWNER_ID", gi.ownerId);
                 startActivity(intent);
             });
         }
@@ -185,12 +298,17 @@ public class FairShareFragment extends Fragment {
         }
 
         class ViewHolder extends RecyclerView.ViewHolder {
-            TextView txtGroupName, txtDetails;
+            TextView txtGroupAvatar, txtGroupName, txtGroupRole, txtGroupMembers;
+            TextView txtGroupExpense, txtGroupStatus;
 
             public ViewHolder(@NonNull View itemView) {
                 super(itemView);
+                txtGroupAvatar = itemView.findViewById(R.id.txtGroupAvatar);
                 txtGroupName = itemView.findViewById(R.id.txtGroupName);
-                txtDetails = itemView.findViewById(R.id.txtGroupRole);
+                txtGroupRole = itemView.findViewById(R.id.txtGroupRole);
+                txtGroupMembers = itemView.findViewById(R.id.txtGroupMembers);
+                txtGroupExpense = itemView.findViewById(R.id.txtGroupExpense);
+                txtGroupStatus = itemView.findViewById(R.id.txtGroupStatus);
             }
         }
     }

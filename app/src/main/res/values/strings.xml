@@ -5,10 +5,16 @@
 
     <!-- Dashboard -->
     <string name="nav_home">Home</string>
+    <string name="nav_money">Money</string>
     <string name="nav_cashbook">Cashbook</string>
     <string name="nav_groups">Groups</string>
     <string name="nav_notes">Notes</string>
     <string name="nav_profile">Profile</string>
+
+    <!-- Money Tabs -->
+    <string name="tab_personal">Personal</string>
+    <string name="tab_groups">Groups</string>
+    <string name="tab_overview">Overview</string>
 
     <!-- Home -->
     <string name="welcome_greeting">Good Morning!</string>

@@ -56,8 +56,7 @@ public class MainActivity extends AppCompatActivity {
 
         adapter = new ArrayAdapter<>(
                 this,
-                R.layout.item_group,
-                R.id.txtDebt,
+                android.R.layout.simple_list_item_1,
                 groupNames
         );
         listViewGroups.setAdapter(adapter);

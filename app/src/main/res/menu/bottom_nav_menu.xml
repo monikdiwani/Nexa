@@ -5,13 +5,9 @@
         android:icon="@drawable/ic_home"
         android:title="@string/nav_home" />
     <item
-        android:id="@+id/nav_cashbook"
-        android:icon="@drawable/ic_cashbook"
-        android:title="@string/nav_cashbook" />
-    <item
-        android:id="@+id/nav_groups"
-        android:icon="@drawable/ic_groups"
-        android:title="@string/nav_groups" />
+        android:id="@+id/nav_money"
+        android:icon="@drawable/ic_money"
+        android:title="@string/nav_money" />
     <item
         android:id="@+id/nav_notes"
         android:icon="@drawable/ic_notes"

@@ -8,8 +8,7 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 import com.example.frienddebt.R;
-import com.example.frienddebt.ui.fragment.CashbookFragment;
-import com.example.frienddebt.ui.fragment.FairShareFragment;
+import com.example.frienddebt.ui.fragment.MoneyFragment;
 import com.example.frienddebt.ui.fragment.HomeFragment;
 import com.example.frienddebt.ui.fragment.NotesFragment;
 import com.example.frienddebt.ui.fragment.ProfileFragment;
@@ -19,14 +18,12 @@ import com.google.android.material.navigation.NavigationBarView;
 public class DashboardActivity extends AppCompatActivity {
 
     private static final String TAG_HOME = "nav_home";
-    private static final String TAG_CASHBOOK = "nav_cashbook";
-    private static final String TAG_GROUPS = "nav_groups";
+    private static final String TAG_MONEY = "nav_money";
     private static final String TAG_NOTES = "nav_notes";
     private static final String TAG_PROFILE = "nav_profile";
 
     private Fragment homeFragment;
-    private Fragment cashbookFragment;
-    private Fragment fairShareFragment;
+    private Fragment moneyFragment;
     private Fragment notesFragment;
     private Fragment profileFragment;
     private Fragment activeFragment;
@@ -48,8 +45,7 @@ public class DashboardActivity extends AppCompatActivity {
 
         if (savedInstanceState == null) {
             homeFragment = new HomeFragment();
-            cashbookFragment = new CashbookFragment();
-            fairShareFragment = new FairShareFragment();
+            moneyFragment = new MoneyFragment();
             notesFragment = new NotesFragment();
             profileFragment = new ProfileFragment();
             activeFragment = homeFragment;
@@ -57,20 +53,17 @@ public class DashboardActivity extends AppCompatActivity {
             fm.beginTransaction()
                     .add(R.id.fragment_container, profileFragment, TAG_PROFILE).hide(profileFragment)
                     .add(R.id.fragment_container, notesFragment, TAG_NOTES).hide(notesFragment)
-                    .add(R.id.fragment_container, fairShareFragment, TAG_GROUPS).hide(fairShareFragment)
-                    .add(R.id.fragment_container, cashbookFragment, TAG_CASHBOOK).hide(cashbookFragment)
+                    .add(R.id.fragment_container, moneyFragment, TAG_MONEY).hide(moneyFragment)
                     .add(R.id.fragment_container, homeFragment, TAG_HOME)
                     .commit();
         } else {
             homeFragment = fm.findFragmentByTag(TAG_HOME);
-            cashbookFragment = fm.findFragmentByTag(TAG_CASHBOOK);
-            fairShareFragment = fm.findFragmentByTag(TAG_GROUPS);
+            moneyFragment = fm.findFragmentByTag(TAG_MONEY);
             notesFragment = fm.findFragmentByTag(TAG_NOTES);
             profileFragment = fm.findFragmentByTag(TAG_PROFILE);
 
             if (homeFragment == null) homeFragment = new HomeFragment();
-            if (cashbookFragment == null) cashbookFragment = new CashbookFragment();
-            if (fairShareFragment == null) fairShareFragment = new FairShareFragment();
+            if (moneyFragment == null) moneyFragment = new MoneyFragment();
             if (notesFragment == null) notesFragment = new NotesFragment();
             if (profileFragment == null) profileFragment = new ProfileFragment();
 
@@ -86,12 +79,8 @@ public class DashboardActivity extends AppCompatActivity {
                 tx.add(R.id.fragment_container, homeFragment, TAG_HOME);
                 needsCommit = true;
             }
-            if (!cashbookFragment.isAdded()) {
-                tx.add(R.id.fragment_container, cashbookFragment, TAG_CASHBOOK).hide(cashbookFragment);
-                needsCommit = true;
-            }
-            if (!fairShareFragment.isAdded()) {
-                tx.add(R.id.fragment_container, fairShareFragment, TAG_GROUPS).hide(fairShareFragment);
+            if (!moneyFragment.isAdded()) {
+                tx.add(R.id.fragment_container, moneyFragment, TAG_MONEY).hide(moneyFragment);
                 needsCommit = true;
             }
             if (!notesFragment.isAdded()) {
@@ -106,11 +95,8 @@ public class DashboardActivity extends AppCompatActivity {
             if (homeFragment.isAdded() && activeFragment != homeFragment) {
                 tx.hide(homeFragment);
             }
-            if (cashbookFragment.isAdded() && activeFragment != cashbookFragment) {
-                tx.hide(cashbookFragment);
-            }
-            if (fairShareFragment.isAdded() && activeFragment != fairShareFragment) {
-                tx.hide(fairShareFragment);
+            if (moneyFragment.isAdded() && activeFragment != moneyFragment) {
+                tx.hide(moneyFragment);
             }
             if (notesFragment.isAdded() && activeFragment != notesFragment) {
                 tx.hide(notesFragment);
@@ -139,16 +125,12 @@ public class DashboardActivity extends AppCompatActivity {
                         ((HomeFragment) homeFragment).loadData();
                     }
                     return true;
-                } else if (itemId == R.id.nav_cashbook) {
-                    fm.beginTransaction().hide(activeFragment).show(cashbookFragment).commit();
-                    activeFragment = cashbookFragment;
-                    if (cashbookFragment instanceof CashbookFragment) {
-                        ((CashbookFragment) cashbookFragment).loadData();
+                } else if (itemId == R.id.nav_money) {
+                    fm.beginTransaction().hide(activeFragment).show(moneyFragment).commit();
+                    activeFragment = moneyFragment;
+                    if (moneyFragment instanceof MoneyFragment) {
+                        ((MoneyFragment) moneyFragment).loadBalanceData();
                     }
-                    return true;
-                } else if (itemId == R.id.nav_groups) {
-                    fm.beginTransaction().hide(activeFragment).show(fairShareFragment).commit();
-                    activeFragment = fairShareFragment;
                     return true;
                 } else if (itemId == R.id.nav_notes) {
                     fm.beginTransaction().hide(activeFragment).show(notesFragment).commit();
@@ -166,10 +148,8 @@ public class DashboardActivity extends AppCompatActivity {
             }
         });
 
-        if (activeFragment == cashbookFragment) {
-            navView.setSelectedItemId(R.id.nav_cashbook);
-        } else if (activeFragment == fairShareFragment) {
-            navView.setSelectedItemId(R.id.nav_groups);
+        if (activeFragment == moneyFragment) {
+            navView.setSelectedItemId(R.id.nav_money);
         } else if (activeFragment == notesFragment) {
             navView.setSelectedItemId(R.id.nav_notes);
         } else if (activeFragment == profileFragment) {
@@ -179,15 +159,33 @@ public class DashboardActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Switch to a specific bottom nav tab programmatically.
+     */
     public void selectTab(int itemId) {
         BottomNavigationView navView = findViewById(R.id.bottom_navigation);
         navView.setSelectedItemId(itemId);
     }
 
+    /**
+     * Switch to the Money tab and open a specific sub-tab.
+     * @param subTabIndex 0=Personal, 1=Groups, 2=Overview
+     */
+    public void selectMoneyTab(int subTabIndex) {
+        BottomNavigationView navView = findViewById(R.id.bottom_navigation);
+        navView.setSelectedItemId(R.id.nav_money);
+
+        // Post delayed to ensure the fragment is visible before switching sub-tab
+        navView.postDelayed(() -> {
+            if (moneyFragment instanceof MoneyFragment) {
+                ((MoneyFragment) moneyFragment).switchToTab(subTabIndex);
+            }
+        }, 100);
+    }
+
     private Fragment findVisibleFragment() {
         if (homeFragment != null && !homeFragment.isHidden()) return homeFragment;
-        if (cashbookFragment != null && !cashbookFragment.isHidden()) return cashbookFragment;
-        if (fairShareFragment != null && !fairShareFragment.isHidden()) return fairShareFragment;
+        if (moneyFragment != null && !moneyFragment.isHidden()) return moneyFragment;
         if (notesFragment != null && !notesFragment.isHidden()) return notesFragment;
         if (profileFragment != null && !profileFragment.isHidden()) return profileFragment;
         return null;
