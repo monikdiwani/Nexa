@@ -1,6 +1,9 @@
 package com.example.frienddebt.ui;
 
 import android.app.AlertDialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Canvas;
 import android.view.MenuItem;
@@ -9,6 +12,7 @@ import android.graphics.pdf.PdfDocument;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.text.InputType;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -17,6 +21,7 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -34,7 +39,10 @@ import com.example.frienddebt.model.SettlementSuggestion;
 import com.example.frienddebt.model.Transaction;
 import com.example.frienddebt.model.User;
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.chip.Chip;
+import com.google.android.material.chip.ChipGroup;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.WriteBatch;
@@ -56,18 +64,22 @@ public class GroupDetailActivity extends AppCompatActivity {
     private RecyclerView rvTransactions;
     private TransactionsAdapter adapter;
     private TextView txtGroupName, txtTransactionCount, txtInviteCode;
-    private TextView txtTotalExpense, txtSettleUpSummary;
+    private TextView txtTotalExpense, txtSettleUpSummary, txtMemberCount;
+    private TextView btnCopyCode, btnAddMember;
     private Button btnSettleUp, btnExportPdf;
+    private ChipGroup chipGroupMembers;
 
     private FirebaseFirestore db;
     private FirebaseAuth auth;
 
     private String groupId;
     private String ownerId;
+    private String inviteCode;
 
     private final List<Transaction> transactions = new ArrayList<>();
     private final List<Payment> payments = new ArrayList<>();
     private final Map<String, User> userCache = new HashMap<>();
+    private final List<String> memberNames = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,7 +98,11 @@ public class GroupDetailActivity extends AppCompatActivity {
         txtInviteCode = findViewById(R.id.txtInviteCode);
         txtTransactionCount = findViewById(R.id.txtTransactionCount);
         txtTotalExpense = findViewById(R.id.txtTotalExpense);
+        txtMemberCount = findViewById(R.id.txtMemberCount);
         txtSettleUpSummary = findViewById(R.id.txtSettleUpSummary);
+        btnCopyCode = findViewById(R.id.btnCopyCode);
+        btnAddMember = findViewById(R.id.btnAddMember);
+        chipGroupMembers = findViewById(R.id.chipGroupMembers);
         rvTransactions = findViewById(R.id.rvTransactions);
         btnSettleUp = findViewById(R.id.btnSettleUp);
         btnExportPdf = findViewById(R.id.btnExportPdf);
@@ -112,6 +128,19 @@ public class GroupDetailActivity extends AppCompatActivity {
             return;
         }
 
+        // Copy invite code button
+        btnCopyCode.setOnClickListener(v -> {
+            if (inviteCode != null) {
+                ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                ClipData clip = ClipData.newPlainText("Invite Code", inviteCode);
+                clipboard.setPrimaryClip(clip);
+                Toast.makeText(this, "Invite code copied!", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        // Add member button
+        btnAddMember.setOnClickListener(v -> showAddMemberDialog());
+
         db.collection("users")
                 .document(ownerId)
                 .collection("groups")
@@ -125,7 +154,7 @@ public class GroupDetailActivity extends AppCompatActivity {
                     }
 
                     String name = doc.getString("name");
-                    String inviteCode = doc.getString("inviteCode");
+                    inviteCode = doc.getString("inviteCode");
 
                     group = new Group(groupId, name, ownerId);
 
@@ -137,12 +166,121 @@ public class GroupDetailActivity extends AppCompatActivity {
                     rvTransactions.setAdapter(adapter);
 
                     setupButtons();
+                    loadMembers();
                     loadExpensesFromFirestore();
                 })
                 .addOnFailureListener(e -> {
                     Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
                     finish();
                 });
+    }
+
+    // ═══════════════════════════════════
+    // MEMBER MANAGEMENT
+    // ═══════════════════════════════════
+    private void loadMembers() {
+        db.collection("users")
+                .document(ownerId)
+                .collection("groups")
+                .document(groupId)
+                .collection("members")
+                .addSnapshotListener((snap, e) -> {
+                    if (snap == null) return;
+                    memberNames.clear();
+                    chipGroupMembers.removeAllViews();
+
+                    for (DocumentSnapshot doc : snap) {
+                        String name = doc.getString("name");
+                        if (name != null && !name.isEmpty()) {
+                            memberNames.add(name);
+
+                            Chip chip = new Chip(this);
+                            chip.setText(name);
+                            chip.setCloseIconVisible(true);
+                            chip.setChipBackgroundColorResource(R.color.primary_surface);
+                            chip.setTextColor(getResources().getColor(R.color.text_primary));
+                            chip.setOnCloseIconClickListener(v -> {
+                                // Delete member
+                                new AlertDialog.Builder(this)
+                                        .setTitle("Remove Member")
+                                        .setMessage("Remove " + name + " from this group?")
+                                        .setPositiveButton("Remove", (dialog, which) -> {
+                                            db.collection("users")
+                                                    .document(ownerId)
+                                                    .collection("groups")
+                                                    .document(groupId)
+                                                    .collection("members")
+                                                    .document(doc.getId())
+                                                    .delete()
+                                                    .addOnSuccessListener(aVoid ->
+                                                            Toast.makeText(this, name + " removed", Toast.LENGTH_SHORT).show())
+                                                    .addOnFailureListener(err ->
+                                                            Toast.makeText(this, "Failed: " + err.getMessage(), Toast.LENGTH_LONG).show());
+                                        })
+                                        .setNegativeButton("Cancel", null)
+                                        .show();
+                            });
+
+                            chipGroupMembers.addView(chip);
+                        }
+                    }
+
+                    txtMemberCount.setText(String.valueOf(memberNames.size()));
+                });
+    }
+
+    private void showAddMemberDialog() {
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(60, 40, 60, 20);
+
+        TextView info = new TextView(this);
+        info.setText("Add a member name to this group. They'll appear in the payer and participant dropdowns when adding expenses.");
+        info.setTextColor(getResources().getColor(R.color.text_secondary));
+        info.setTextSize(13f);
+        LinearLayout.LayoutParams infoParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        infoParams.bottomMargin = 24;
+        info.setLayoutParams(infoParams);
+        layout.addView(info);
+
+        EditText inputName = new EditText(this);
+        inputName.setHint("Member name");
+        inputName.setInputType(InputType.TYPE_TEXT_VARIATION_PERSON_NAME);
+        layout.addView(inputName);
+
+        new AlertDialog.Builder(this)
+                .setTitle("Add Member")
+                .setView(layout)
+                .setPositiveButton("Add", (dialog, which) -> {
+                    String name = inputName.getText().toString().trim();
+                    if (name.isEmpty()) {
+                        Toast.makeText(this, "Enter a name", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    saveMember(name);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void saveMember(String name) {
+        String memberDocId = name.trim().toLowerCase().replace(" ", "_");
+        Map<String, Object> member = new HashMap<>();
+        member.put("name", name.trim());
+        member.put("addedAt", System.currentTimeMillis());
+
+        db.collection("users")
+                .document(ownerId)
+                .collection("groups")
+                .document(groupId)
+                .collection("members")
+                .document(memberDocId)
+                .set(member)
+                .addOnSuccessListener(aVoid ->
+                        Toast.makeText(this, name + " added!", Toast.LENGTH_SHORT).show())
+                .addOnFailureListener(e ->
+                        Toast.makeText(this, "Failed: " + e.getMessage(), Toast.LENGTH_LONG).show());
     }
 
     private User getOrCreateUser(String name) {
@@ -339,7 +477,7 @@ public class GroupDetailActivity extends AppCompatActivity {
                     }
 
                     adapter.setTransactions(new ArrayList<>(transactions));
-                    txtTransactionCount.setText(transactions.size() + " transactions");
+                    txtTransactionCount.setText(String.valueOf(transactions.size()));
 
                     db.collection("users")
                             .document(ownerId)
@@ -371,24 +509,27 @@ public class GroupDetailActivity extends AppCompatActivity {
         for (Transaction t : transactions) {
             total += t.getAmount();
         }
-        txtTotalExpense.setText("Total Expense: ₹" + String.format("%.2f", total));
+        txtTotalExpense.setText(String.format("₹%.0f", total));
 
         List<SettlementSuggestion> suggestions =
                 DebtCalculator.buildSettlementSuggestionsFromTransactionsAndPayments(transactions, payments);
 
         if (suggestions == null || suggestions.isEmpty()) {
-            txtSettleUpSummary.setText("Everyone is settled up!");
+            txtSettleUpSummary.setText("✅ Everyone is settled up!");
+            txtSettleUpSummary.setTextColor(getResources().getColor(R.color.accent_positive));
         } else {
             StringBuilder sb = new StringBuilder();
             for (SettlementSuggestion s : suggestions) {
                 if (sb.length() > 0) sb.append("\n");
-                sb.append(s.getFrom().getName())
-                        .append(" should pay ")
+                sb.append("💸 ")
+                        .append(s.getFrom().getName())
+                        .append(" → ")
                         .append(s.getTo().getName())
-                        .append(" ₹")
+                        .append("  ₹")
                         .append(String.format("%.2f", s.getAmount()));
             }
             txtSettleUpSummary.setText(sb.toString());
+            txtSettleUpSummary.setTextColor(getResources().getColor(R.color.text_primary));
         }
     }
 
@@ -540,7 +681,7 @@ public class GroupDetailActivity extends AppCompatActivity {
                         .setMessage("Are you sure you want to delete this expense?")
                         .setPositiveButton("Delete", (dialog, which) -> {
                             db.collection("users")
-                                    .document(ownerId)   // 🔥 OWNER PATH
+                                    .document(ownerId)
                                     .collection("groups")
                                     .document(groupId)
                                     .collection("expenses")
