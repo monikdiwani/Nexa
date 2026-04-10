@@ -71,6 +71,7 @@ public class ProfileFragment extends Fragment {
                     .setMessage("Are you sure you want to log out?")
                     .setPositiveButton("Logout", (dialog, which) -> {
                         auth.signOut();
+                        sp.edit().remove("user_id").apply();
                         Intent intent = new Intent(requireActivity(), Login.class);
                         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                         startActivity(intent);

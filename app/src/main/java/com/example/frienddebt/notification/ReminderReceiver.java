@@ -30,15 +30,32 @@ public class ReminderReceiver extends BroadcastReceiver {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
 
         String userId = intent.getStringExtra("USER_ID");
+        if (userId == null) {
+            android.content.SharedPreferences sp = context.getSharedPreferences("NexaPrefs", Context.MODE_PRIVATE);
+            userId = sp.getString("user_id", null);
+        }
         if (userId == null && auth.getCurrentUser() != null) {
             userId = auth.getCurrentUser().getUid();
         }
 
         if (ACTION_COMPLETE.equals(action)) {
+            // Dismiss notification immediately for responsive UI
+            android.app.NotificationManager nm = (android.app.NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            if (nm != null) {
+                nm.cancel(reminderId.hashCode());
+            }
+            ReminderScheduler.cancelReminder(context, reminderId);
+
+            // Show Toast immediately
+            android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+            mainHandler.post(() -> android.widget.Toast.makeText(context.getApplicationContext(), "Reminder completed!", android.widget.Toast.LENGTH_SHORT).show());
+
             if (userId == null) {
                 Log.w(TAG, "Cannot mark complete: USER_ID is null");
                 return;
             }
+
+            final BroadcastReceiver.PendingResult pendingResult = goAsync();
             db.collection("users")
                     .document(userId)
                     .collection("reminders")
@@ -47,16 +64,26 @@ public class ReminderReceiver extends BroadcastReceiver {
                             "isCompleted", true,
                             "completedAt", System.currentTimeMillis()
                     )
-                    .addOnSuccessListener(aVoid -> {
-                        Log.d(TAG, "Reminder marked complete: " + reminderId);
-                        ReminderScheduler.cancelReminder(context, reminderId);
-                        android.app.NotificationManager nm = (android.app.NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-                        if (nm != null) {
-                            nm.cancel(reminderId.hashCode());
+                    .addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            Log.d(TAG, "Reminder marked complete in database: " + reminderId);
+                        } else {
+                            Log.e(TAG, "Failed to mark complete in database: " + reminderId, task.getException());
                         }
+                        pendingResult.finish();
                     });
 
         } else if (ACTION_SNOOZE.equals(action)) {
+            // Dismiss notification immediately
+            android.app.NotificationManager nm = (android.app.NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            if (nm != null) {
+                nm.cancel(reminderId.hashCode());
+            }
+
+            // Show Toast immediately
+            android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+            mainHandler.post(() -> android.widget.Toast.makeText(context.getApplicationContext(), "Reminder snoozed for 15m", android.widget.Toast.LENGTH_SHORT).show());
+
             if (userId == null) {
                 Log.w(TAG, "Cannot snooze: USER_ID is null");
                 return;
@@ -64,6 +91,7 @@ public class ReminderReceiver extends BroadcastReceiver {
             long snoozeUntil = System.currentTimeMillis() + 15 * 60 * 1000;
 
             final String finalUserId = userId;
+            final BroadcastReceiver.PendingResult pendingResult = goAsync();
             db.collection("users")
                     .document(finalUserId)
                     .collection("reminders")
@@ -72,23 +100,25 @@ public class ReminderReceiver extends BroadcastReceiver {
                             "isSnoozed", true,
                             "snoozeUntil", snoozeUntil
                     )
-                    .addOnSuccessListener(aVoid -> {
-                        Log.d(TAG, "Reminder snoozed: " + reminderId);
-                        db.collection("users")
-                                .document(finalUserId)
-                                .collection("reminders")
-                                .document(reminderId)
-                                .get()
-                                .addOnSuccessListener(documentSnapshot -> {
-                                    if (documentSnapshot.exists()) {
-                                        Reminder r = Reminder.fromDocument(documentSnapshot);
-                                        ReminderScheduler.scheduleReminder(context, r);
-                                    }
-                                });
-
-                        android.app.NotificationManager nm = (android.app.NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-                        if (nm != null) {
-                            nm.cancel(reminderId.hashCode());
+                    .addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            Log.d(TAG, "Reminder snoozed in database: " + reminderId);
+                            // Reschedule the reminder with snooze time
+                            db.collection("users")
+                                    .document(finalUserId)
+                                    .collection("reminders")
+                                    .document(reminderId)
+                                    .get()
+                                    .addOnCompleteListener(getTask -> {
+                                        if (getTask.isSuccessful() && getTask.getResult().exists()) {
+                                            Reminder r = Reminder.fromDocument(getTask.getResult());
+                                            ReminderScheduler.scheduleReminder(context, r);
+                                        }
+                                        pendingResult.finish();
+                                    });
+                        } else {
+                            Log.e(TAG, "Failed to snooze in database: " + reminderId, task.getException());
+                            pendingResult.finish();
                         }
                     });
 

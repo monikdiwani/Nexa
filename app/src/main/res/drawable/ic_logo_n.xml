@@ -1,14 +1,64 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="96dp"
     android:height="96dp"
-    android:viewportWidth="64"
-    android:viewportHeight="64">
-  <!-- Modern clean geometric N -->
-  <path
-      android:fillColor="#FFFFFFFF"
-      android:pathData="M16,12h8l16,26V12h8v40h-8L24,26v26h-8V12z" />
-  <!-- Small dot accent for modern brand look -->
-  <path
-      android:fillColor="@color/secondary"
-      android:pathData="M48,52a4,4 0,1,0 8,0a4,4 0,1,0 -8,0z"/>
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+
+    <!-- Modern Ribbon-Folded N Symbol for Nexa -->
+
+    <!-- Left vertical bar (Gradient Indigo to Violet) -->
+    <path
+        android:pathData="M25,20 L38,20 L38,80 L25,80 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="25"
+                android:startY="20"
+                android:endX="38"
+                android:endY="80"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#FF6366F1" />
+                <item android:offset="1.0" android:color="#FFA855F7" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Diagonal folding piece (Gradient Violet to Pink) -->
+    <path
+        android:pathData="M25,20 L38,20 L75,80 L62,80 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="25"
+                android:startY="20"
+                android:endX="75"
+                android:endY="80"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#FF818CF8" />
+                <item android:offset="0.5" android:color="#FFA855F7" />
+                <item android:offset="1.0" android:color="#FFEC4899" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Right vertical bar (Gradient Pink to Indigo) -->
+    <path
+        android:pathData="M62,20 L75,20 L75,80 L62,80 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="62"
+                android:startY="20"
+                android:endX="75"
+                android:endY="80"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#FFEC4899" />
+                <item android:offset="1.0" android:color="#FF6366F1" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Accent glowing dot (Top Right) -->
+    <path
+        android:pathData="M81,18 A4,4 0 1 1 81,17.99 Z"
+        android:fillColor="#FFFBBF24" />
+
 </vector>

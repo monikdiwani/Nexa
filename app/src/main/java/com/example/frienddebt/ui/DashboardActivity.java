@@ -37,6 +37,12 @@ public class DashboardActivity extends AppCompatActivity {
         androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(isDarkMode ?
                 androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES : androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO);
 
+        // Save current user ID to SharedPreferences for background notification receiver access
+        com.google.firebase.auth.FirebaseAuth auth = com.google.firebase.auth.FirebaseAuth.getInstance();
+        if (auth.getCurrentUser() != null) {
+            sp.edit().putString("user_id", auth.getCurrentUser().getUid()).apply();
+        }
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_dashboard);
 

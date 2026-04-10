@@ -95,6 +95,8 @@ public class MainActivity extends AppCompatActivity {
             playButtonPop(v);
             // Sign out the current user
             auth.signOut();
+            android.content.SharedPreferences sp = getSharedPreferences("NexaPrefs", android.content.Context.MODE_PRIVATE);
+            sp.edit().remove("user_id").apply();
 
             // Navigate back to Login screen and clear the back stack
             Intent intent = new Intent(MainActivity.this, Login.class);
