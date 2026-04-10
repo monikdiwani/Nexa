@@ -78,6 +78,18 @@ public class RemindersActivity extends AppCompatActivity {
         });
 
         loadReminders();
+
+        // Request Notification Permission on Android 13+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS)
+                    != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                androidx.core.app.ActivityCompat.requestPermissions(
+                        this,
+                        new String[]{android.Manifest.permission.POST_NOTIFICATIONS},
+                        1002
+                );
+            }
+        }
     }
 
     private void setupFilters() {

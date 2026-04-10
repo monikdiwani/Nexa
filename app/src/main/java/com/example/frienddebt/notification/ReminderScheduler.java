@@ -31,6 +31,11 @@ public class ReminderScheduler {
         intent.putExtra("REMINDER_TITLE", reminder.getTitle());
         intent.putExtra("REMINDER_MSG", reminder.getMessage());
 
+        FirebaseAuth auth = FirebaseAuth.getInstance();
+        if (auth.getCurrentUser() != null) {
+            intent.putExtra("USER_ID", auth.getCurrentUser().getUid());
+        }
+
         int requestCode = reminder.getId().hashCode();
 
         PendingIntent pendingIntent = PendingIntent.getBroadcast(

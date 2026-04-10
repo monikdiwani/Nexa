@@ -29,10 +29,16 @@ public class ReminderReceiver extends BroadcastReceiver {
         FirebaseAuth auth = FirebaseAuth.getInstance();
         FirebaseFirestore db = FirebaseFirestore.getInstance();
 
-        if (auth.getCurrentUser() == null) return;
-        String userId = auth.getCurrentUser().getUid();
+        String userId = intent.getStringExtra("USER_ID");
+        if (userId == null && auth.getCurrentUser() != null) {
+            userId = auth.getCurrentUser().getUid();
+        }
 
         if (ACTION_COMPLETE.equals(action)) {
+            if (userId == null) {
+                Log.w(TAG, "Cannot mark complete: USER_ID is null");
+                return;
+            }
             db.collection("users")
                     .document(userId)
                     .collection("reminders")
@@ -51,10 +57,15 @@ public class ReminderReceiver extends BroadcastReceiver {
                     });
 
         } else if (ACTION_SNOOZE.equals(action)) {
+            if (userId == null) {
+                Log.w(TAG, "Cannot snooze: USER_ID is null");
+                return;
+            }
             long snoozeUntil = System.currentTimeMillis() + 15 * 60 * 1000;
 
+            final String finalUserId = userId;
             db.collection("users")
-                    .document(userId)
+                    .document(finalUserId)
                     .collection("reminders")
                     .document(reminderId)
                     .update(
@@ -64,7 +75,7 @@ public class ReminderReceiver extends BroadcastReceiver {
                     .addOnSuccessListener(aVoid -> {
                         Log.d(TAG, "Reminder snoozed: " + reminderId);
                         db.collection("users")
-                                .document(userId)
+                                .document(finalUserId)
                                 .collection("reminders")
                                 .document(reminderId)
                                 .get()
@@ -93,10 +104,12 @@ public class ReminderReceiver extends BroadcastReceiver {
             Intent completeIntent = new Intent(context, ReminderReceiver.class);
             completeIntent.setAction(ACTION_COMPLETE);
             completeIntent.putExtra("REMINDER_ID", reminderId);
+            completeIntent.putExtra("USER_ID", userId);
 
             Intent snoozeIntent = new Intent(context, ReminderReceiver.class);
             snoozeIntent.setAction(ACTION_SNOOZE);
             snoozeIntent.putExtra("REMINDER_ID", reminderId);
+            snoozeIntent.putExtra("USER_ID", userId);
 
             NotificationHelper.showNotification(
                     context,
@@ -111,19 +124,22 @@ public class ReminderReceiver extends BroadcastReceiver {
                     "Snooze (15m)"
             );
 
-            db.collection("users")
-                    .document(userId)
-                    .collection("reminders")
-                    .document(reminderId)
-                    .get()
-                    .addOnSuccessListener(doc -> {
-                        if (doc.exists()) {
-                            Reminder r = Reminder.fromDocument(doc);
-                            if (r.getRecurringPattern() != null && !"NONE".equals(r.getRecurringPattern())) {
-                                scheduleNextRecurringOccurrence(context, r, db, userId);
+            if (userId != null) {
+                final String finalUserId = userId;
+                db.collection("users")
+                        .document(finalUserId)
+                        .collection("reminders")
+                        .document(reminderId)
+                        .get()
+                        .addOnSuccessListener(doc -> {
+                            if (doc.exists()) {
+                                Reminder r = Reminder.fromDocument(doc);
+                                if (r.getRecurringPattern() != null && !"NONE".equals(r.getRecurringPattern())) {
+                                    scheduleNextRecurringOccurrence(context, r, db, finalUserId);
+                                }
                             }
-                        }
-                    });
+                        });
+            }
         }
     }
 
