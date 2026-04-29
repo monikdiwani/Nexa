@@ -81,7 +81,7 @@ public class JoinGroupActivity extends AppCompatActivity {
                     Map<String, Object> member = new HashMap<>();
                     member.put("uid", auth.getCurrentUser().getUid());
                     member.put("name", currentUserName.trim());
-                    member.put("role", "viewer");
+                    member.put("role", "member");
                     member.put("joinedAt", System.currentTimeMillis());
 
                     // 1️⃣ Add user as member in OWNER'S group

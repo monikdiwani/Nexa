@@ -80,6 +80,7 @@ public class GroupDetailActivity extends AppCompatActivity {
     private final List<Payment> payments = new ArrayList<>();
     private final Map<String, User> userCache = new HashMap<>();
     private final List<String> memberNames = new ArrayList<>();
+    private String currentUserRole = "viewer";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -228,14 +229,57 @@ public class GroupDetailActivity extends AppCompatActivity {
                                             .setNegativeButton("Cancel", null)
                                             .show();
                                 });
+                                
+                                // Add onClickListener for changing roles
+                                chip.setOnClickListener(v -> showRoleChangeDialog(doc.getId(), name, doc.getString("role")));
                             }
 
                             chipGroupMembers.addView(chip);
+                            
+                            // Check if this is the current user
+                            String uid = doc.getString("uid");
+                            if (uid != null && auth.getCurrentUser() != null && uid.equals(auth.getCurrentUser().getUid())) {
+                                String r = doc.getString("role");
+                                if (r != null) currentUserRole = r;
+                                
+                                // Hide FAB if role is strictly viewer and not owner
+                                if (!isOwner) {
+                                    findViewById(R.id.fabAddExpense).setVisibility("viewer".equals(currentUserRole) ? View.GONE : View.VISIBLE);
+                                }
+                            }
                         }
                     }
 
                     txtMemberCount.setText(String.valueOf(memberNames.size()));
                 });
+    }
+
+    private void showRoleChangeDialog(String memberDocId, String name, String currentRole) {
+        String[] options = {"Member (Can add expenses)", "Viewer (View only)"};
+        int checkedItem = "viewer".equals(currentRole) ? 1 : 0;
+        
+        new AlertDialog.Builder(this)
+                .setTitle("Change role for " + name)
+                .setSingleChoiceItems(options, checkedItem, (dialog, which) -> {
+                    String newRole = which == 0 ? "member" : "viewer";
+                    db.collection("users")
+                            .document(ownerId)
+                            .collection("groups")
+                            .document(groupId)
+                            .collection("members")
+                            .document(memberDocId)
+                            .update("role", newRole)
+                            .addOnSuccessListener(aVoid -> {
+                                Toast.makeText(this, name + " is now a " + newRole, Toast.LENGTH_SHORT).show();
+                                dialog.dismiss();
+                            })
+                            .addOnFailureListener(e -> {
+                                Toast.makeText(this, "Failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                                dialog.dismiss();
+                            });
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     private void showAddMemberDialog() {
