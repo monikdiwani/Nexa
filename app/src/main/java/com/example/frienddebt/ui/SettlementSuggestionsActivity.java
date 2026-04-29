@@ -21,6 +21,8 @@ import com.example.frienddebt.model.SettlementSuggestion;
 import com.example.frienddebt.model.Transaction;
 import com.example.frienddebt.model.User;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.android.material.snackbar.Snackbar;
+import com.google.android.material.appbar.MaterialToolbar;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
@@ -32,7 +34,8 @@ import java.util.Map;
 public class SettlementSuggestionsActivity extends AppCompatActivity {
 
     private RecyclerView recyclerViewSuggestions;
-    private TextView txtEveryoneSettled;
+    private View emptyStateLayout;
+    private MaterialToolbar toolbar;
     private FirebaseFirestore db;
     private FirebaseAuth auth;
 
@@ -52,7 +55,15 @@ public class SettlementSuggestionsActivity extends AppCompatActivity {
         setContentView(R.layout.activity_settlement_suggestions);
 
         recyclerViewSuggestions = findViewById(R.id.recyclerViewSuggestions);
-        txtEveryoneSettled = findViewById(R.id.txtEveryoneSettled);
+        emptyStateLayout = findViewById(R.id.emptyStateLayout);
+        toolbar = findViewById(R.id.toolbar);
+        
+        setSupportActionBar(toolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setDisplayShowHomeEnabled(true);
+        }
+        toolbar.setNavigationOnClickListener(v -> finish());
 
         groupId = getIntent().getStringExtra("GROUP_ID");
         ownerId = getIntent().getStringExtra("OWNER_ID");
@@ -198,8 +209,17 @@ public class SettlementSuggestionsActivity extends AppCompatActivity {
                     put("timestamp", System.currentTimeMillis());
                 }})
                 .addOnSuccessListener(ref -> {
-                    Toast.makeText(this, "Marked as paid!", Toast.LENGTH_SHORT).show();
                     loadExpensesAndPayments();
+                    
+                    Snackbar snackbar = Snackbar.make(recyclerViewSuggestions, "Payment settled!", Snackbar.LENGTH_LONG);
+                    snackbar.setAction("UNDO", v -> {
+                        // Undo the settlement
+                        ref.delete().addOnSuccessListener(aVoid -> {
+                            Toast.makeText(this, "Settlement undone", Toast.LENGTH_SHORT).show();
+                            loadExpensesAndPayments();
+                        });
+                    });
+                    snackbar.show();
                 })
                 .addOnFailureListener(e ->
                         Toast.makeText(this, "Failed: " + e.getMessage(), Toast.LENGTH_LONG).show());
@@ -210,10 +230,10 @@ public class SettlementSuggestionsActivity extends AppCompatActivity {
                 DebtCalculator.buildSettlementSuggestionsFromTransactionsAndPayments(transactions, payments);
 
         if (suggestions == null || suggestions.isEmpty()) {
-            txtEveryoneSettled.setVisibility(View.VISIBLE);
+            emptyStateLayout.setVisibility(View.VISIBLE);
             recyclerViewSuggestions.setVisibility(View.GONE);
         } else {
-            txtEveryoneSettled.setVisibility(View.GONE);
+            emptyStateLayout.setVisibility(View.GONE);
             recyclerViewSuggestions.setVisibility(View.VISIBLE);
             adapter.setSuggestions(suggestions);
         }
@@ -250,9 +270,8 @@ public class SettlementSuggestionsActivity extends AppCompatActivity {
         @Override
         public void onBindViewHolder(@NonNull VH holder, int position) {
             SettlementSuggestion s = suggestions.get(position);
-            holder.txtSettlement.setText(
-                    s.getFrom().getName() + " should pay " + s.getTo().getName() + " ₹" + String.format("%.2f", s.getAmount())
-            );
+            holder.txtSettlementFromTo.setText(s.getFrom().getName() + " → " + s.getTo().getName());
+            holder.txtSettlementAmount.setText(String.format("₹%.2f", s.getAmount()));
             holder.btnMarkPaid.setOnClickListener(v -> {
                 if (listener != null) listener.onMarkPaid(s);
             });
@@ -264,12 +283,13 @@ public class SettlementSuggestionsActivity extends AppCompatActivity {
         }
 
         static class VH extends RecyclerView.ViewHolder {
-            TextView txtSettlement;
+            TextView txtSettlementFromTo, txtSettlementAmount;
             Button btnMarkPaid;
 
             VH(@NonNull View itemView) {
                 super(itemView);
-                txtSettlement = itemView.findViewById(R.id.txtSettlement);
+                txtSettlementFromTo = itemView.findViewById(R.id.txtSettlementFromTo);
+                txtSettlementAmount = itemView.findViewById(R.id.txtSettlementAmount);
                 btnMarkPaid = itemView.findViewById(R.id.btnMarkPaid);
             }
         }
