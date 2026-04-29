@@ -5,215 +5,64 @@
     android:layout_height="match_parent"
     android:background="@color/background_primary">
 
-    <ScrollView
-        android:id="@+id/cashbookScroll"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:clipToPadding="false"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+    <LinearLayout
+        android:id="@+id/header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp"
+        app:layout_constraintTop_toTopOf="parent">
 
-        <LinearLayout
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="20dp">
+            android:text="Cashbooks"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:layout_marginTop="8dp" />
+            
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Manage your daily business and personal ledgers"
+            android:textSize="14sp"
+            android:textColor="@color/text_secondary"
+            android:layout_marginTop="4dp" />
+            
+    </LinearLayout>
 
-            <!-- Header -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Cashbook"
-                android:textSize="24sp"
-                android:textStyle="bold"
-                android:textColor="@color/text_primary"
-                android:layout_marginTop="8dp"
-                android:paddingBottom="16dp" />
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvLedgerBooks"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:paddingTop="8dp"
+        android:paddingBottom="80dp"
+        app:layout_constraintTop_toBottomOf="@id/header"
+        app:layout_constraintBottom_toBottomOf="parent" />
 
-            <!-- Balance Cards Row -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginBottom="16dp">
-
-                <!-- Cash Balance -->
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:background="@drawable/card_gradient_green"
-                    android:orientation="vertical"
-                    android:padding="16dp"
-                    android:layout_marginEnd="6dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="💵 Cash"
-                        android:textSize="12sp"
-                        android:textColor="#CCFFFFFF" />
-
-                    <TextView
-                        android:id="@+id/txtCashBalance"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="₹0.00"
-                        android:textSize="22sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/white"
-                        android:layout_marginTop="4dp" />
-                </LinearLayout>
-
-                <!-- Bank Balance -->
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:background="@drawable/card_gradient_blue"
-                    android:orientation="vertical"
-                    android:padding="16dp"
-                    android:layout_marginStart="6dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="🏦 Bank"
-                        android:textSize="12sp"
-                        android:textColor="#CCFFFFFF" />
-
-                    <TextView
-                        android:id="@+id/txtBankBalance"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="₹0.00"
-                        android:textSize="22sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/white"
-                        android:layout_marginTop="4dp" />
-                </LinearLayout>
-            </LinearLayout>
-
-            <!-- Filter Chips -->
-            <HorizontalScrollView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:scrollbars="none"
-                android:layout_marginBottom="12dp">
-
-                <LinearLayout
-                    android:id="@+id/filterChips"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:id="@+id/chipAll"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="All"
-                        android:textSize="13sp"
-                        android:textColor="@color/on_primary"
-                        android:background="@drawable/rounded_button"
-                        android:paddingHorizontal="16dp"
-                        android:paddingVertical="8dp"
-                        android:layout_marginEnd="8dp" />
-
-                    <TextView
-                        android:id="@+id/chipCash"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Cash"
-                        android:textSize="13sp"
-                        android:textColor="@color/text_secondary"
-                        android:background="@drawable/chip_background"
-                        android:paddingHorizontal="16dp"
-                        android:paddingVertical="8dp"
-                        android:layout_marginEnd="8dp" />
-
-                    <TextView
-                        android:id="@+id/chipBank"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Bank"
-                        android:textSize="13sp"
-                        android:textColor="@color/text_secondary"
-                        android:background="@drawable/chip_background"
-                        android:paddingHorizontal="16dp"
-                        android:paddingVertical="8dp"
-                        android:layout_marginEnd="8dp" />
-
-                    <TextView
-                        android:id="@+id/chipToday"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Today"
-                        android:textSize="13sp"
-                        android:textColor="@color/text_secondary"
-                        android:background="@drawable/chip_background"
-                        android:paddingHorizontal="16dp"
-                        android:paddingVertical="8dp"
-                        android:layout_marginEnd="8dp" />
-
-                    <TextView
-                        android:id="@+id/chipWeek"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="This Week"
-                        android:textSize="13sp"
-                        android:textColor="@color/text_secondary"
-                        android:background="@drawable/chip_background"
-                        android:paddingHorizontal="16dp"
-                        android:paddingVertical="8dp"
-                        android:layout_marginEnd="8dp" />
-
-                    <TextView
-                        android:id="@+id/chipMonth"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="This Month"
-                        android:textSize="13sp"
-                        android:textColor="@color/text_secondary"
-                        android:background="@drawable/chip_background"
-                        android:paddingHorizontal="16dp"
-                        android:paddingVertical="8dp" />
-                </LinearLayout>
-            </HorizontalScrollView>
-
-            <!-- Empty State -->
-            <TextView
-                android:id="@+id/txtEmptyCashbook"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="No entries yet. Tap + to add your first transaction!"
-                android:textSize="14sp"
-                android:textColor="@color/text_hint"
-                android:textAlignment="center"
-                android:padding="32dp"
-                android:visibility="visible" />
-
-            <!-- Entries List -->
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvCashbookEntries"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:nestedScrollingEnabled="false"
-                android:clipToPadding="false"
-                android:paddingBottom="80dp" />
-
-        </LinearLayout>
-    </ScrollView>
+    <TextView
+        android:id="@+id/txtEmptyBooks"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="No cashbooks found. Tap + to create your first ledger!"
+        android:textSize="16sp"
+        android:textColor="@color/text_hint"
+        android:textAlignment="center"
+        android:padding="32dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
 
     <!-- FAB -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fabAddEntry"
+        android:id="@+id/fabAddBook"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="20dp"
         android:src="@android:drawable/ic_input_add"
-        android:contentDescription="Add cashbook entry"
+        android:contentDescription="Create new ledger book"
         app:backgroundTint="@color/primary"
         app:tint="@color/white"
         app:layout_constraintBottom_toBottomOf="parent"
