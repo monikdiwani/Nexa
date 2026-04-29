@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
+        android:name=".NexaApp"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -71,7 +72,16 @@
             android:name=".ui.DashboardActivity"
             android:exported="false" />
         <activity
+            android:name=".ui.CreateLedgerBookActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.LedgerBookDetailActivity"
+            android:exported="false" />
+        <activity
             android:name=".ui.AddCashbookEntryActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.CashCounterActivity"
             android:exported="false" />
         <activity
             android:name=".ui.TasksActivity"
