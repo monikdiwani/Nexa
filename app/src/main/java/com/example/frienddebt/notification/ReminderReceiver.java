@@ -55,9 +55,10 @@ public class ReminderReceiver extends BroadcastReceiver {
                 return;
             }
 
+            final String finalUserId = userId;
             final BroadcastReceiver.PendingResult pendingResult = goAsync();
             db.collection("users")
-                    .document(userId)
+                    .document(finalUserId)
                     .collection("reminders")
                     .document(reminderId)
                     .get()
@@ -71,7 +72,7 @@ public class ReminderReceiver extends BroadcastReceiver {
                         if (r.getRecurringPattern() != null && !"NONE".equals(r.getRecurringPattern())) {
                             // If it's recurring, complete action just means we cancel snooze and let next recurrence take over
                             db.collection("users")
-                                    .document(userId)
+                                    .document(finalUserId)
                                     .collection("reminders")
                                     .document(reminderId)
                                     .update(
@@ -81,7 +82,7 @@ public class ReminderReceiver extends BroadcastReceiver {
                         } else {
                             // Non-recurring, mark as completed
                             db.collection("users")
-                                    .document(userId)
+                                    .document(finalUserId)
                                     .collection("reminders")
                                     .document(reminderId)
                                     .update(
