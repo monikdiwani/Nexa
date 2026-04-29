@@ -126,6 +126,16 @@ public class MoneyGroupsFragment extends Fragment {
                     for (DocumentSnapshot doc : snapshots) {
                         String id = doc.getId();
                         String name = doc.getString("name");
+                        String inviteCode = doc.getString("inviteCode");
+
+                        // Passive backfill for existing groups to the root invite_codes collection
+                        if (inviteCode != null && !inviteCode.isEmpty()) {
+                            Map<String, Object> inviteMapping = new HashMap<>();
+                            inviteMapping.put("groupId", id);
+                            inviteMapping.put("ownerId", userId);
+                            inviteMapping.put("createdAt", doc.getLong("createdAt"));
+                            db.collection("invite_codes").document(inviteCode).set(inviteMapping);
+                        }
 
                         if (!loadedGroupIds.contains(id)) {
                             loadedGroupIds.add(id);
@@ -360,6 +370,13 @@ public class MoneyGroupsFragment extends Fragment {
                     member.put("addedAt", System.currentTimeMillis());
                     
                     ref.collection("members").document(memberDocId).set(member);
+
+                    // Add to global invite_codes collection to bypass collectionGroup index
+                    Map<String, Object> inviteMapping = new HashMap<>();
+                    inviteMapping.put("groupId", ref.getId());
+                    inviteMapping.put("ownerId", userId);
+                    inviteMapping.put("createdAt", System.currentTimeMillis());
+                    db.collection("invite_codes").document(inviteCode).set(inviteMapping);
                 })
                 .addOnFailureListener(e ->
                         Toast.makeText(requireContext(), e.getMessage(), Toast.LENGTH_LONG).show()

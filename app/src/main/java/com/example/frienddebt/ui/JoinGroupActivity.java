@@ -31,6 +31,15 @@ public class JoinGroupActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_join_group);
 
+        com.google.android.material.appbar.MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setDisplayShowHomeEnabled(true);
+            getSupportActionBar().setTitle("");
+        }
+        toolbar.setNavigationOnClickListener(v -> finish());
+
         edtInviteCode = findViewById(R.id.edtInviteCode);
         btnJoin = findViewById(R.id.btnJoinGroup);
 
@@ -53,23 +62,22 @@ public class JoinGroupActivity extends AppCompatActivity {
             return;
         }
 
-        db.collectionGroup("groups")
-                .whereEqualTo("inviteCode", code)
+        db.collection("invite_codes")
+                .document(code)
                 .get()
-                .addOnSuccessListener(snapshot -> {
-                    if (snapshot == null || snapshot.isEmpty()) {
+                .addOnSuccessListener(doc -> {
+                    if (!doc.exists()) {
                         Toast.makeText(this, "Invalid invite code", Toast.LENGTH_SHORT).show();
                         return;
                     }
 
-                    // 🔥 First matched group
-                    DocumentSnapshot doc = snapshot.getDocuments().get(0);
+                    String groupId = doc.getString("groupId");
+                    String ownerUserId = doc.getString("ownerId");
 
-                    String groupId = doc.getId();
-                    String ownerUserId = doc.getReference()
-                            .getParent()      // groups
-                            .getParent()      // user doc
-                            .getId();         // owner userId
+                    if (groupId == null || ownerUserId == null) {
+                        Toast.makeText(this, "Corrupted invite code data", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
 
                     String currentUserName = auth.getCurrentUser().getDisplayName();
                     if (currentUserName == null || currentUserName.isEmpty()) {
