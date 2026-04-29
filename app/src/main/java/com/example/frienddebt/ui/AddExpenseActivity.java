@@ -261,6 +261,11 @@ public class AddExpenseActivity extends AppCompatActivity {
             return;
         }
 
+        if (amount <= 0) {
+            Toast.makeText(this, "Amount must be greater than 0", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         // Collect participants from chips or manual input
         List<String> participants = new ArrayList<>();
 
@@ -355,6 +360,7 @@ public class AddExpenseActivity extends AppCompatActivity {
                     if (!doc.exists()) {
                         Map<String, Object> member = new HashMap<>();
                         member.put("name", name.trim());
+                        member.put("role", "viewer");
                         member.put("addedAt", System.currentTimeMillis());
 
                         db.collection("users")
