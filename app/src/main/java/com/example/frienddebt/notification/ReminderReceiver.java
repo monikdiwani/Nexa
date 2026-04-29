@@ -60,17 +60,43 @@ public class ReminderReceiver extends BroadcastReceiver {
                     .document(userId)
                     .collection("reminders")
                     .document(reminderId)
-                    .update(
-                            "isCompleted", true,
-                            "completedAt", System.currentTimeMillis()
-                    )
-                    .addOnCompleteListener(task -> {
-                        if (task.isSuccessful()) {
-                            Log.d(TAG, "Reminder marked complete in database: " + reminderId);
-                        } else {
-                            Log.e(TAG, "Failed to mark complete in database: " + reminderId, task.getException());
+                    .get()
+                    .addOnSuccessListener(doc -> {
+                        if (!doc.exists()) {
+                            pendingResult.finish();
+                            return;
                         }
-                        pendingResult.finish();
+                        Reminder r = Reminder.fromDocument(doc);
+                        
+                        if (r.getRecurringPattern() != null && !"NONE".equals(r.getRecurringPattern())) {
+                            // If it's recurring, complete action just means we cancel snooze and let next recurrence take over
+                            db.collection("users")
+                                    .document(userId)
+                                    .collection("reminders")
+                                    .document(reminderId)
+                                    .update(
+                                            "isSnoozed", false,
+                                            "snoozeUntil", null
+                                    ).addOnCompleteListener(t -> pendingResult.finish());
+                        } else {
+                            // Non-recurring, mark as completed
+                            db.collection("users")
+                                    .document(userId)
+                                    .collection("reminders")
+                                    .document(reminderId)
+                                    .update(
+                                            "isCompleted", true,
+                                            "completedAt", System.currentTimeMillis()
+                                    )
+                                    .addOnCompleteListener(task -> {
+                                        if (task.isSuccessful()) {
+                                            Log.d(TAG, "Reminder marked complete in database: " + reminderId);
+                                        } else {
+                                            Log.e(TAG, "Failed to mark complete in database: " + reminderId, task.getException());
+                                        }
+                                        pendingResult.finish();
+                                    });
+                        }
                     });
 
         } else if (ACTION_SNOOZE.equals(action)) {
@@ -165,7 +191,10 @@ public class ReminderReceiver extends BroadcastReceiver {
                             if (doc.exists()) {
                                 Reminder r = Reminder.fromDocument(doc);
                                 if (r.getRecurringPattern() != null && !"NONE".equals(r.getRecurringPattern())) {
-                                    scheduleNextRecurringOccurrence(context, r, db, finalUserId);
+                                    // If it's a snooze alarm firing, do not advance the main recurrence time
+                                    if (!r.isSnoozed()) {
+                                        scheduleNextRecurringOccurrence(context, r, db, finalUserId);
+                                    }
                                 }
                             }
                         });
