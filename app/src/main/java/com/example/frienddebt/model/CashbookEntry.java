@@ -6,6 +6,7 @@ import java.util.Map;
 
 public class CashbookEntry {
     private String id;
+    private String bookId;
     private long date;
     private String particulars;
     private String type; // CASH_IN or CASH_OUT
@@ -13,14 +14,23 @@ public class CashbookEntry {
     private double amount;
     private String category;
     private String note;
+    
+    // New fields for Super App
+    private String billImageUrl;
+    private String contactName;
+    private String contactPhone;
+    private String createdBy;
+    private long lastModifiedAt;
+    
     private long createdAt;
 
     public CashbookEntry() {
         // Required for Firestore
     }
 
-    public CashbookEntry(String id, long date, String particulars, String type, String medium, double amount, String category, String note, long createdAt) {
+    public CashbookEntry(String id, String bookId, long date, String particulars, String type, String medium, double amount, String category, String note, long createdAt) {
         this.id = id;
+        this.bookId = bookId;
         this.date = date;
         this.particulars = particulars;
         this.type = type;
@@ -29,10 +39,15 @@ public class CashbookEntry {
         this.category = category;
         this.note = note;
         this.createdAt = createdAt;
+        this.lastModifiedAt = createdAt;
     }
 
+    // Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
+    
+    public String getBookId() { return bookId; }
+    public void setBookId(String bookId) { this.bookId = bookId; }
 
     public long getDate() { return date; }
     public void setDate(long date) { this.date = date; }
@@ -55,12 +70,28 @@ public class CashbookEntry {
     public String getNote() { return note; }
     public void setNote(String note) { this.note = note; }
 
+    public String getBillImageUrl() { return billImageUrl; }
+    public void setBillImageUrl(String billImageUrl) { this.billImageUrl = billImageUrl; }
+
+    public String getContactName() { return contactName; }
+    public void setContactName(String contactName) { this.contactName = contactName; }
+
+    public String getContactPhone() { return contactPhone; }
+    public void setContactPhone(String contactPhone) { this.contactPhone = contactPhone; }
+
+    public String getCreatedBy() { return createdBy; }
+    public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
+
+    public long getLastModifiedAt() { return lastModifiedAt; }
+    public void setLastModifiedAt(long lastModifiedAt) { this.lastModifiedAt = lastModifiedAt; }
+
     public long getCreatedAt() { return createdAt; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
 
     public static CashbookEntry fromDocument(DocumentSnapshot doc) {
         CashbookEntry entry = new CashbookEntry();
         entry.setId(doc.getId());
+        entry.setBookId(doc.getString("bookId"));
         entry.setDate(doc.getLong("date") != null ? doc.getLong("date") : 0L);
         entry.setParticulars(doc.getString("particulars"));
         entry.setType(doc.getString("type"));
@@ -68,12 +99,20 @@ public class CashbookEntry {
         entry.setAmount(doc.getDouble("amount") != null ? doc.getDouble("amount") : 0.0);
         entry.setCategory(doc.getString("category"));
         entry.setNote(doc.getString("note"));
+        
+        entry.setBillImageUrl(doc.getString("billImageUrl"));
+        entry.setContactName(doc.getString("contactName"));
+        entry.setContactPhone(doc.getString("contactPhone"));
+        entry.setCreatedBy(doc.getString("createdBy"));
+        entry.setLastModifiedAt(doc.getLong("lastModifiedAt") != null ? doc.getLong("lastModifiedAt") : 0L);
+        
         entry.setCreatedAt(doc.getLong("createdAt") != null ? doc.getLong("createdAt") : 0L);
         return entry;
     }
 
     public Map<String, Object> toFirestoreMap() {
         Map<String, Object> map = new HashMap<>();
+        map.put("bookId", bookId);
         map.put("date", date);
         map.put("particulars", particulars);
         map.put("type", type);
@@ -81,6 +120,13 @@ public class CashbookEntry {
         map.put("amount", amount);
         map.put("category", category);
         map.put("note", note);
+        
+        map.put("billImageUrl", billImageUrl);
+        map.put("contactName", contactName);
+        map.put("contactPhone", contactPhone);
+        map.put("createdBy", createdBy);
+        map.put("lastModifiedAt", lastModifiedAt);
+        
         map.put("createdAt", createdAt);
         return map;
     }
