@@ -377,6 +377,9 @@ public class MoneyGroupsFragment extends Fragment {
                     inviteMapping.put("ownerId", userId);
                     inviteMapping.put("createdAt", System.currentTimeMillis());
                     db.collection("invite_codes").document(inviteCode).set(inviteMapping);
+
+                    // Log group creation
+                    com.example.frienddebt.utils.ActivityLogger.log(userId, ref.getId(), "group_created", "Group '" + name + "' was created");
                 })
                 .addOnFailureListener(e ->
                         Toast.makeText(requireContext(), e.getMessage(), Toast.LENGTH_LONG).show()

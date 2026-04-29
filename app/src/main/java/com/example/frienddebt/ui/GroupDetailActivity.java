@@ -221,8 +221,10 @@ public class GroupDetailActivity extends AppCompatActivity {
                                                         .collection("members")
                                                         .document(doc.getId())
                                                         .delete()
-                                                        .addOnSuccessListener(aVoid ->
-                                                                Toast.makeText(this, name + " removed", Toast.LENGTH_SHORT).show())
+                                                        .addOnSuccessListener(aVoid -> {
+                                                            com.example.frienddebt.utils.ActivityLogger.log(ownerId, groupId, "member_removed", "Removed member " + name);
+                                                            Toast.makeText(this, name + " removed", Toast.LENGTH_SHORT).show();
+                                                        })
                                                         .addOnFailureListener(err ->
                                                                 Toast.makeText(this, "Failed: " + err.getMessage(), Toast.LENGTH_LONG).show());
                                             })
@@ -270,6 +272,7 @@ public class GroupDetailActivity extends AppCompatActivity {
                             .document(memberDocId)
                             .update("role", newRole)
                             .addOnSuccessListener(aVoid -> {
+                                com.example.frienddebt.utils.ActivityLogger.log(ownerId, groupId, "role_changed", "Changed role of " + name + " to " + newRole);
                                 Toast.makeText(this, name + " is now a " + newRole, Toast.LENGTH_SHORT).show();
                                 dialog.dismiss();
                             })
@@ -331,8 +334,10 @@ public class GroupDetailActivity extends AppCompatActivity {
                 .collection("members")
                 .document(memberDocId)
                 .set(member)
-                .addOnSuccessListener(aVoid ->
-                        Toast.makeText(this, name + " added!", Toast.LENGTH_SHORT).show())
+                .addOnSuccessListener(aVoid -> {
+                    com.example.frienddebt.utils.ActivityLogger.log(ownerId, groupId, "member_added", "Added member " + name.trim());
+                    Toast.makeText(this, name + " added!", Toast.LENGTH_SHORT).show();
+                })
                 .addOnFailureListener(e ->
                         Toast.makeText(this, "Failed: " + e.getMessage(), Toast.LENGTH_LONG).show());
     }
@@ -357,6 +362,12 @@ public class GroupDetailActivity extends AppCompatActivity {
         int id = item.getItemId();
         if (id == R.id.action_rename_group) {
             showRenameGroupDialog();
+            return true;
+        } else if (id == R.id.action_activity_log) {
+            Intent logIntent = new Intent(this, GroupActivityLogActivity.class);
+            logIntent.putExtra("GROUP_ID", groupId);
+            logIntent.putExtra("OWNER_ID", ownerId);
+            startActivity(logIntent);
             return true;
         } else if (id == R.id.action_delete_group) {
             showDeleteGroupDialog();
@@ -749,9 +760,10 @@ public class GroupDetailActivity extends AppCompatActivity {
                                         .collection("expenses")
                                         .document(tx.getFirestoreId())
                                         .delete()
-                                        .addOnSuccessListener(aVoid ->
-                                                Toast.makeText(GroupDetailActivity.this, "Deleted", Toast.LENGTH_SHORT).show()
-                                        )
+                                        .addOnSuccessListener(aVoid -> {
+                                            com.example.frienddebt.utils.ActivityLogger.log(ownerId, groupId, "expense_deleted", "Deleted expense '" + tx.getDescription() + "' of ₹" + tx.getAmount());
+                                            Toast.makeText(GroupDetailActivity.this, "Deleted", Toast.LENGTH_SHORT).show();
+                                        })
                                         .addOnFailureListener(e ->
                                                 Toast.makeText(GroupDetailActivity.this, e.getMessage(), Toast.LENGTH_LONG).show()
                                         );

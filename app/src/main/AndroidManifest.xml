@@ -61,6 +61,11 @@
             android:name=".ui.JoinGroupActivity"
             android:exported="false" />
 
+        <!-- GROUP ACTIVITY LOGS SCREEN (NEW) -->
+        <activity
+            android:name=".ui.GroupActivityLogActivity"
+            android:exported="false" />
+
         <!-- Nexa Super App Activities -->
         <activity
             android:name=".ui.DashboardActivity"

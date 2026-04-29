@@ -79,11 +79,12 @@ public class JoinGroupActivity extends AppCompatActivity {
                         return;
                     }
 
-                    String currentUserName = auth.getCurrentUser().getDisplayName();
-                    if (currentUserName == null || currentUserName.isEmpty()) {
+                    String nameTmp = auth.getCurrentUser().getDisplayName();
+                    if (nameTmp == null || nameTmp.isEmpty()) {
                         // fallback to email prefix if display name is not set
-                        currentUserName = auth.getCurrentUser().getEmail() != null ? auth.getCurrentUser().getEmail().split("@")[0] : "Unknown User";
+                        nameTmp = auth.getCurrentUser().getEmail() != null ? auth.getCurrentUser().getEmail().split("@")[0] : "Unknown User";
                     }
+                    final String currentUserName = nameTmp;
                     String memberDocId = currentUserName.trim().toLowerCase().replace(" ", "_");
 
                     Map<String, Object> member = new HashMap<>();
@@ -114,6 +115,8 @@ public class JoinGroupActivity extends AppCompatActivity {
                                         .document(groupId)
                                         .set(joinedGroupRef)
                                         .addOnSuccessListener(r2 -> {
+                                            // Log member joined
+                                            com.example.frienddebt.utils.ActivityLogger.log(ownerUserId, groupId, "member_joined", currentUserName.trim() + " joined the group");
                                             Toast.makeText(this, "Joined group successfully!", Toast.LENGTH_LONG).show();
                                             finish();
                                         })

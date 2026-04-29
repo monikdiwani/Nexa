@@ -209,12 +209,20 @@ public class SettlementSuggestionsActivity extends AppCompatActivity {
                     put("timestamp", System.currentTimeMillis());
                 }})
                 .addOnSuccessListener(ref -> {
+                    // Log settlement made
+                    String logDesc = "Settled debt: " + suggestion.getFrom().getName() + " paid " + suggestion.getTo().getName() + " ₹" + suggestion.getAmount();
+                    com.example.frienddebt.utils.ActivityLogger.log(ownerId, groupId, "settlement_made", logDesc);
+
                     loadExpensesAndPayments();
                     
                     Snackbar snackbar = Snackbar.make(recyclerViewSuggestions, "Payment settled!", Snackbar.LENGTH_LONG);
                     snackbar.setAction("UNDO", v -> {
                         // Undo the settlement
                         ref.delete().addOnSuccessListener(aVoid -> {
+                            // Log settlement undone
+                            String logDescUndo = "Undid settlement: " + suggestion.getFrom().getName() + " paid " + suggestion.getTo().getName() + " ₹" + suggestion.getAmount();
+                            com.example.frienddebt.utils.ActivityLogger.log(ownerId, groupId, "settlement_undone", logDescUndo);
+
                             Toast.makeText(this, "Settlement undone", Toast.LENGTH_SHORT).show();
                             loadExpensesAndPayments();
                         });

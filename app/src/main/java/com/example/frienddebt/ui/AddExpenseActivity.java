@@ -45,6 +45,11 @@ public class AddExpenseActivity extends AppCompatActivity {
     private List<String> memberNames = new ArrayList<>();
     private boolean allSelected = false;
 
+    // For change tracking in edit mode
+    private double oldAmount = 0.0;
+    private String oldDescription = "";
+    private String oldPaidBy = "";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -218,8 +223,13 @@ public class AddExpenseActivity extends AppCompatActivity {
                 .addOnSuccessListener(doc -> {
                     if (doc.exists()) {
                         Double amount = doc.getDouble("amount");
-                        if (amount != null) edtAmount.setText(String.valueOf(amount));
-                        edtPayer.setText(doc.getString("paidBy"));
+                        if (amount != null) {
+                            edtAmount.setText(String.valueOf(amount));
+                            oldAmount = amount;
+                        }
+                        String paidBy = doc.getString("paidBy");
+                        edtPayer.setText(paidBy);
+                        oldPaidBy = paidBy != null ? paidBy : "";
 
                         List<String> parts = (List<String>) doc.get("participants");
                         if (parts != null) {
@@ -235,7 +245,9 @@ public class AddExpenseActivity extends AppCompatActivity {
                             edtParticipants.setText(String.join(", ", parts));
                         }
 
-                        edtDescription.setText(doc.getString("description"));
+                        String description = doc.getString("description");
+                        edtDescription.setText(description);
+                        oldDescription = description != null ? description : "";
                     }
                 })
                 .addOnFailureListener(e ->
@@ -316,6 +328,7 @@ public class AddExpenseActivity extends AppCompatActivity {
                     .collection("expenses")
                     .add(expense)
                     .addOnSuccessListener(ref -> {
+                        com.example.frienddebt.utils.ActivityLogger.log(ownerId, groupId, "expense_added", "Added expense '" + desc + "' of ₹" + amount + " paid by " + payerName);
                         Toast.makeText(this, "Expense added", Toast.LENGTH_SHORT).show();
                         finish();
                     })
@@ -332,6 +345,27 @@ public class AddExpenseActivity extends AppCompatActivity {
                     .document(expenseId)
                     .update(expense)
                     .addOnSuccessListener(aVoid -> {
+                        // Create detailed description of changes
+                        StringBuilder changeLog = new StringBuilder();
+                        changeLog.append("Updated expense '").append(oldDescription).append("': ");
+                        boolean changed = false;
+                        if (!oldDescription.equals(desc)) {
+                            changeLog.append("renamed to '").append(desc).append("'");
+                            changed = true;
+                        }
+                        if (oldAmount != amount) {
+                            if (changed) changeLog.append(", ");
+                            changeLog.append("amount changed from ₹").append(oldAmount).append(" to ₹").append(amount);
+                            changed = true;
+                        }
+                        if (!oldPaidBy.equals(payerName)) {
+                            if (changed) changeLog.append(", ");
+                            changeLog.append("payer changed from ").append(oldPaidBy).append(" to ").append(payerName);
+                            changed = true;
+                        }
+                        String logDesc = changed ? changeLog.toString() : "Updated expense '" + desc + "'";
+                        
+                        com.example.frienddebt.utils.ActivityLogger.log(ownerId, groupId, "expense_updated", logDesc);
                         Toast.makeText(this, "Expense updated", Toast.LENGTH_SHORT).show();
                         finish();
                     })
