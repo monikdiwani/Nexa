@@ -24,7 +24,7 @@ import java.util.Locale;
 
 public class AddCashbookEntryActivity extends AppCompatActivity {
 
-    private EditText etParticulars, etAmount, etNote;
+    private EditText etParticulars, etContactName, etAmount, etNote;
     private RadioGroup rgType, rgMedium;
     private AutoCompleteTextView actvCategory;
     private TextView txtSelectedDate;
@@ -34,6 +34,7 @@ public class AddCashbookEntryActivity extends AppCompatActivity {
     private Calendar calendar = Calendar.getInstance();
     private FirebaseAuth auth;
     private FirebaseFirestore db;
+    private String bookId;
 
     private static final String[] CATEGORIES = {
             "Sales", "Rent", "Salary", "Office", "Personal", "Food", "Transport", "Shopping", "Bills", "Other"
@@ -47,8 +48,16 @@ public class AddCashbookEntryActivity extends AppCompatActivity {
         auth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
 
+        bookId = getIntent().getStringExtra("BOOK_ID");
+        if (bookId == null) {
+            Toast.makeText(this, "Book ID missing", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+
         // Bind Views
         etParticulars = findViewById(R.id.etParticulars);
+        etContactName = findViewById(R.id.etContactName);
         etAmount = findViewById(R.id.etAmount);
         etNote = findViewById(R.id.etNote);
         rgType = findViewById(R.id.rgType);
@@ -97,6 +106,7 @@ public class AddCashbookEntryActivity extends AppCompatActivity {
 
     private void saveEntry() {
         String particulars = etParticulars.getText().toString().trim();
+        String contactName = etContactName.getText().toString().trim();
         String amountStr = etAmount.getText().toString().trim();
         String category = actvCategory.getText().toString().trim();
         String note = etNote.getText().toString().trim();
@@ -139,16 +149,20 @@ public class AddCashbookEntryActivity extends AppCompatActivity {
         long dateMs = calendar.getTimeInMillis();
         long createdAt = System.currentTimeMillis();
 
-        CashbookEntry entry = new CashbookEntry(null, dateMs, particulars, type, medium, amount, category, note, createdAt);
+        String newEntryId = db.collection("cashbooks").document(bookId).collection("entries").document().getId();
+
+        CashbookEntry entry = new CashbookEntry(newEntryId, bookId, dateMs, particulars, type, medium, amount, category, note, createdAt);
+        entry.setContactName(contactName);
+        entry.setCreatedBy(userId);
+        entry.setLastModifiedAt(createdAt);
 
         btnSaveEntry.setEnabled(false);
         btnSaveEntry.setText("Saving...");
 
-        db.collection("users")
-                .document(userId)
-                .collection("cashbook")
-                .add(entry.toFirestoreMap())
-                .addOnSuccessListener(documentReference -> {
+        db.collection("cashbooks").document(bookId)
+                .collection("entries").document(newEntryId)
+                .set(entry.toFirestoreMap())
+                .addOnSuccessListener(aVoid -> {
                     Toast.makeText(AddCashbookEntryActivity.this, "Transaction saved!", Toast.LENGTH_SHORT).show();
                     finish();
                 })
