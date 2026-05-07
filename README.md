@@ -51,6 +51,15 @@ Nexa is a modern, premium Android application designed to serve as a comprehensi
 
 ---
 
+## 🚀 Recent Updates
+
+- **Unified Shared Ledger Architecture**: Merged Groups and Ledgers to simplify operations.
+- **Improved Build Compatibility**: Resolved issues with deprecated classes and Gradle upgrades.
+- **Robust SDK 36 Support**: Enhanced exact alarm management on newer Android releases.
+- **Invite Code Generation**: Automatic fallback generation for missing ledger invite codes.
+
+---
+
 ## 🛠️ Technology Stack
 
 - **Platform**: Native Android (Java 11)
