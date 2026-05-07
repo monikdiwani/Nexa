@@ -34,14 +34,14 @@ import java.util.Locale;
  * - ViewPager2 with 3 sub-tabs: Personal | Groups | Overview
  * - Context-aware FAB (Add Transaction on Personal, hidden on others)
  */
-public class MoneyFragment extends Fragment implements MoneyPersonalFragment.BalanceUpdateListener {
+public class MoneyFragment extends Fragment {
 
     private TextView txtNetBalance, txtMoneyIn, txtMoneyOut, txtYouOwe, txtOwedToYou;
     private TabLayout tabLayoutMoney;
     private ViewPager2 viewPagerMoney;
     private FloatingActionButton fabMoneyAdd;
 
-    private MoneyPersonalFragment personalFragment;
+    private CashbookFragment cashbookFragment;
     private MoneyGroupsFragment groupsFragment;
     private MoneyOverviewFragment overviewFragment;
 
@@ -69,8 +69,7 @@ public class MoneyFragment extends Fragment implements MoneyPersonalFragment.Bal
         fabMoneyAdd = view.findViewById(R.id.fabMoneyAdd);
 
         // Create child fragments
-        personalFragment = new MoneyPersonalFragment();
-        personalFragment.setBalanceUpdateListener(this);
+        cashbookFragment = new CashbookFragment();
         groupsFragment = new MoneyGroupsFragment();
         overviewFragment = new MoneyOverviewFragment();
 
@@ -79,7 +78,7 @@ public class MoneyFragment extends Fragment implements MoneyPersonalFragment.Bal
         viewPagerMoney.setAdapter(pagerAdapter);
 
         // Connect TabLayout with ViewPager2
-        String[] tabTitles = {"Personal", "Groups", "Overview"};
+        String[] tabTitles = {"Ledgers", "Groups", "Overview"};
         new TabLayoutMediator(tabLayoutMoney, viewPagerMoney, (tab, position) -> {
             tab.setText(tabTitles[position]);
         }).attach();
@@ -130,7 +129,7 @@ public class MoneyFragment extends Fragment implements MoneyPersonalFragment.Bal
     private void onFabClicked() {
         if (currentTab == 0) {
             // Personal tab — add cashbook entry
-            startActivity(new Intent(requireActivity(), AddCashbookEntryActivity.class));
+            startActivity(new Intent(requireActivity(), com.example.frienddebt.ui.CreateLedgerBookActivity.class));
         } else if (currentTab == 1) {
             // Groups tab — create group (delegate to groups fragment)
             // The groups fragment has its own create group button, but FAB is a shortcut
@@ -146,19 +145,17 @@ public class MoneyFragment extends Fragment implements MoneyPersonalFragment.Bal
         String userId = auth.getCurrentUser().getUid();
 
         // Cashbook data for net balance
-        db.collection("users")
-                .document(userId)
-                .collection("cashbook")
+        db.collection("cashbooks")
+                .whereNotEqualTo("members." + userId, null)
                 .addSnapshotListener((snapshots, e) -> {
                     if (snapshots == null || !isAdded()) return;
 
                     double cashIn = 0, cashOut = 0;
                     for (com.google.firebase.firestore.DocumentSnapshot doc : snapshots) {
-                        Double amount = doc.getDouble("amount");
-                        String type = doc.getString("type");
-                        if (amount == null) continue;
-                        if ("CASH_IN".equals(type)) cashIn += amount;
-                        else if ("CASH_OUT".equals(type)) cashOut += amount;
+                        Double in = doc.getDouble("totalCashIn");
+                        Double out = doc.getDouble("totalCashOut");
+                        if (in != null) cashIn += in;
+                        if (out != null) cashOut += out;
                     }
 
                     double net = cashIn - cashOut;
@@ -189,25 +186,7 @@ public class MoneyFragment extends Fragment implements MoneyPersonalFragment.Bal
                 });
     }
 
-    // Called by MoneyPersonalFragment when cashbook data changes
-    @Override
-    public void onCashbookDataChanged(List<CashbookEntry> entries) {
-        if (!isAdded()) return;
-
-        double cashIn = 0, cashOut = 0;
-        for (CashbookEntry entry : entries) {
-            if ("CASH_IN".equalsIgnoreCase(entry.getType())) {
-                cashIn += entry.getAmount();
-            } else {
-                cashOut += entry.getAmount();
-            }
-        }
-
-        double net = cashIn - cashOut;
-        txtNetBalance.setText(String.format(Locale.getDefault(), "₹%.2f", net));
-        txtMoneyIn.setText(String.format(Locale.getDefault(), "₹%.0f", cashIn));
-        txtMoneyOut.setText(String.format(Locale.getDefault(), "₹%.0f", cashOut));
-    }
+    // Legacy listener removed. For global balances, we would need to sum across all LedgerBooks.
 
     // ─── ViewPager2 Adapter ────────────────────────────────────────
     private class MoneyPagerAdapter extends FragmentStateAdapter {
@@ -220,10 +199,10 @@ public class MoneyFragment extends Fragment implements MoneyPersonalFragment.Bal
         @Override
         public Fragment createFragment(int position) {
             switch (position) {
-                case 0: return personalFragment;
+                case 0: return cashbookFragment;
                 case 1: return groupsFragment;
                 case 2: return overviewFragment;
-                default: return personalFragment;
+                default: return cashbookFragment;
             }
         }
 
