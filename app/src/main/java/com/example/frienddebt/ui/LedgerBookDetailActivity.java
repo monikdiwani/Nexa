@@ -103,6 +103,7 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
             androidx.appcompat.widget.PopupMenu popup = new androidx.appcompat.widget.PopupMenu(this, v);
             popup.getMenu().add(0, 1, 0, "Cash Counter");
             popup.getMenu().add(0, 2, 0, "Export PDF Report");
+            popup.getMenu().add(0, 3, 0, "Share Invite Code");
             
             popup.setOnMenuItemClickListener(item -> {
                 switch (item.getItemId()) {
@@ -133,6 +134,20 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                         } else {
                             Toast.makeText(this, "Failed to generate PDF", Toast.LENGTH_SHORT).show();
                         }
+                        return true;
+                    case 3:
+                        db.collection("cashbooks").document(bookId).get()
+                            .addOnSuccessListener(doc -> {
+                                String code = doc.getString("inviteCode");
+                                if (code != null && !code.isEmpty()) {
+                                    Intent shareCodeIntent = new Intent(Intent.ACTION_SEND);
+                                    shareCodeIntent.setType("text/plain");
+                                    shareCodeIntent.putExtra(Intent.EXTRA_TEXT, "Join my Ledger on Nexa! Invite Code: " + code);
+                                    startActivity(Intent.createChooser(shareCodeIntent, "Share Invite Code"));
+                                } else {
+                                    Toast.makeText(LedgerBookDetailActivity.this, "No invite code found for this ledger.", Toast.LENGTH_SHORT).show();
+                                }
+                            });
                         return true;
                 }
                 return false;

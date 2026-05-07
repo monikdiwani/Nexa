@@ -167,42 +167,14 @@
 
         </LinearLayout>
 
-        <!-- Tab Layout -->
-        <com.google.android.material.tabs.TabLayout
-            android:id="@+id/tabLayoutMoney"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginHorizontal="20dp"
-            android:layout_marginTop="12dp"
-            android:background="@android:color/transparent"
-            app:tabMode="fixed"
-            app:tabGravity="fill"
-            app:tabIndicatorColor="@color/primary"
-            app:tabIndicatorHeight="3dp"
-            app:tabSelectedTextColor="@color/primary"
-            app:tabTextColor="@color/text_secondary"
-            app:tabRippleColor="@color/ripple_primary"
-            app:tabTextAppearance="@style/TabTextStyle" />
-
-        <!-- ViewPager2 -->
-        <androidx.viewpager2.widget.ViewPager2
-            android:id="@+id/viewPagerMoney"
+        <!-- Embedded CashbookFragment -->
+        <androidx.fragment.app.FragmentContainerView
+            android:id="@+id/cashbookFragmentContainer"
+            android:name="com.example.frienddebt.ui.fragment.CashbookFragment"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1" />
 
     </LinearLayout>
-
-    <!-- FAB -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fabMoneyAdd"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_margin="20dp"
-        android:src="@android:drawable/ic_input_add"
-        android:contentDescription="Add"
-        app:backgroundTint="@color/primary"
-        app:tint="@color/white" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

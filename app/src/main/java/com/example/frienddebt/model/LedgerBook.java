@@ -11,6 +11,7 @@ public class LedgerBook implements Serializable {
     private String name;
     private String currency;
     private String ownerId;
+    private String inviteCode;
     private long createdAt;
     
     // Derived balances
@@ -29,6 +30,7 @@ public class LedgerBook implements Serializable {
         this.name = name;
         this.currency = currency;
         this.ownerId = ownerId;
+        this.inviteCode = "";
         this.createdAt = createdAt;
         this.totalCashIn = 0.0;
         this.totalCashOut = 0.0;
@@ -49,6 +51,9 @@ public class LedgerBook implements Serializable {
 
     public String getOwnerId() { return ownerId; }
     public void setOwnerId(String ownerId) { this.ownerId = ownerId; }
+
+    public String getInviteCode() { return inviteCode; }
+    public void setInviteCode(String inviteCode) { this.inviteCode = inviteCode; }
 
     public long getCreatedAt() { return createdAt; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
@@ -71,6 +76,7 @@ public class LedgerBook implements Serializable {
         book.setName(doc.getString("name"));
         book.setCurrency(doc.getString("currency"));
         book.setOwnerId(doc.getString("ownerId"));
+        book.setInviteCode(doc.getString("inviteCode"));
         book.setCreatedAt(doc.getLong("createdAt") != null ? doc.getLong("createdAt") : 0L);
         book.setTotalCashIn(doc.getDouble("totalCashIn") != null ? doc.getDouble("totalCashIn") : 0.0);
         book.setTotalCashOut(doc.getDouble("totalCashOut") != null ? doc.getDouble("totalCashOut") : 0.0);
@@ -90,6 +96,7 @@ public class LedgerBook implements Serializable {
         map.put("name", name);
         map.put("currency", currency);
         map.put("ownerId", ownerId);
+        map.put("inviteCode", inviteCode);
         map.put("createdAt", createdAt);
         map.put("totalCashIn", totalCashIn);
         map.put("totalCashOut", totalCashOut);

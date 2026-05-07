@@ -42,29 +42,9 @@
             android:name=".ui.MainActivity"
             android:exported="false" />
 
-        <!-- GROUP DETAILS SCREEN -->
-        <activity
-            android:name=".ui.GroupDetailActivity"
-            android:exported="false" />
-
-        <!-- ADD EXPENSE SCREEN -->
-        <activity
-            android:name=".ui.AddExpenseActivity"
-            android:exported="false" />
-
-        <!-- SETTLEMENT SUGGESTIONS SCREEN -->
-        <activity
-            android:name=".ui.SettlementSuggestionsActivity"
-            android:exported="false" />
-
-        <!-- ✅ JOIN GROUP SCREEN (NEW) -->
+        <!-- ✅ JOIN LEDGER SCREEN -->
         <activity
             android:name=".ui.JoinGroupActivity"
-            android:exported="false" />
-
-        <!-- GROUP ACTIVITY LOGS SCREEN (NEW) -->
-        <activity
-            android:name=".ui.GroupActivityLogActivity"
             android:exported="false" />
 
         <!-- Nexa Super App Activities -->

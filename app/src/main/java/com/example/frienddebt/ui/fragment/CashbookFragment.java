@@ -64,6 +64,15 @@ public class CashbookFragment extends Fragment {
             startActivity(new Intent(requireActivity(), CreateLedgerBookActivity.class));
         });
 
+        android.widget.Button btnJoinLedger = view.findViewById(R.id.btnJoinLedger);
+        if (btnJoinLedger != null) {
+            btnJoinLedger.setOnClickListener(v -> {
+                Animation pop = AnimationUtils.loadAnimation(requireContext(), R.anim.button_pop);
+                v.startAnimation(pop);
+                startActivity(new Intent(requireActivity(), com.example.frienddebt.ui.JoinGroupActivity.class));
+            });
+        }
+
         return view;
     }
 

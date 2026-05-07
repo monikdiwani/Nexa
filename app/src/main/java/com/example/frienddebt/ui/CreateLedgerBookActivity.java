@@ -61,12 +61,21 @@ public class CreateLedgerBookActivity extends AppCompatActivity {
 
         // Generate a new ID
         String newId = db.collection("cashbooks").document().getId();
+        String inviteCode = generateInviteCode();
 
         LedgerBook newBook = new LedgerBook(newId, bookName, "INR", userId, createdAt);
+        newBook.setInviteCode(inviteCode);
 
         db.collection("cashbooks").document(newId)
                 .set(newBook.toFirestoreMap())
                 .addOnSuccessListener(aVoid -> {
+                    // Save the invite code mapping globally
+                    java.util.Map<String, Object> inviteMapping = new java.util.HashMap<>();
+                    inviteMapping.put("bookId", newId);
+                    inviteMapping.put("ownerId", userId);
+                    inviteMapping.put("createdAt", createdAt);
+                    db.collection("invite_codes").document(inviteCode).set(inviteMapping);
+
                     Toast.makeText(CreateLedgerBookActivity.this, "Cashbook created!", Toast.LENGTH_SHORT).show();
                     finish();
                 })
@@ -75,5 +84,15 @@ public class CreateLedgerBookActivity extends AppCompatActivity {
                     btnCreateBook.setText("CREATE CASHBOOK");
                     Toast.makeText(CreateLedgerBookActivity.this, "Failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 });
+    }
+
+    private String generateInviteCode() {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 6; i++) {
+            int idx = (int) (Math.random() * chars.length());
+            sb.append(chars.charAt(idx));
+        }
+        return sb.toString();
     }
 }
