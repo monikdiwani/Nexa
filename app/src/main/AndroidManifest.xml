@@ -38,9 +38,7 @@
             android:name=".ui.ForgotPassword"
             android:exported="false" />
 
-        <activity
-            android:name=".ui.MainActivity"
-            android:exported="false" />
+
 
         <!-- ✅ JOIN LEDGER SCREEN -->
         <activity
