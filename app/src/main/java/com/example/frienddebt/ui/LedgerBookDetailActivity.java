@@ -145,7 +145,7 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                                     shareCodeIntent.putExtra(Intent.EXTRA_TEXT, "Join my Ledger on Nexa! Invite Code: " + code);
                                     startActivity(Intent.createChooser(shareCodeIntent, "Share Invite Code"));
                                 } else {
-                                    Toast.makeText(LedgerBookDetailActivity.this, "No invite code found for this ledger.", Toast.LENGTH_SHORT).show();
+                                    generateAndSaveInviteCode(bookId);
                                 }
                             });
                         return true;
@@ -302,6 +302,56 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
         List<CashbookEntry> res = new ArrayList<>();
         for (CashbookEntry e : list) if (e.getDate() >= start && e.getDate() <= end) res.add(e);
         return res;
+    }
+
+    private void generateAndSaveInviteCode(String bookId) {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 6; i++) {
+            int idx = (int) (Math.random() * chars.length());
+            sb.append(chars.charAt(idx));
+        }
+        String newCode = sb.toString();
+
+        db.collection("cashbooks").document(bookId).get()
+            .addOnSuccessListener(doc -> {
+                String ownerId = doc.getString("ownerId");
+                if (ownerId == null) {
+                    ownerId = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : "";
+                }
+                Long createdAt = doc.getLong("createdAt");
+                if (createdAt == null) {
+                    createdAt = System.currentTimeMillis();
+                }
+
+                String finalOwnerId = ownerId;
+                Long finalCreatedAt = createdAt;
+                db.collection("cashbooks").document(bookId)
+                    .update("inviteCode", newCode)
+                    .addOnSuccessListener(aVoid -> {
+                        java.util.Map<String, Object> inviteMapping = new java.util.HashMap<>();
+                        inviteMapping.put("bookId", bookId);
+                        inviteMapping.put("ownerId", finalOwnerId);
+                        inviteMapping.put("createdAt", finalCreatedAt);
+                        
+                        db.collection("invite_codes").document(newCode).set(inviteMapping)
+                            .addOnSuccessListener(aVoid2 -> {
+                                Intent shareCodeIntent = new Intent(Intent.ACTION_SEND);
+                                shareCodeIntent.setType("text/plain");
+                                shareCodeIntent.putExtra(Intent.EXTRA_TEXT, "Join my Ledger on Nexa! Invite Code: " + newCode);
+                                startActivity(Intent.createChooser(shareCodeIntent, "Share Invite Code"));
+                            })
+                            .addOnFailureListener(e -> {
+                                Toast.makeText(LedgerBookDetailActivity.this, "Failed to save invite code mapping", Toast.LENGTH_SHORT).show();
+                            });
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(LedgerBookDetailActivity.this, "Failed to update ledger invite code", Toast.LENGTH_SHORT).show();
+                    });
+            })
+            .addOnFailureListener(e -> {
+                Toast.makeText(LedgerBookDetailActivity.this, "Failed to retrieve ledger details", Toast.LENGTH_SHORT).show();
+            });
     }
 
     private class LedgerEntryAdapter extends RecyclerView.Adapter<LedgerEntryAdapter.ViewHolder> {
