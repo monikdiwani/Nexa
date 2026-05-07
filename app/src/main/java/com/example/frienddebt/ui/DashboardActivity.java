@@ -174,19 +174,11 @@ public class DashboardActivity extends AppCompatActivity {
     }
 
     /**
-     * Switch to the Money tab and open a specific sub-tab.
-     * @param subTabIndex 0=Personal, 1=Groups, 2=Overview
+     * Switch to the Money tab.
      */
-    public void selectMoneyTab(int subTabIndex) {
+    public void selectMoneyTab() {
         BottomNavigationView navView = findViewById(R.id.bottom_navigation);
         navView.setSelectedItemId(R.id.nav_money);
-
-        // Post delayed to ensure the fragment is visible before switching sub-tab
-        navView.postDelayed(() -> {
-            if (moneyFragment instanceof MoneyFragment) {
-                ((MoneyFragment) moneyFragment).switchToTab(subTabIndex);
-            }
-        }, 100);
     }
 
     private Fragment findVisibleFragment() {
