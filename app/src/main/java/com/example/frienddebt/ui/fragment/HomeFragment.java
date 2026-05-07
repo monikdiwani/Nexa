@@ -38,7 +38,7 @@ public class HomeFragment extends Fragment {
     private TextView txtGreeting, txtUserName, txtTotalBalance, txtHomeCashIn, txtHomeCashOut;
     private TextView txtTaskCount, txtTaskPreview;
     private TextView txtReminderCount, txtReminderPreview;
-    private TextView txtGroupCount, txtGroupPreview;
+    private TextView txtLedgerCount, txtLedgerPreview;
 
     private LinearLayout btnQuickExpense, btnQuickTask, btnQuickReminder, btnQuickReports;
     private LinearLayout cardTasks, cardReminders, cardGroups;
@@ -50,11 +50,7 @@ public class HomeFragment extends Fragment {
     private ListenerRegistration cashbookListener;
     private ListenerRegistration tasksListener;
     private ListenerRegistration remindersListener;
-    private ListenerRegistration groupsCreatedListener;
-    private ListenerRegistration groupsJoinedListener;
-
-    private int createdGroupsCount = 0;
-    private int joinedGroupsCount = 0;
+    private ListenerRegistration ledgersListener;
 
     @Nullable
     @Override
@@ -74,8 +70,8 @@ public class HomeFragment extends Fragment {
         txtReminderCount = view.findViewById(R.id.txtReminderCount);
         txtReminderPreview = view.findViewById(R.id.txtReminderPreview);
 
-        txtGroupCount = view.findViewById(R.id.txtGroupCount);
-        txtGroupPreview = view.findViewById(R.id.txtGroupPreview);
+        txtLedgerCount = view.findViewById(R.id.txtLedgerCount);
+        txtLedgerPreview = view.findViewById(R.id.txtLedgerPreview);
 
         btnQuickExpense = view.findViewById(R.id.btnQuickExpense);
         btnQuickTask = view.findViewById(R.id.btnQuickTask);
@@ -200,28 +196,34 @@ public class HomeFragment extends Fragment {
 
         removeListeners();
 
-        // 1. Cashbook calculations
-        cashbookListener = db.collection("users")
-                .document(userId)
-                .collection("cashbook")
+        // 1. Shared Ledgers calculations (Balance and Count)
+        ledgersListener = db.collection("cashbooks")
+                .whereNotEqualTo("members." + userId, null)
                 .addSnapshotListener((snapshots, e) -> {
-                    if (snapshots == null) return;
+                    if (snapshots == null || !isAdded()) return;
+                    
                     double cashInSum = 0;
                     double cashOutSum = 0;
+                    int ledgerCount = snapshots.size();
+
                     for (DocumentSnapshot doc : snapshots) {
-                        Double amountObj = doc.getDouble("amount");
-                        double amount = amountObj != null ? amountObj : 0.0;
-                        String type = doc.getString("type");
-                        if ("CASH_IN".equals(type)) {
-                            cashInSum += amount;
-                        } else if ("CASH_OUT".equals(type)) {
-                            cashOutSum += amount;
-                        }
+                        Double in = doc.getDouble("totalCashIn");
+                        Double out = doc.getDouble("totalCashOut");
+                        if (in != null) cashInSum += in;
+                        if (out != null) cashOutSum += out;
                     }
+                    
                     double total = cashInSum - cashOutSum;
                     txtTotalBalance.setText(String.format(Locale.getDefault(), "₹%.2f", total));
                     txtHomeCashIn.setText(String.format(Locale.getDefault(), "₹%.2f", cashInSum));
                     txtHomeCashOut.setText(String.format(Locale.getDefault(), "₹%.2f", cashOutSum));
+
+                    txtLedgerCount.setText(ledgerCount + (ledgerCount == 1 ? " ledger" : " ledgers"));
+                    if (ledgerCount > 0) {
+                        txtLedgerPreview.setText("Keep tracking shared expenses");
+                    } else {
+                        txtLedgerPreview.setText("Create or join a ledger to track expenses");
+                    }
                 });
 
         // 2. Tasks preview
@@ -284,40 +286,12 @@ public class HomeFragment extends Fragment {
                     }
                 });
 
-        // 4. Groups count
-        groupsCreatedListener = db.collection("users")
-                .document(userId)
-                .collection("groups")
-                .addSnapshotListener((snapshots, e) -> {
-                    if (snapshots == null) return;
-                    createdGroupsCount = snapshots.size();
-                    updateGroupsSummary();
-                });
-
-        groupsJoinedListener = db.collection("users")
-                .document(userId)
-                .collection("joined_groups")
-                .addSnapshotListener((snapshots, e) -> {
-                    if (snapshots == null) return;
-                    joinedGroupsCount = snapshots.size();
-                    updateGroupsSummary();
-                });
-    }
-
-    private void updateGroupsSummary() {
-        int total = createdGroupsCount + joinedGroupsCount;
-        txtGroupCount.setText(total + (total == 1 ? " group" : " groups"));
-        if (total > 0) {
-            txtGroupPreview.setText("Keep splitting and settling debts");
-        } else {
-            txtGroupPreview.setText("Create or join a group to split expenses");
-        }
     }
 
     private void removeListeners() {
-        if (cashbookListener != null) {
-            cashbookListener.remove();
-            cashbookListener = null;
+        if (ledgersListener != null) {
+            ledgersListener.remove();
+            ledgersListener = null;
         }
         if (tasksListener != null) {
             tasksListener.remove();
@@ -326,14 +300,6 @@ public class HomeFragment extends Fragment {
         if (remindersListener != null) {
             remindersListener.remove();
             remindersListener = null;
-        }
-        if (groupsCreatedListener != null) {
-            groupsCreatedListener.remove();
-            groupsCreatedListener = null;
-        }
-        if (groupsJoinedListener != null) {
-            groupsJoinedListener.remove();
-            groupsJoinedListener = null;
         }
     }
 }

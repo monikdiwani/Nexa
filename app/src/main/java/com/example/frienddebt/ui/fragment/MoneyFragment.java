@@ -23,7 +23,7 @@ import java.util.Locale;
  */
 public class MoneyFragment extends Fragment {
 
-    private TextView txtNetBalance, txtMoneyIn, txtMoneyOut, txtYouOwe, txtOwedToYou;
+    private TextView txtNetBalance, txtMoneyIn, txtMoneyOut;
 
     private FirebaseAuth auth;
     private FirebaseFirestore db;
@@ -40,8 +40,7 @@ public class MoneyFragment extends Fragment {
         txtNetBalance = view.findViewById(R.id.txtNetBalance);
         txtMoneyIn = view.findViewById(R.id.txtMoneyIn);
         txtMoneyOut = view.findViewById(R.id.txtMoneyOut);
-        txtYouOwe = view.findViewById(R.id.txtYouOwe);
-        txtOwedToYou = view.findViewById(R.id.txtOwedToYou);
+
 
         return view;
     }

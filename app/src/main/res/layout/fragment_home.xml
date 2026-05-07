@@ -411,33 +411,33 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="👥  "
+                    android:text="📒  "
                     android:textSize="18sp" />
 
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Groups"
+                    android:text="Ledgers"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:textColor="@color/text_primary" />
 
                 <TextView
-                    android:id="@+id/txtGroupCount"
+                    android:id="@+id/txtLedgerCount"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="0 groups"
+                    android:text="0 ledgers"
                     android:textSize="13sp"
                     android:textColor="@color/primary"
                     android:textStyle="bold" />
             </LinearLayout>
 
             <TextView
-                android:id="@+id/txtGroupPreview"
+                android:id="@+id/txtLedgerPreview"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Create or join a group to split expenses"
+                android:text="Create or join a ledger to track expenses"
                 android:textSize="13sp"
                 android:textColor="@color/text_secondary"
                 android:layout_marginTop="8dp" />

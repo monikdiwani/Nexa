@@ -115,53 +115,7 @@
                         android:textColor="#FF8A80" />
                 </LinearLayout>
 
-                <!-- You Owe -->
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="👤 You Owe"
-                        android:textSize="10sp"
-                        android:textColor="#99FFFFFF" />
-
-                    <TextView
-                        android:id="@+id/txtYouOwe"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="₹0"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:textColor="#FFCC80" />
-                </LinearLayout>
-
-                <!-- Owed to you -->
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="💰 Owed"
-                        android:textSize="10sp"
-                        android:textColor="#99FFFFFF" />
-
-                    <TextView
-                        android:id="@+id/txtOwedToYou"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="₹0"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:textColor="#80D8FF" />
-                </LinearLayout>
 
             </LinearLayout>
 
