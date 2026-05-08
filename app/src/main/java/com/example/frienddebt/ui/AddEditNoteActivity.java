@@ -84,7 +84,7 @@ public class AddEditNoteActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        autoSaveAndFinish();
+        saveNote(false);
         super.onBackPressed();
     }
 
@@ -112,6 +112,8 @@ public class AddEditNoteActivity extends AppCompatActivity {
         data.put("content", content);
         data.put("updatedAt", System.currentTimeMillis());
 
+        isSaved = true; // Mark as saved synchronously to prevent duplicate saves during transition
+
         if (noteId == null) {
             data.put("createdAt", System.currentTimeMillis());
             db.collection("users")
@@ -119,11 +121,13 @@ public class AddEditNoteActivity extends AppCompatActivity {
                     .collection("notes")
                     .add(data)
                     .addOnSuccessListener(ref -> {
-                        isSaved = true;
                         if (showToast) {
                             Toast.makeText(AddEditNoteActivity.this, "Note saved!", Toast.LENGTH_SHORT).show();
                             finish();
                         }
+                    })
+                    .addOnFailureListener(e -> {
+                        isSaved = false;
                     });
         } else {
             db.collection("users")
@@ -132,11 +136,13 @@ public class AddEditNoteActivity extends AppCompatActivity {
                     .document(noteId)
                     .update(data)
                     .addOnSuccessListener(aVoid -> {
-                        isSaved = true;
                         if (showToast) {
                             Toast.makeText(AddEditNoteActivity.this, "Note updated!", Toast.LENGTH_SHORT).show();
                             finish();
                         }
+                    })
+                    .addOnFailureListener(e -> {
+                        isSaved = false;
                     });
         }
     }
