@@ -18,6 +18,7 @@ import com.google.android.material.progressindicator.CircularProgressIndicator;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.android.gms.tasks.Tasks;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -94,16 +95,36 @@ public class ReportsActivity extends AppCompatActivity {
         if (auth.getCurrentUser() == null) return;
         String userId = auth.getCurrentUser().getUid();
 
-        db.collection("users")
-                .document(userId)
-                .collection("cashbook")
+        db.collection("cashbooks")
+                .whereNotEqualTo("members." + userId, null)
                 .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    cashbookEntries.clear();
-                    for (DocumentSnapshot doc : queryDocumentSnapshots) {
-                        cashbookEntries.add(CashbookEntry.fromDocument(doc));
+                .addOnSuccessListener(booksSnap -> {
+                    List<com.google.android.gms.tasks.Task<com.google.firebase.firestore.QuerySnapshot>> tasks = new ArrayList<>();
+                    for (DocumentSnapshot bookDoc : booksSnap.getDocuments()) {
+                        String bookId = bookDoc.getId();
+                        tasks.add(db.collection("cashbooks")
+                                .document(bookId)
+                                .collection("entries")
+                                .get());
                     }
-                    calculateReports();
+
+                    if (tasks.isEmpty()) {
+                        cashbookEntries.clear();
+                        calculateReports();
+                        return;
+                    }
+
+                    Tasks.whenAllSuccess(tasks)
+                            .addOnSuccessListener(results -> {
+                                cashbookEntries.clear();
+                                for (Object res : results) {
+                                    com.google.firebase.firestore.QuerySnapshot entrySnap = (com.google.firebase.firestore.QuerySnapshot) res;
+                                    for (DocumentSnapshot entryDoc : entrySnap.getDocuments()) {
+                                        cashbookEntries.add(CashbookEntry.fromDocument(entryDoc));
+                                    }
+                                }
+                                calculateReports();
+                            });
                 });
 
         db.collection("users")
