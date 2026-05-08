@@ -36,7 +36,7 @@ import java.util.Locale;
 
 public class LedgerBookDetailActivity extends AppCompatActivity {
 
-    private TextView txtBookTitle, txtCashBalance, txtBankBalance, txtEmptyCashbook;
+    private TextView txtBookTitle, txtTotalIn, txtTotalOut, txtEmptyCashbook;
     private TextView chipAll, chipCash, chipBank, chipToday, chipWeek, chipMonth;
     private RecyclerView rvCashbookEntries;
     private FloatingActionButton fabAddEntry;
@@ -74,8 +74,8 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
         }
 
         txtBookTitle = findViewById(R.id.txtBookTitle);
-        txtCashBalance = findViewById(R.id.txtCashBalance);
-        txtBankBalance = findViewById(R.id.txtBankBalance);
+        txtTotalIn = findViewById(R.id.txtCashBalance);
+        txtTotalOut = findViewById(R.id.txtBankBalance);
         txtEmptyCashbook = findViewById(R.id.txtEmptyCashbook);
         rvCashbookEntries = findViewById(R.id.rvCashbookEntries);
         fabAddEntry = findViewById(R.id.fabAddEntry);
@@ -112,8 +112,8 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                         // We use the last calculated net balance
                         double currentNetBalance = 0;
                         try {
-                            String balStr = txtCashBalance.getText().toString().replace("₹", "").replace(",", "");
-                            String bankBalStr = txtBankBalance.getText().toString().replace("₹", "").replace(",", "");
+                            String balStr = txtTotalIn.getText().toString().replace("₹", "").replace(",", "");
+                            String bankBalStr = txtTotalOut.getText().toString().replace("₹", "").replace(",", "");
                             currentNetBalance = Double.parseDouble(balStr) - Double.parseDouble(bankBalStr);
                         } catch(Exception e) {}
                         ccIntent.putExtra("APP_BALANCE", currentNetBalance);
@@ -222,8 +222,8 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
     }
 
     private void updateBalances(double totalIn, double totalOut) {
-        txtCashBalance.setText(String.format(Locale.getDefault(), "₹%.2f", totalIn));
-        txtBankBalance.setText(String.format(Locale.getDefault(), "₹%.2f", totalOut));
+        txtTotalIn.setText(String.format(Locale.getDefault(), "₹%.2f", totalIn));
+        txtTotalOut.setText(String.format(Locale.getDefault(), "₹%.2f", totalOut));
     }
 
     private void setupFilters() {
