@@ -88,11 +88,17 @@ public class AddEditNoteActivity extends AppCompatActivity {
         super.onBackPressed();
     }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+        saveNote(false);
+    }
+
     private void saveNote(boolean showToast) {
         if (isSaved) return;
 
-        String title = etNoteTitle.getText().toString().trim();
-        String content = etNoteContent.getText().toString().trim();
+        final String title = etNoteTitle.getText().toString().trim();
+        final String content = etNoteContent.getText().toString().trim();
 
         // If nothing changed, do not perform save
         if (noteId != null && title.equals(originalTitle) && content.equals(originalContent)) {
@@ -115,35 +121,28 @@ public class AddEditNoteActivity extends AppCompatActivity {
         isSaved = true; // Mark as saved synchronously to prevent duplicate saves during transition
 
         if (noteId == null) {
-            data.put("createdAt", System.currentTimeMillis());
-            db.collection("users")
-                    .document(userId)
-                    .collection("notes")
-                    .add(data)
-                    .addOnSuccessListener(ref -> {
-                        if (showToast) {
-                            Toast.makeText(AddEditNoteActivity.this, "Note saved!", Toast.LENGTH_SHORT).show();
-                            finish();
-                        }
-                    })
-                    .addOnFailureListener(e -> {
-                        isSaved = false;
-                    });
-        } else {
-            db.collection("users")
-                    .document(userId)
-                    .collection("notes")
-                    .document(noteId)
-                    .update(data)
-                    .addOnSuccessListener(aVoid -> {
-                        if (showToast) {
-                            Toast.makeText(AddEditNoteActivity.this, "Note updated!", Toast.LENGTH_SHORT).show();
-                            finish();
-                        }
-                    })
-                    .addOnFailureListener(e -> {
-                        isSaved = false;
-                    });
+            noteId = db.collection("users").document(userId).collection("notes").document().getId();
+            originalTitle = title;
+            originalContent = content;
         }
+
+        data.put("createdAt", System.currentTimeMillis());
+        db.collection("users")
+                .document(userId)
+                .collection("notes")
+                .document(noteId)
+                .set(data)
+                .addOnSuccessListener(aVoid -> {
+                    isSaved = false;
+                    originalTitle = title;
+                    originalContent = content;
+                    if (showToast) {
+                        Toast.makeText(AddEditNoteActivity.this, "Note saved!", Toast.LENGTH_SHORT).show();
+                        finish();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    isSaved = false;
+                });
     }
 }
