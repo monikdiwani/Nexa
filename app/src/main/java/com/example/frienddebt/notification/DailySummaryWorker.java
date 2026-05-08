@@ -65,18 +65,30 @@ public class DailySummaryWorker extends Worker {
             cal.set(Calendar.MILLISECOND, 0);
             long startOfWeek = cal.getTimeInMillis();
 
-            QuerySnapshot cashSnap = Tasks.await(db.collection("users")
-                    .document(userId)
-                    .collection("cashbook")
-                    .whereGreaterThanOrEqualTo("date", startOfWeek)
+            // Fetch user's active ledger books where they are a member
+            QuerySnapshot booksSnap = Tasks.await(db.collection("cashbooks")
+                    .whereNotEqualTo("members." + userId, null)
                     .get());
 
             double weeklySpent = 0;
-            for (DocumentSnapshot doc : cashSnap.getDocuments()) {
-                String type = doc.getString("type");
-                Double amountVal = doc.getDouble("amount");
-                if ("CASH_OUT".equalsIgnoreCase(type) && amountVal != null) {
-                    weeklySpent += amountVal;
+            for (DocumentSnapshot bookDoc : booksSnap.getDocuments()) {
+                String bookId = bookDoc.getId();
+                // Query entries of this book since startOfWeek
+                QuerySnapshot entriesSnap = Tasks.await(db.collection("cashbooks")
+                        .document(bookId)
+                        .collection("entries")
+                        .whereGreaterThanOrEqualTo("date", startOfWeek)
+                        .get());
+
+                for (DocumentSnapshot entryDoc : entriesSnap.getDocuments()) {
+                    String type = entryDoc.getString("type");
+                    Double amountVal = entryDoc.getDouble("amount");
+                    String createdBy = entryDoc.getString("createdBy");
+                    if ("CASH_OUT".equalsIgnoreCase(type) && amountVal != null) {
+                        if (createdBy == null || userId.equals(createdBy)) {
+                            weeklySpent += amountVal;
+                        }
+                    }
                 }
             }
 
