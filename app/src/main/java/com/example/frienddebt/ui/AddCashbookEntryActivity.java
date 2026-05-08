@@ -163,6 +163,24 @@ public class AddCashbookEntryActivity extends AppCompatActivity {
                 .collection("entries").document(newEntryId)
                 .set(entry.toFirestoreMap())
                 .addOnSuccessListener(aVoid -> {
+                    // Write audit log in background
+                    if (auth.getCurrentUser() != null) {
+                        String actorName = auth.getCurrentUser().getDisplayName();
+                        if (actorName == null || actorName.trim().isEmpty()) {
+                            actorName = auth.getCurrentUser().getEmail();
+                        }
+                        if (actorName == null || actorName.trim().isEmpty()) {
+                            actorName = "Unknown Member";
+                        }
+                        String logId = db.collection("cashbooks").document(bookId).collection("logs").document().getId();
+                        String logDetails = actorName + " added " + ("CASH_IN".equalsIgnoreCase(type) ? "CASH IN" : "CASH OUT") + " of ₹" + String.format(Locale.getDefault(), "%.2f", amount) + " for \"" + particulars + "\"";
+
+                        com.example.frienddebt.model.AuditLog audit = new com.example.frienddebt.model.AuditLog(
+                                logId, bookId, "CREATE", userId, actorName, particulars, amount, type, System.currentTimeMillis(), logDetails
+                        );
+                        db.collection("cashbooks").document(bookId).collection("logs").document(logId).set(audit.toFirestoreMap());
+                    }
+
                     Toast.makeText(AddCashbookEntryActivity.this, "Transaction saved!", Toast.LENGTH_SHORT).show();
                     finish();
                 })

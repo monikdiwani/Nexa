@@ -104,6 +104,7 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
             popup.getMenu().add(0, 1, 0, "Cash Counter");
             popup.getMenu().add(0, 2, 0, "Export PDF Report");
             popup.getMenu().add(0, 3, 0, "Share Invite Code");
+            popup.getMenu().add(0, 4, 0, "View Activity Log");
             
             popup.setOnMenuItemClickListener(item -> {
                 switch (item.getItemId()) {
@@ -148,6 +149,12 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                                     generateAndSaveInviteCode(bookId);
                                 }
                             });
+                        return true;
+                    case 4:
+                        Intent logIntent = new Intent(this, ActivityLogActivity.class);
+                        logIntent.putExtra("BOOK_ID", bookId);
+                        logIntent.putExtra("BOOK_NAME", bookName);
+                        startActivity(logIntent);
                         return true;
                 }
                 return false;
@@ -436,6 +443,24 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                                 .setTitle("Delete Transaction")
                                 .setMessage("Are you sure you want to delete this transaction?")
                                 .setPositiveButton("Delete", (d, w) -> {
+                                    // Log deletion first
+                                    if (auth.getCurrentUser() != null) {
+                                        String actorName = auth.getCurrentUser().getDisplayName();
+                                        if (actorName == null || actorName.trim().isEmpty()) {
+                                            actorName = auth.getCurrentUser().getEmail();
+                                        }
+                                        if (actorName == null || actorName.trim().isEmpty()) {
+                                            actorName = "Unknown Member";
+                                        }
+                                        String logId = db.collection("cashbooks").document(bookId).collection("logs").document().getId();
+                                        String logDetails = actorName + " deleted " + ("CASH_IN".equalsIgnoreCase(entry.getType()) ? "CASH IN" : "CASH OUT") + " of ₹" + String.format(Locale.getDefault(), "%.2f", entry.getAmount()) + " for \"" + entry.getParticulars() + "\"";
+
+                                        com.example.frienddebt.model.AuditLog audit = new com.example.frienddebt.model.AuditLog(
+                                                logId, bookId, "DELETE", auth.getCurrentUser().getUid(), actorName, entry.getParticulars(), entry.getAmount(), entry.getType(), System.currentTimeMillis(), logDetails
+                                        );
+                                        db.collection("cashbooks").document(bookId).collection("logs").document(logId).set(audit.toFirestoreMap());
+                                    }
+
                                     db.collection("cashbooks").document(bookId)
                                       .collection("entries").document(entry.getId())
                                       .delete();
