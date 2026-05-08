@@ -159,9 +159,8 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
         if ("VIEWER".equalsIgnoreCase(userRole)) {
             fabAddEntry.setVisibility(View.GONE);
         } else {
+            com.example.frienddebt.utils.SpringAnimationUtil.applySpringEffect(fabAddEntry);
             fabAddEntry.setOnClickListener(v -> {
-                Animation pop = AnimationUtils.loadAnimation(this, R.anim.button_pop);
-                v.startAnimation(pop);
                 Intent intent = new Intent(LedgerBookDetailActivity.this, AddCashbookEntryActivity.class);
                 intent.putExtra("BOOK_ID", bookId);
                 startActivity(intent);

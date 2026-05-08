@@ -52,6 +52,9 @@ dependencies {
     // ✅ ViewPager2 for tab swiping
     implementation("androidx.viewpager2:viewpager2:1.1.0")
 
+    // ✅ Spring Physics dynamic animations
+    implementation("androidx.dynamicanimation:dynamicanimation:1.0.0")
+
     implementation(libs.credentials)
     implementation(libs.credentials.play.services.auth)
     implementation(libs.googleid)

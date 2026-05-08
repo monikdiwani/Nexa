@@ -75,8 +75,10 @@ public class TasksActivity extends AppCompatActivity {
 
         setupFilters();
 
+        // Spring animations
+        com.example.frienddebt.utils.SpringAnimationUtil.applySpringEffect(fabAddTask);
+
         fabAddTask.setOnClickListener(v -> {
-            v.startAnimation(android.view.animation.AnimationUtils.loadAnimation(this, R.anim.button_pop));
             startActivity(new Intent(TasksActivity.this, AddTaskActivity.class));
         });
 

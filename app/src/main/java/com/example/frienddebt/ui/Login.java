@@ -64,13 +64,15 @@ public class Login extends AppCompatActivity {
         Animation fadeIn = AnimationUtils.loadAnimation(this, R.anim.fade_in);
         findViewById(R.id.main).startAnimation(fadeIn);
 
+        // Spring animations
+        com.example.frienddebt.utils.SpringAnimationUtil.applySpringEffect(btnStartNav);
+        com.example.frienddebt.utils.SpringAnimationUtil.applySpringEffect(btnGoogleLogin);
+
         btnStartNav.setOnClickListener(v -> {
-            v.startAnimation(AnimationUtils.loadAnimation(this, R.anim.button_pop));
             userLogin();
         });
 
         btnGoogleLogin.setOnClickListener(v -> {
-            v.startAnimation(AnimationUtils.loadAnimation(this, R.anim.button_pop));
             signInWithGoogle();
         });
 
