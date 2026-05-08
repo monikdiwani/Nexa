@@ -81,6 +81,7 @@ public class TasksActivity extends AppCompatActivity {
         });
 
         loadTasks();
+        setupSwipeActions();
     }
 
     private void setupFilters() {
@@ -211,6 +212,69 @@ public class TasksActivity extends AppCompatActivity {
             tasksListener.remove();
         }
     }
+
+    private void setupSwipeActions() {
+        androidx.recyclerview.widget.ItemTouchHelper.SimpleCallback callback = 
+            new androidx.recyclerview.widget.ItemTouchHelper.SimpleCallback(0, 
+                androidx.recyclerview.widget.ItemTouchHelper.LEFT | androidx.recyclerview.widget.ItemTouchHelper.RIGHT) {
+                
+                @Override
+                public boolean onMove(@NonNull RecyclerView recyclerView, 
+                                      @NonNull RecyclerView.ViewHolder viewHolder, 
+                                      @NonNull RecyclerView.ViewHolder target) {
+                    return false;
+                }
+
+                @Override
+                public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+                    int position = viewHolder.getAdapterPosition();
+                    if (position < 0 || position >= filteredTasks.size()) {
+                        adapter.notifyItemChanged(position);
+                        return;
+                    }
+                    Task task = filteredTasks.get(position);
+
+                    if (direction == androidx.recyclerview.widget.ItemTouchHelper.RIGHT) {
+                        boolean isChecked = !task.isCompleted();
+                        if (auth.getCurrentUser() != null) {
+                            db.collection("users")
+                                    .document(auth.getCurrentUser().getUid())
+                                    .collection("tasks")
+                                    .document(task.getId())
+                                    .update(
+                                            "isCompleted", isChecked,
+                                            "completedAt", isChecked ? System.currentTimeMillis() : null
+                                    )
+                                    .addOnSuccessListener(aVoid -> {
+                                        Toast.makeText(TasksActivity.this, isChecked ? "Task completed!" : "Task updated!", Toast.LENGTH_SHORT).show();
+                                    });
+                        }
+                    } else if (direction == androidx.recyclerview.widget.ItemTouchHelper.LEFT) {
+                        new AlertDialog.Builder(TasksActivity.this)
+                                .setTitle("Delete Task")
+                                .setMessage("Are you sure you want to delete this task?")
+                                .setPositiveButton("Delete", (dialog, which) -> {
+                                    if (auth.getCurrentUser() != null) {
+                                        db.collection("users")
+                                                .document(auth.getCurrentUser().getUid())
+                                                .collection("tasks")
+                                                .document(task.getId())
+                                                .delete();
+                                        Toast.makeText(TasksActivity.this, "Task deleted", Toast.LENGTH_SHORT).show();
+                                    }
+                                })
+                                .setNegativeButton("Cancel", (dialog, which) -> {
+                                    adapter.notifyItemChanged(position);
+                                })
+                                .setOnCancelListener(dialog -> {
+                                    adapter.notifyItemChanged(position);
+                                })
+                                .show();
+                      }
+                  }
+              };
+          new androidx.recyclerview.widget.ItemTouchHelper(callback).attachToRecyclerView(rvTasks);
+      }
 
     // Recycler Adapter
     private class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.ViewHolder> {
