@@ -9,6 +9,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.RadioGroup;
+import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -17,6 +18,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.frienddebt.R;
 import com.example.frienddebt.model.Reminder;
 import com.example.frienddebt.notification.ReminderScheduler;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -28,6 +31,8 @@ public class AddReminderActivity extends AppCompatActivity {
 
     private EditText etReminderTitle, etReminderMsg;
     private AutoCompleteTextView actvCategory, actvRepeat;
+    private TextInputLayout tilCustomCategory;
+    private TextInputEditText etCustomCategory;
     private RadioGroup rgPriority;
     private TextView txtSelectedDate, txtSelectedTime;
     private Button btnSelectDate, btnSelectTime, btnSaveReminder;
@@ -60,6 +65,8 @@ public class AddReminderActivity extends AppCompatActivity {
         btnSelectTime = findViewById(R.id.btnSelectTime);
         btnSaveReminder = findViewById(R.id.btnSaveReminder);
         btnBack = findViewById(R.id.btnBack);
+        tilCustomCategory = findViewById(R.id.tilCustomCategory);
+        etCustomCategory = findViewById(R.id.etCustomCategory);
 
         btnBack.setOnClickListener(v -> finish());
 
@@ -67,6 +74,17 @@ public class AddReminderActivity extends AppCompatActivity {
         ArrayAdapter<String> catAdapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, CATEGORIES);
         actvCategory.setAdapter(catAdapter);
         actvCategory.setText("CUSTOM", false); // Default to CUSTOM
+        tilCustomCategory.setVisibility(View.VISIBLE); // Show since CUSTOM is default
+
+        actvCategory.setOnItemClickListener((parent, view, position, id) -> {
+            String selected = actvCategory.getText().toString().trim();
+            if ("CUSTOM".equals(selected)) {
+                tilCustomCategory.setVisibility(View.VISIBLE);
+            } else {
+                tilCustomCategory.setVisibility(View.GONE);
+                etCustomCategory.setText("");
+            }
+        });
 
         // Repeat dropdown Setup
         ArrayAdapter<String> repeatAdapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, REPEAT_OPTIONS);
@@ -150,6 +168,15 @@ public class AddReminderActivity extends AppCompatActivity {
         }
 
         String category = actvCategory.getText().toString().trim();
+        if ("CUSTOM".equals(category)) {
+            String customCat = etCustomCategory.getText().toString().trim();
+            if (customCat.isEmpty()) {
+                etCustomCategory.setError("Custom category is required");
+                etCustomCategory.requestFocus();
+                return;
+            }
+            category = customCat;
+        }
         String repeat = actvRepeat.getText().toString().trim();
 
         if (auth.getCurrentUser() == null) {
