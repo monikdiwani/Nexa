@@ -48,7 +48,7 @@ public class ProfileFragment extends Fragment {
     private TextView txtProfileInitials, txtProfileName, txtProfileEmail, txtMemberSince;
     private TextView btnEditProfile, txtPasswordHint, txtLoginProvider;
     private LinearLayout rowChangePassword;
-    private SwitchCompat switchDarkMode, switchMorningDigest, switchEveningDigest;
+    private SwitchCompat switchDarkMode, switchMorningDigest, switchEveningDigest, switchAppLock;
     private Button btnLogout;
 
     private FirebaseAuth auth;
@@ -58,6 +58,7 @@ public class ProfileFragment extends Fragment {
     private static final String KEY_DARK_MODE = "dark_mode";
     private static final String KEY_MORNING_DIGEST = "morning_digest";
     private static final String KEY_EVENING_DIGEST = "evening_digest";
+    private static final String KEY_APP_LOCK = "app_lock_enabled";
 
     @Nullable
     @Override
@@ -78,6 +79,7 @@ public class ProfileFragment extends Fragment {
         switchDarkMode = view.findViewById(R.id.switchDarkMode);
         switchMorningDigest = view.findViewById(R.id.switchMorningDigest);
         switchEveningDigest = view.findViewById(R.id.switchEveningDigest);
+        switchAppLock = view.findViewById(R.id.switchAppLock);
         btnLogout = view.findViewById(R.id.btnLogout);
 
         setupUserInfo();
@@ -435,6 +437,25 @@ public class ProfileFragment extends Fragment {
             } else {
                 cancelNightDigest();
             }
+        });
+
+        boolean isAppLockEnabled = sp.getBoolean(KEY_APP_LOCK, false);
+        switchAppLock.setChecked(isAppLockEnabled);
+        switchAppLock.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                androidx.biometric.BiometricManager biometricManager = androidx.biometric.BiometricManager.from(requireContext());
+                int status = biometricManager.canAuthenticate(androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG | androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL);
+                if (status == androidx.biometric.BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE || status == androidx.biometric.BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE) {
+                    Toast.makeText(requireContext(), "Biometric security is not supported on this device.", Toast.LENGTH_LONG).show();
+                    switchAppLock.setChecked(false);
+                    return;
+                } else if (status == androidx.biometric.BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED) {
+                    Toast.makeText(requireContext(), "Please set up a Pattern, PIN, or Fingerprint in your device Settings first.", Toast.LENGTH_LONG).show();
+                    switchAppLock.setChecked(false);
+                    return;
+                }
+            }
+            sp.edit().putBoolean(KEY_APP_LOCK, isChecked).apply();
         });
     }
 

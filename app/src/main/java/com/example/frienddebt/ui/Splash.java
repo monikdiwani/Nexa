@@ -125,15 +125,69 @@ public class Splash extends AppCompatActivity {
 
     private void checkAutoLoginAndNavigate() {
         if (hasNavigated) return;
-        hasNavigated = true;
  
         FirebaseAuth auth = FirebaseAuth.getInstance();
         if (auth.getCurrentUser() != null) {
-            Intent intent = new Intent(Splash.this, DashboardActivity.class);
+            SharedPreferences sp = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+            boolean isAppLockEnabled = sp.getBoolean("app_lock_enabled", false);
+
+            if (isAppLockEnabled) {
+                promptBiometricUnlock();
+            } else {
+                hasNavigated = true;
+                Intent intent = new Intent(Splash.this, DashboardActivity.class);
+                startActivity(intent);
+                finish();
+            }
+        } else {
+            hasNavigated = true;
+            Intent intent = new Intent(Splash.this, Login.class);
             startActivity(intent);
             finish();
+        }
+    }
+
+    private void promptBiometricUnlock() {
+        androidx.biometric.BiometricManager biometricManager = androidx.biometric.BiometricManager.from(this);
+        int authenticators = androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG 
+                | androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL;
+
+        if (biometricManager.canAuthenticate(authenticators) == androidx.biometric.BiometricManager.BIOMETRIC_SUCCESS) {
+            java.util.concurrent.Executor executor = androidx.core.content.ContextCompat.getMainExecutor(this);
+            androidx.biometric.BiometricPrompt biometricPrompt = new androidx.biometric.BiometricPrompt(this, executor,
+                    new androidx.biometric.BiometricPrompt.AuthenticationCallback() {
+                        @Override
+                        public void onAuthenticationError(int errorCode, @NonNull CharSequence errString) {
+                            super.onAuthenticationError(errorCode, errString);
+                            android.widget.Toast.makeText(Splash.this, "Authentication required to open Nexa", android.widget.Toast.LENGTH_SHORT).show();
+                            finishAffinity();
+                        }
+
+                        @Override
+                        public void onAuthenticationSucceeded(@NonNull androidx.biometric.BiometricPrompt.AuthenticationResult result) {
+                            super.onAuthenticationSucceeded(result);
+                            hasNavigated = true;
+                            Intent intent = new Intent(Splash.this, DashboardActivity.class);
+                            startActivity(intent);
+                            finish();
+                        }
+
+                        @Override
+                        public void onAuthenticationFailed() {
+                            super.onAuthenticationFailed();
+                        }
+                    });
+
+            androidx.biometric.BiometricPrompt.PromptInfo promptInfo = new androidx.biometric.BiometricPrompt.PromptInfo.Builder()
+                    .setTitle("Unlock Nexa")
+                    .setSubtitle("Authenticate to access your ledger book")
+                    .setAllowedAuthenticators(authenticators)
+                    .build();
+
+            biometricPrompt.authenticate(promptInfo);
         } else {
-            Intent intent = new Intent(Splash.this, Login.class);
+            hasNavigated = true;
+            Intent intent = new Intent(Splash.this, DashboardActivity.class);
             startActivity(intent);
             finish();
         }

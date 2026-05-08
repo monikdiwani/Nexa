@@ -55,6 +55,9 @@ dependencies {
     // ✅ Spring Physics dynamic animations
     implementation("androidx.dynamicanimation:dynamicanimation:1.0.0")
 
+    // ✅ Biometric library for fingerprint and pattern lock
+    implementation("androidx.biometric:biometric:1.1.0")
+
     implementation(libs.credentials)
     implementation(libs.credentials.play.services.auth)
     implementation(libs.googleid)
