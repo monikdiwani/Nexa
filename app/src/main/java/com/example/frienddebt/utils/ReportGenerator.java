@@ -58,10 +58,19 @@ public class ReportGenerator {
         canvas.drawLine(50, y, 545, y, paint);
         paint.setFakeBoldText(false);
 
-        // Draw Entries
-        y += 20;
+        // Calculate Totals first
         double totalIn = 0;
         double totalOut = 0;
+        for (CashbookEntry entry : entries) {
+            if ("CASH_IN".equals(entry.getType())) {
+                totalIn += entry.getAmount();
+            } else {
+                totalOut += entry.getAmount();
+            }
+        }
+
+        // Draw Entries
+        y += 20;
 
         SimpleDateFormat dateSdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
 
@@ -78,12 +87,10 @@ public class ReportGenerator {
                 paint.setColor(Color.parseColor("#4CAF50")); // Green
                 canvas.drawText("IN", 350, y, paint);
                 canvas.drawText("+" + entry.getAmount(), 450, y, paint);
-                totalIn += entry.getAmount();
             } else {
                 paint.setColor(Color.parseColor("#F44336")); // Red
                 canvas.drawText("OUT", 350, y, paint);
                 canvas.drawText("-" + entry.getAmount(), 450, y, paint);
-                totalOut += entry.getAmount();
             }
             
             paint.setColor(Color.BLACK); // Reset to black
