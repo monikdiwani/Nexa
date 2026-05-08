@@ -23,6 +23,8 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
 
+import com.example.frienddebt.utils.StatusBarUtil;
+
 public class AddTaskActivity extends AppCompatActivity {
 
     private EditText etTaskTitle, etTaskDesc;
@@ -41,6 +43,7 @@ public class AddTaskActivity extends AppCompatActivity {
     protected void onCreate(Bundle Bundle) {
         super.onCreate(Bundle);
         setContentView(R.layout.activity_add_task);
+        StatusBarUtil.applyStatusBarPadding(this);
 
         auth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();

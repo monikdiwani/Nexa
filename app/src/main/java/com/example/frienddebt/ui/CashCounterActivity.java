@@ -17,6 +17,8 @@ import com.example.frienddebt.R;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.example.frienddebt.utils.StatusBarUtil;
+
 public class CashCounterActivity extends AppCompatActivity {
 
     private LinearLayout llDenominations;
@@ -33,6 +35,7 @@ public class CashCounterActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_cash_counter);
+        StatusBarUtil.applyStatusBarPadding(this);
 
         llDenominations = findViewById(R.id.llDenominations);
         txtTotalCounted = findViewById(R.id.txtTotalCounted);

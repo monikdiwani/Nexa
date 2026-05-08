@@ -22,6 +22,8 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
 
+import com.example.frienddebt.utils.StatusBarUtil;
+
 public class AddCashbookEntryActivity extends AppCompatActivity {
 
     private EditText etParticulars, etContactName, etAmount, etNote;
@@ -44,6 +46,7 @@ public class AddCashbookEntryActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_cashbook_entry);
+        StatusBarUtil.applyStatusBarPadding(this);
 
         auth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();

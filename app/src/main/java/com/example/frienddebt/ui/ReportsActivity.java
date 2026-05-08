@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import com.example.frienddebt.utils.StatusBarUtil;
+
 public class ReportsActivity extends AppCompatActivity {
 
     private ImageButton btnBack;
@@ -50,6 +52,7 @@ public class ReportsActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_reports);
+        StatusBarUtil.applyStatusBarPadding(this);
 
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();

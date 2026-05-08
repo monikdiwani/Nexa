@@ -15,6 +15,8 @@ import com.example.frienddebt.ui.fragment.ProfileFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationBarView;
 
+import com.example.frienddebt.utils.StatusBarUtil;
+
 public class DashboardActivity extends AppCompatActivity {
 
     private static final String TAG_HOME = "nav_home";
@@ -45,6 +47,7 @@ public class DashboardActivity extends AppCompatActivity {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_dashboard);
+        StatusBarUtil.applyStatusBarPadding(this);
 
         fm = getSupportFragmentManager();
         BottomNavigationView navView = findViewById(R.id.bottom_navigation);

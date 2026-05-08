@@ -12,6 +12,8 @@ import com.example.frienddebt.R;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import com.example.frienddebt.utils.StatusBarUtil;
+
 public class JoinGroupActivity extends AppCompatActivity {
 
     private static final String TAG = "JoinGroupActivity";
@@ -26,6 +28,7 @@ public class JoinGroupActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_join_group);
+        StatusBarUtil.applyStatusBarPadding(this);
 
         com.google.android.material.appbar.MaterialToolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);

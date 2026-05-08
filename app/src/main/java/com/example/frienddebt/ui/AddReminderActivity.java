@@ -27,6 +27,8 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
 
+import com.example.frienddebt.utils.StatusBarUtil;
+
 public class AddReminderActivity extends AppCompatActivity {
 
     private EditText etReminderTitle, etReminderMsg;
@@ -49,6 +51,7 @@ public class AddReminderActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_reminder);
+        StatusBarUtil.applyStatusBarPadding(this);
 
         auth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();

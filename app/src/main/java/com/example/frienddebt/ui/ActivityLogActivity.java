@@ -26,6 +26,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
+import com.example.frienddebt.utils.StatusBarUtil;
+
 public class ActivityLogActivity extends AppCompatActivity {
 
     private FirebaseFirestore db;
@@ -41,6 +43,7 @@ public class ActivityLogActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_activity_log);
+        StatusBarUtil.applyStatusBarPadding(this);
 
         db = FirebaseFirestore.getInstance();
 

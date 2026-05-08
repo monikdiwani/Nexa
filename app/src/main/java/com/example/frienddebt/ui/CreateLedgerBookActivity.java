@@ -13,6 +13,8 @@ import com.example.frienddebt.model.LedgerBook;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import com.example.frienddebt.utils.StatusBarUtil;
+
 public class CreateLedgerBookActivity extends AppCompatActivity {
 
     private EditText etBookName;
@@ -26,6 +28,7 @@ public class CreateLedgerBookActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_create_ledger_book);
+        StatusBarUtil.applyStatusBarPadding(this);
 
         auth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();

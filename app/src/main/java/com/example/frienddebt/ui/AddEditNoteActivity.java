@@ -5,7 +5,10 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.example.frienddebt.utils.StatusBarUtil;
 
 import com.example.frienddebt.R;
 import com.example.frienddebt.model.Note;
@@ -26,12 +29,12 @@ public class AddEditNoteActivity extends AppCompatActivity {
     private String noteId = null;
     private String originalTitle = "";
     private String originalContent = "";
-    private boolean isSaved = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_edit_note);
+        StatusBarUtil.applyStatusBarPadding(this);
 
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
@@ -53,6 +56,15 @@ public class AddEditNoteActivity extends AppCompatActivity {
 
         btnSave.setOnClickListener(v -> {
             saveNote(true);
+        });
+
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                saveNote(false);
+                setEnabled(false);
+                getOnBackPressedDispatcher().onBackPressed();
+            }
         });
     }
 
@@ -83,20 +95,12 @@ public class AddEditNoteActivity extends AppCompatActivity {
     }
 
     @Override
-    public void onBackPressed() {
-        saveNote(false);
-        super.onBackPressed();
-    }
-
-    @Override
     protected void onPause() {
         super.onPause();
         saveNote(false);
     }
 
     private void saveNote(boolean showToast) {
-        if (isSaved) return;
-
         final String title = etNoteTitle.getText().toString().trim();
         final String content = etNoteContent.getText().toString().trim();
 
@@ -118,13 +122,13 @@ public class AddEditNoteActivity extends AppCompatActivity {
         data.put("content", content);
         data.put("updatedAt", System.currentTimeMillis());
 
-        isSaved = true; // Mark as saved synchronously to prevent duplicate saves during transition
-
         if (noteId == null) {
             noteId = db.collection("users").document(userId).collection("notes").document().getId();
-            originalTitle = title;
-            originalContent = content;
         }
+
+        // Update original values immediately to prevent duplicate triggers
+        originalTitle = title;
+        originalContent = content;
 
         data.put("createdAt", System.currentTimeMillis());
         db.collection("users")
@@ -133,16 +137,15 @@ public class AddEditNoteActivity extends AppCompatActivity {
                 .document(noteId)
                 .set(data)
                 .addOnSuccessListener(aVoid -> {
-                    isSaved = false;
-                    originalTitle = title;
-                    originalContent = content;
                     if (showToast) {
                         Toast.makeText(AddEditNoteActivity.this, "Note saved!", Toast.LENGTH_SHORT).show();
                         finish();
                     }
                 })
                 .addOnFailureListener(e -> {
-                    isSaved = false;
+                    // Reset original values on failure so we can retry saving
+                    originalTitle = "";
+                    originalContent = "";
                 });
     }
 }

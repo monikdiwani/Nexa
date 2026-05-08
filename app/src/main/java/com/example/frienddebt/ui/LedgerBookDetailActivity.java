@@ -34,6 +34,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
+import com.example.frienddebt.utils.StatusBarUtil;
+
 public class LedgerBookDetailActivity extends AppCompatActivity {
 
     private TextView txtBookTitle, txtTotalIn, txtTotalOut, txtEmptyCashbook;
@@ -59,6 +61,7 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_ledger_book_detail);
+        StatusBarUtil.applyStatusBarPadding(this);
 
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
