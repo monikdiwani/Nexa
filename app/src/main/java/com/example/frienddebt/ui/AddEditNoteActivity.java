@@ -62,8 +62,7 @@ public class AddEditNoteActivity extends AppCompatActivity {
             @Override
             public void handleOnBackPressed() {
                 saveNote(false);
-                setEnabled(false);
-                getOnBackPressedDispatcher().onBackPressed();
+                finish();
             }
         });
     }
