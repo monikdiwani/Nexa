@@ -18,6 +18,7 @@ import androidx.credentials.GetCredentialResponse;
 import androidx.credentials.exceptions.GetCredentialException;
 
 import com.example.frienddebt.R;
+import com.example.frienddebt.utils.StatusBarUtil;
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 import com.google.firebase.auth.AuthCredential;
@@ -40,6 +41,7 @@ public class SignUp extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sign_up);
+        StatusBarUtil.applyStatusBarPadding(this);
 
         firebaseAuth = FirebaseAuth.getInstance();
         credentialManager = CredentialManager.create(this);

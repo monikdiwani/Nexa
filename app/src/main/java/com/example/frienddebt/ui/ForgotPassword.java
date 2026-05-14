@@ -15,6 +15,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.example.frienddebt.R;
+import com.example.frienddebt.utils.StatusBarUtil;
 import com.google.firebase.auth.ActionCodeSettings;
 import com.google.firebase.auth.FirebaseAuth;
 
@@ -34,6 +35,7 @@ public class ForgotPassword extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_forgot_password);
+        StatusBarUtil.applyStatusBarPadding(this);
 
         // Initialize Firebase Auth
         firebaseAuth = FirebaseAuth.getInstance();

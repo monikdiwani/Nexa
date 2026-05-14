@@ -14,7 +14,9 @@ public class StatusBarUtil {
         if (activity == null) return;
         
         // 1. Force window edge-to-edge layout and raw inset dispatching
-        EdgeToEdge.enable(activity);
+        if (activity instanceof androidx.activity.ComponentActivity) {
+            EdgeToEdge.enable((androidx.activity.ComponentActivity) activity);
+        }
         
         // 2. Programmatically apply status bar/notch padding to the layout root view
         View contentRoot = activity.findViewById(android.R.id.content);
