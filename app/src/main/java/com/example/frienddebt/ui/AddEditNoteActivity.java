@@ -53,16 +53,23 @@ public class AddEditNoteActivity extends AppCompatActivity {
         }
 
         // In-app back arrow: save silently then exit
-        btnBack.setOnClickListener(v -> saveAndExit(false));
+        btnBack.setOnClickListener(v -> {
+            saveNote(false);
+            finish();
+        });
 
         // Manual save button: save and show toast then exit
-        btnSave.setOnClickListener(v -> saveAndExit(true));
+        btnSave.setOnClickListener(v -> {
+            saveNote(true);
+            finish();
+        });
 
         // System navigation bar back button: save silently then exit
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
-                saveAndExit(false);
+                saveNote(false);
+                finish();
             }
         });
     }
@@ -88,40 +95,42 @@ public class AddEditNoteActivity extends AppCompatActivity {
                 });
     }
 
+    private boolean hasSaved = false;
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // Auto-save when activity loses focus (home button, app switch, or finishing)
+        if (!hasSaved) {
+            saveNote(false);
+        }
+    }
+
     /**
-     * Saves the note and then calls finish() only after Firestore confirms the write.
-     * This ensures no data is lost when exiting via the system navigation back button.
-     *
-     * @param showToast whether to show a "Note saved!" toast on success
+     * Saves the note to Firestore.
      */
-    private void saveAndExit(boolean showToast) {
-        // Prevent duplicate calls
-        if (isFinishing) return;
+    private void saveNote(boolean showToast) {
+        if (hasSaved) return;
 
         final String title = etNoteTitle.getText().toString().trim();
         final String content = etNoteContent.getText().toString().trim();
 
-        // Nothing changed — no need to write, just exit
         if (noteId != null && title.equals(originalTitle) && content.equals(originalContent)) {
-            isFinishing = true;
-            finish();
+            hasSaved = true;
             return;
         }
 
-        // New empty note — nothing to save, just exit
         if (noteId == null && title.isEmpty() && content.isEmpty()) {
-            isFinishing = true;
-            finish();
+            hasSaved = true;
             return;
         }
 
         if (auth.getCurrentUser() == null) {
-            isFinishing = true;
-            finish();
+            hasSaved = true;
             return;
         }
 
-        isFinishing = true;
+        hasSaved = true;
         String userId = auth.getCurrentUser().getUid();
 
         Map<String, Object> data = new HashMap<>();
@@ -130,7 +139,6 @@ public class AddEditNoteActivity extends AppCompatActivity {
         data.put("updatedAt", System.currentTimeMillis());
 
         if (noteId == null) {
-            // Pre-generate ID so we never create duplicates
             noteId = db.collection("users")
                     .document(userId)
                     .collection("notes")
@@ -139,12 +147,9 @@ public class AddEditNoteActivity extends AppCompatActivity {
             data.put("createdAt", System.currentTimeMillis());
         }
 
-        // Update local originals immediately to prevent re-triggers
         originalTitle = title;
         originalContent = content;
 
-        // Write to Firestore — finish() is called INSIDE the callback
-        // so the activity never closes before the write is complete
         db.collection("users")
                 .document(userId)
                 .collection("notes")
@@ -154,11 +159,9 @@ public class AddEditNoteActivity extends AppCompatActivity {
                     if (showToast) {
                         Toast.makeText(AddEditNoteActivity.this, "Note saved!", Toast.LENGTH_SHORT).show();
                     }
-                    finish();
                 })
                 .addOnFailureListener(e -> {
-                    // Reset so user can try again
-                    isFinishing = false;
+                    hasSaved = false;
                     originalTitle = "";
                     originalContent = "";
                     Toast.makeText(AddEditNoteActivity.this,
