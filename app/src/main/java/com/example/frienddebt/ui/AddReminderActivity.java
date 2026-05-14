@@ -80,7 +80,7 @@ public class AddReminderActivity extends AppCompatActivity {
         tilCustomCategory.setVisibility(View.VISIBLE); // Show since CUSTOM is default
 
         actvCategory.setOnItemClickListener((parent, view, position, id) -> {
-            String selected = actvCategory.getText().toString().trim();
+            String selected = parent.getItemAtPosition(position).toString().trim();
             if ("CUSTOM".equals(selected)) {
                 tilCustomCategory.setVisibility(View.VISIBLE);
             } else {
