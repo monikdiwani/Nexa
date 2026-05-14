@@ -187,10 +187,8 @@ public class Splash extends AppCompatActivity {
 
             biometricPrompt.authenticate(promptInfo);
         } else {
-            hasNavigated = true;
-            Intent intent = new Intent(Splash.this, DashboardActivity.class);
-            startActivity(intent);
-            finish();
+            android.widget.Toast.makeText(Splash.this, "App Lock is enabled, but no security (PIN/Fingerprint) is set on this device.", android.widget.Toast.LENGTH_LONG).show();
+            finishAffinity();
         }
     }
 
