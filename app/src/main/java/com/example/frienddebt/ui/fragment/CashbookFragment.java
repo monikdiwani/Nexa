@@ -42,10 +42,16 @@ public class CashbookFragment extends Fragment {
     private List<LedgerBook> ledgerBooks = new ArrayList<>();
     private LedgerBookAdapter adapter;
 
+    private String filter = "ALL"; // PERSONAL, SHARED, ALL
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_cashbook, container, false);
+
+        if (getArguments() != null) {
+            filter = getArguments().getString("FILTER", "ALL");
+        }
 
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
@@ -71,6 +77,14 @@ public class CashbookFragment extends Fragment {
                 v.startAnimation(pop);
                 startActivity(new Intent(requireActivity(), com.example.frienddebt.ui.JoinGroupActivity.class));
             });
+        }
+
+        // Hide header and fab if it is embedded inside MoneyFragment tabs
+        if (getArguments() != null && getArguments().containsKey("FILTER")) {
+            View header = view.findViewById(R.id.header);
+            if (header != null) header.setVisibility(View.GONE);
+            fabAddBook.setVisibility(View.GONE);
+            if (btnJoinLedger != null) btnJoinLedger.setVisibility(View.GONE);
         }
 
         return view;
@@ -106,7 +120,14 @@ public class CashbookFragment extends Fragment {
                     if (snapshots == null) return;
                     ledgerBooks.clear();
                     for (DocumentSnapshot doc : snapshots) {
-                        ledgerBooks.add(LedgerBook.fromDocument(doc));
+                        LedgerBook book = LedgerBook.fromDocument(doc);
+                        
+                        // Apply filter
+                        int memberCount = book.getMembers() != null ? book.getMembers().size() : 0;
+                        if ("PERSONAL".equals(filter) && memberCount > 1) continue;
+                        if ("SHARED".equals(filter) && memberCount <= 1) continue;
+
+                        ledgerBooks.add(book);
                     }
                     
                     adapter.notifyDataSetChanged();

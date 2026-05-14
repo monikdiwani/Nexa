@@ -121,14 +121,39 @@
 
         </LinearLayout>
 
-        <!-- Embedded CashbookFragment -->
-        <androidx.fragment.app.FragmentContainerView
-            android:id="@+id/cashbookFragmentContainer"
-            android:name="com.example.frienddebt.ui.fragment.CashbookFragment"
+        <!-- Tabs -->
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tabLayoutMoney"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="20dp"
+            android:layout_marginTop="8dp"
+            android:background="@android:color/transparent"
+            app:tabIndicatorColor="@color/primary"
+            app:tabSelectedTextColor="@color/primary"
+            app:tabTextColor="@color/text_secondary"
+            app:tabMode="fixed"
+            app:tabGravity="fill" />
+
+        <!-- ViewPager for Cashbook fragments -->
+        <androidx.viewpager2.widget.ViewPager2
+            android:id="@+id/viewPagerMoney"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1" />
 
     </LinearLayout>
+
+    <!-- Global FAB for Money Actions -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabMoneyActions"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="20dp"
+        android:src="@android:drawable/ic_input_add"
+        android:contentDescription="Money Actions"
+        app:backgroundTint="@color/primary"
+        app:tint="@color/white" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
