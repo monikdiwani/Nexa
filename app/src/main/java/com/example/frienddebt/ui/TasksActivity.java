@@ -253,6 +253,7 @@ public class TasksActivity extends AppCompatActivity {
                                     .addOnSuccessListener(aVoid -> {
                                         Toast.makeText(TasksActivity.this, isChecked ? "Task completed!" : "Task updated!", Toast.LENGTH_SHORT).show();
                                     });
+                            adapter.notifyItemChanged(position);
                         }
                     } else if (direction == androidx.recyclerview.widget.ItemTouchHelper.LEFT) {
                         new AlertDialog.Builder(TasksActivity.this)

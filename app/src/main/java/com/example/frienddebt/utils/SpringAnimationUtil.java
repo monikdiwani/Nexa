@@ -14,29 +14,35 @@ public class SpringAnimationUtil {
         if (view == null) return;
 
         view.setOnTouchListener((v, event) -> {
+            SpringAnimation animX = getOrCreateAnimation(view, DynamicAnimation.SCALE_X);
+            SpringAnimation animY = getOrCreateAnimation(view, DynamicAnimation.SCALE_Y);
+
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
-                    createSpringAnimation(view, DynamicAnimation.SCALE_X, 0.94f).start();
-                    createSpringAnimation(view, DynamicAnimation.SCALE_Y, 0.94f).start();
+                    animX.animateToFinalPosition(0.94f);
+                    animY.animateToFinalPosition(0.94f);
                     break;
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_CANCEL:
-                    createSpringAnimation(view, DynamicAnimation.SCALE_X, 1.0f).start();
-                    createSpringAnimation(view, DynamicAnimation.SCALE_Y, 1.0f).start();
+                    animX.animateToFinalPosition(1.0f);
+                    animY.animateToFinalPosition(1.0f);
                     break;
             }
             return false;
         });
     }
 
-    private static SpringAnimation createSpringAnimation(View view, 
-                                                         DynamicAnimation.ViewProperty property, 
-                                                         float finalPosition) {
-        SpringAnimation anim = new SpringAnimation(view, property, finalPosition);
-        SpringForce force = new SpringForce();
-        force.setDampingRatio(SpringForce.DAMPING_RATIO_MEDIUM_BOUNCY);
-        force.setStiffness(SpringForce.STIFFNESS_MEDIUM);
-        anim.setSpring(force);
+    private static SpringAnimation getOrCreateAnimation(View view, DynamicAnimation.ViewProperty property) {
+        int key = property == DynamicAnimation.SCALE_X ? R.id.spring_anim_x : R.id.spring_anim_y;
+        SpringAnimation anim = (SpringAnimation) view.getTag(key);
+        if (anim == null) {
+            anim = new SpringAnimation(view, property, 1.0f);
+            SpringForce force = new SpringForce(1.0f);
+            force.setDampingRatio(SpringForce.DAMPING_RATIO_MEDIUM_BOUNCY);
+            force.setStiffness(SpringForce.STIFFNESS_MEDIUM);
+            anim.setSpring(force);
+            view.setTag(key, anim);
+        }
         return anim;
     }
 }
