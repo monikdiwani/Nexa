@@ -181,11 +181,15 @@ public class AddCashbookEntryActivity extends AppCompatActivity {
                         com.example.frienddebt.model.AuditLog audit = new com.example.frienddebt.model.AuditLog(
                                 logId, bookId, "CREATE", userId, actorName, particulars, amount, type, System.currentTimeMillis(), logDetails
                         );
-                        db.collection("cashbooks").document(bookId).collection("logs").document(logId).set(audit.toFirestoreMap());
+                        db.collection("cashbooks").document(bookId).collection("logs").document(logId).set(audit.toFirestoreMap())
+                                .addOnCompleteListener(task -> {
+                                    Toast.makeText(AddCashbookEntryActivity.this, "Transaction saved!", Toast.LENGTH_SHORT).show();
+                                    finish();
+                                });
+                    } else {
+                        Toast.makeText(AddCashbookEntryActivity.this, "Transaction saved!", Toast.LENGTH_SHORT).show();
+                        finish();
                     }
-
-                    Toast.makeText(AddCashbookEntryActivity.this, "Transaction saved!", Toast.LENGTH_SHORT).show();
-                    finish();
                 })
                 .addOnFailureListener(e -> {
                     btnSaveEntry.setEnabled(true);

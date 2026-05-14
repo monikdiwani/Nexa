@@ -76,6 +76,7 @@ public class ActivityLogActivity extends AppCompatActivity {
                 .addSnapshotListener((snapshots, e) -> {
                     if (e != null) {
                         Log.e("ActivityLogActivity", "Error loading logs", e);
+                        android.widget.Toast.makeText(ActivityLogActivity.this, "Error loading logs: " + e.getMessage(), android.widget.Toast.LENGTH_LONG).show();
                         return;
                     }
 
