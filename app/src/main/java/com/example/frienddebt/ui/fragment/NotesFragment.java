@@ -143,7 +143,11 @@ public class NotesFragment extends Fragment {
             holder.txtTitle.setText(title);
 
             String content = note.getContent();
-            holder.txtContent.setText(content != null ? content : "");
+            if (content == null) content = "";
+            io.noties.markwon.Markwon markwon = io.noties.markwon.Markwon.builder(holder.itemView.getContext())
+                .usePlugin(io.noties.markwon.ext.tasklist.TaskListPlugin.create(holder.itemView.getContext()))
+                .build();
+            markwon.setMarkdown(holder.txtContent, content);
 
             SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
             holder.txtDate.setText(sdf.format(new Date(note.getUpdatedAt())));

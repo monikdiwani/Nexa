@@ -58,6 +58,10 @@ dependencies {
     // ✅ Biometric library for fingerprint and pattern lock
     implementation("androidx.biometric:biometric:1.1.0")
 
+    // ✅ Markwon for Markdown Rendering
+    implementation("io.noties.markwon:core:4.6.2")
+    implementation("io.noties.markwon:ext-tasklist:4.6.2")
+
     implementation(libs.credentials)
     implementation(libs.credentials.play.services.auth)
     implementation(libs.googleid)

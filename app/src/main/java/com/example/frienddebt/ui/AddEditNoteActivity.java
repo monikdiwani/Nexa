@@ -72,6 +72,81 @@ public class AddEditNoteActivity extends AppCompatActivity {
                 finish();
             }
         });
+
+        setupMarkdownToolbar();
+    }
+
+    private void setupMarkdownToolbar() {
+        findViewById(R.id.btnFormatBold).setOnClickListener(v -> insertMarkdown("**", "**"));
+        findViewById(R.id.btnFormatItalic).setOnClickListener(v -> insertMarkdown("*", "*"));
+        findViewById(R.id.btnFormatHeader).setOnClickListener(v -> insertMarkdownAtLineStart("### "));
+        findViewById(R.id.btnFormatBullet).setOnClickListener(v -> insertMarkdownAtLineStart("- "));
+        findViewById(R.id.btnFormatTask).setOnClickListener(v -> insertMarkdownAtLineStart("- [ ] "));
+
+        android.widget.Button btnTogglePreview = findViewById(R.id.btnTogglePreview);
+        android.widget.TextView txtPreview = findViewById(R.id.txtMarkdownPreview);
+
+        btnTogglePreview.setOnClickListener(v -> {
+            if (etNoteContent.getVisibility() == android.view.View.VISIBLE) {
+                // Switch to Preview
+                etNoteContent.setVisibility(android.view.View.GONE);
+                txtPreview.setVisibility(android.view.View.VISIBLE);
+                btnTogglePreview.setText("Edit");
+                
+                // Render Markdown
+                io.noties.markwon.Markwon markwon = io.noties.markwon.Markwon.builder(this)
+                    .usePlugin(io.noties.markwon.ext.tasklist.TaskListPlugin.create(this))
+                    .build();
+                markwon.setMarkdown(txtPreview, etNoteContent.getText().toString());
+            } else {
+                // Switch to Edit
+                etNoteContent.setVisibility(android.view.View.VISIBLE);
+                txtPreview.setVisibility(android.view.View.GONE);
+                btnTogglePreview.setText("Preview");
+            }
+        });
+    }
+
+    private void insertMarkdown(String prefix, String suffix) {
+        int start = etNoteContent.getSelectionStart();
+        int end = etNoteContent.getSelectionEnd();
+        
+        android.text.Editable editable = etNoteContent.getText();
+        if (editable == null) return;
+
+        if (start < 0 || end < 0) {
+            start = editable.length();
+            end = editable.length();
+        }
+
+        if (start == end) {
+            // No selection
+            editable.insert(start, prefix + suffix);
+            etNoteContent.setSelection(start + prefix.length());
+        } else {
+            // Wrap selection
+            editable.insert(start, prefix);
+            editable.insert(end + prefix.length(), suffix);
+            etNoteContent.setSelection(end + prefix.length() + suffix.length());
+        }
+    }
+
+    private void insertMarkdownAtLineStart(String prefix) {
+        int start = etNoteContent.getSelectionStart();
+        android.text.Editable editable = etNoteContent.getText();
+        if (editable == null) return;
+
+        if (start < 0) start = editable.length();
+
+        // Find the start of the current line
+        String text = editable.toString();
+        int lineStart = start;
+        while (lineStart > 0 && text.charAt(lineStart - 1) != '\n') {
+            lineStart--;
+        }
+
+        editable.insert(lineStart, prefix);
+        etNoteContent.setSelection(start + prefix.length());
     }
 
     private void loadNoteDetails() {
