@@ -41,6 +41,7 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
     private TextView txtBookTitle, txtTotalIn, txtTotalOut, txtEmptyCashbook;
     private TextView chipAll, chipCash, chipBank, chipToday, chipWeek, chipMonth;
     private RecyclerView rvCashbookEntries;
+    private android.widget.LinearLayout containerDebtSummary, layoutDebtEdges;
     private FloatingActionButton fabAddEntry;
     private ImageButton btnBack, btnBookSettings;
 
@@ -81,6 +82,8 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
         txtTotalOut = findViewById(R.id.txtBankBalance);
         txtEmptyCashbook = findViewById(R.id.txtEmptyCashbook);
         rvCashbookEntries = findViewById(R.id.rvCashbookEntries);
+        containerDebtSummary = findViewById(R.id.containerDebtSummary);
+        layoutDebtEdges = findViewById(R.id.layoutDebtEdges);
         fabAddEntry = findViewById(R.id.fabAddEntry);
         btnBack = findViewById(R.id.btnBack);
         btnBookSettings = findViewById(R.id.btnBookSettings);
@@ -222,7 +225,38 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                     
                     updateBalances(totalIn, totalOut);
                     applyFilter();
+                    
+                    // Run Debt Simplification
+                    db.collection("cashbooks").document(bookId).get().addOnSuccessListener(doc -> {
+                        com.example.frienddebt.model.LedgerBook book = com.example.frienddebt.model.LedgerBook.fromDocument(doc);
+                        if (book.getMembers() != null && book.getMembers().size() > 1) {
+                            List<com.example.frienddebt.model.DebtEdge> edges = com.example.frienddebt.dsa.DebtSimplifier.simplifyDebts(allEntries);
+                            updateDebtSummary(edges);
+                        } else {
+                            containerDebtSummary.setVisibility(View.GONE);
+                        }
+                    });
                 });
+    }
+
+    private void updateDebtSummary(List<com.example.frienddebt.model.DebtEdge> edges) {
+        if (edges.isEmpty()) {
+            containerDebtSummary.setVisibility(View.GONE);
+            return;
+        }
+
+        containerDebtSummary.setVisibility(View.VISIBLE);
+        layoutDebtEdges.removeAllViews();
+
+        for (com.example.frienddebt.model.DebtEdge edge : edges) {
+            TextView txtEdge = new TextView(this);
+            String fromName = edge.getFrom().equals(auth.getCurrentUser().getUid()) ? "You" : "User (" + edge.getFrom().substring(0, 4) + ")";
+            String toName = edge.getTo().equals(auth.getCurrentUser().getUid()) ? "You" : "User (" + edge.getTo().substring(0, 4) + ")";
+            txtEdge.setText(fromName + " owes " + toName + " ₹" + String.format(Locale.getDefault(), "%.2f", edge.getAmount()));
+            txtEdge.setTextColor(getResources().getColor(R.color.text_primary));
+            txtEdge.setPadding(0, 4, 0, 4);
+            layoutDebtEdges.addView(txtEdge);
+        }
     }
 
     private void updateBookBalances(double totalIn, double totalOut) {

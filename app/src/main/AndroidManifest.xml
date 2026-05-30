@@ -59,6 +59,9 @@
             android:name=".ui.AddSharedExpenseActivity"
             android:exported="false" />
         <activity
+            android:name=".ui.SettleUpActivity"
+            android:exported="false" />
+        <activity
             android:name=".ui.LedgerBookDetailActivity"
             android:exported="false" />
         <activity

@@ -81,7 +81,7 @@ public class MoneyFragment extends Fragment {
 
         sheetView.findViewById(R.id.btnActionSettleUp).setOnClickListener(v -> {
             bottomSheetDialog.dismiss();
-            android.widget.Toast.makeText(requireContext(), "Coming soon: Settle Up!", android.widget.Toast.LENGTH_SHORT).show();
+            startActivity(new android.content.Intent(requireActivity(), com.example.frienddebt.ui.SettleUpActivity.class));
         });
 
         sheetView.findViewById(R.id.btnActionCreateLedger).setOnClickListener(v -> {
