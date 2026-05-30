@@ -10,6 +10,11 @@ public class Note {
     private String content;
     private long createdAt;
     private long updatedAt;
+    
+    // New Fields for Organization
+    private String colorCode;
+    private String label;
+    private boolean isPinned;
 
     public Note() {
         // Required for Firestore
@@ -21,6 +26,9 @@ public class Note {
         this.content = content;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.colorCode = "#FFFFFF"; // Default white
+        this.label = "";
+        this.isPinned = false;
     }
 
     public String getId() { return id; }
@@ -38,6 +46,15 @@ public class Note {
     public long getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(long updatedAt) { this.updatedAt = updatedAt; }
 
+    public String getColorCode() { return colorCode; }
+    public void setColorCode(String colorCode) { this.colorCode = colorCode; }
+
+    public String getLabel() { return label; }
+    public void setLabel(String label) { this.label = label; }
+
+    public boolean isPinned() { return isPinned; }
+    public void setPinned(boolean pinned) { isPinned = pinned; }
+
     public static Note fromDocument(DocumentSnapshot doc) {
         Note n = new Note();
         n.setId(doc.getId());
@@ -45,6 +62,10 @@ public class Note {
         n.setContent(doc.getString("content"));
         n.setCreatedAt(doc.getLong("createdAt") != null ? doc.getLong("createdAt") : 0L);
         n.setUpdatedAt(doc.getLong("updatedAt") != null ? doc.getLong("updatedAt") : 0L);
+        
+        n.setColorCode(doc.getString("colorCode") != null ? doc.getString("colorCode") : "#FFFFFF");
+        n.setLabel(doc.getString("label") != null ? doc.getString("label") : "");
+        n.setPinned(doc.getBoolean("isPinned") != null ? doc.getBoolean("isPinned") : false);
         return n;
     }
 
@@ -54,6 +75,9 @@ public class Note {
         map.put("content", content);
         map.put("createdAt", createdAt);
         map.put("updatedAt", updatedAt);
+        map.put("colorCode", colorCode);
+        map.put("label", label);
+        map.put("isPinned", isPinned);
         return map;
     }
 }

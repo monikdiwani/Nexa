@@ -28,6 +28,12 @@ public class AddEditNoteActivity extends AppCompatActivity {
     private String noteId = null;
     private String originalTitle = "";
     private String originalContent = "";
+    private String selectedColor = "#FFFFFF";
+    private boolean isPinned = false;
+    
+    private android.widget.EditText etNoteLabel;
+    private ImageButton btnPin;
+    private android.widget.LinearLayout layoutColors;
 
     // Guard flag to prevent double-finish
     private boolean isFinishing = false;
@@ -43,10 +49,21 @@ public class AddEditNoteActivity extends AppCompatActivity {
 
         etNoteTitle = findViewById(R.id.etNoteTitle);
         etNoteContent = findViewById(R.id.etNoteContent);
+        etNoteLabel = findViewById(R.id.etNoteLabel);
         btnBack = findViewById(R.id.btnBack);
         btnSave = findViewById(R.id.btnSave);
+        btnPin = findViewById(R.id.btnPin);
+        layoutColors = findViewById(R.id.layoutColors);
 
         noteId = getIntent().getStringExtra("NOTE_ID");
+
+        setupColorPicker();
+        updatePinIcon();
+
+        btnPin.setOnClickListener(v -> {
+            isPinned = !isPinned;
+            updatePinIcon();
+        });
 
         if (noteId != null) {
             loadNoteDetails();
@@ -163,11 +180,53 @@ public class AddEditNoteActivity extends AppCompatActivity {
                         Note note = Note.fromDocument(documentSnapshot);
                         originalTitle = note.getTitle() != null ? note.getTitle() : "";
                         originalContent = note.getContent() != null ? note.getContent() : "";
+                        
+                        selectedColor = note.getColorCode() != null ? note.getColorCode() : "#FFFFFF";
+                        isPinned = note.isPinned();
+                        String label = note.getLabel() != null ? note.getLabel() : "";
 
                         etNoteTitle.setText(originalTitle);
                         etNoteContent.setText(originalContent);
+                        etNoteLabel.setText(label);
+                        
+                        applyColor(selectedColor);
+                        updatePinIcon();
                     }
                 });
+    }
+
+    private void setupColorPicker() {
+        String[] colors = {"#FFFFFF", "#FFCDD2", "#F8BBD0", "#E1BEE7", "#D1C4E9", "#C5CAE9", "#BBDEFB", "#B3E5FC", "#B2EBF2", "#B2DFDB", "#C8E6C9", "#DCEDC8", "#F0F4C3", "#FFF9C4", "#FFECB3", "#FFE0B2", "#FFCCBC"};
+        
+        for (String color : colors) {
+            android.view.View colorView = new android.view.View(this);
+            android.widget.LinearLayout.LayoutParams params = new android.widget.LinearLayout.LayoutParams(90, 90);
+            params.setMargins(16, 16, 16, 16);
+            colorView.setLayoutParams(params);
+            
+            android.graphics.drawable.GradientDrawable gd = new android.graphics.drawable.GradientDrawable();
+            gd.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+            gd.setColor(android.graphics.Color.parseColor(color));
+            gd.setStroke(2, android.graphics.Color.parseColor("#CCCCCC"));
+            colorView.setBackground(gd);
+            
+            colorView.setOnClickListener(v -> applyColor(color));
+            
+            layoutColors.addView(colorView);
+        }
+    }
+
+    private void applyColor(String color) {
+        selectedColor = color;
+        findViewById(android.R.id.content).setBackgroundColor(android.graphics.Color.parseColor(color));
+    }
+
+    private void updatePinIcon() {
+        if (isPinned) {
+            btnPin.setColorFilter(getResources().getColor(R.color.primary));
+        } else {
+            btnPin.setColorFilter(getResources().getColor(R.color.text_secondary));
+        }
     }
 
     private boolean hasSaved = false;
@@ -189,11 +248,7 @@ public class AddEditNoteActivity extends AppCompatActivity {
 
         final String title = etNoteTitle.getText().toString().trim();
         final String content = etNoteContent.getText().toString().trim();
-
-        if (noteId != null && title.equals(originalTitle) && content.equals(originalContent)) {
-            hasSaved = true;
-            return;
-        }
+        final String label = etNoteLabel.getText().toString().trim();
 
         if (noteId == null && title.isEmpty() && content.isEmpty()) {
             hasSaved = true;
@@ -211,6 +266,9 @@ public class AddEditNoteActivity extends AppCompatActivity {
         Map<String, Object> data = new HashMap<>();
         data.put("title", title);
         data.put("content", content);
+        data.put("colorCode", selectedColor);
+        data.put("label", label);
+        data.put("isPinned", isPinned);
         data.put("updatedAt", System.currentTimeMillis());
 
         if (noteId == null) {

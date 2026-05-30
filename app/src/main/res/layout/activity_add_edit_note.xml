@@ -22,6 +22,18 @@
             android:contentDescription="Back" />
 
         <ImageButton
+            android:id="@+id/btnPin"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_centerVertical="true"
+            android:layout_toStartOf="@id/btnSave"
+            android:layout_marginEnd="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_pin"
+            app:tint="@color/text_secondary"
+            android:contentDescription="Pin Note" />
+
+        <ImageButton
             android:id="@+id/btnSave"
             android:layout_width="40dp"
             android:layout_height="40dp"
@@ -103,6 +115,22 @@
         </LinearLayout>
     </HorizontalScrollView>
     
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/surface_primary"
+        android:scrollbars="none"
+        android:paddingHorizontal="12dp"
+        android:paddingBottom="8dp">
+        <LinearLayout
+            android:id="@+id/layoutColors"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <!-- Colors will be injected here dynamically in Java -->
+        </LinearLayout>
+    </HorizontalScrollView>
+    
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
@@ -132,6 +160,21 @@
                 android:background="@android:color/transparent"
                 android:inputType="textCapSentences"
                 android:paddingVertical="8dp" />
+
+            <!-- Label Input -->
+            <EditText
+                android:id="@+id/etNoteLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:hint="Add label..."
+                android:textColor="@color/text_secondary"
+                android:textColorHint="@color/text_hint"
+                android:textSize="13sp"
+                android:background="@drawable/chip_background"
+                android:inputType="text"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="6dp"
+                android:layout_marginTop="4dp" />
 
             <View
                 android:layout_width="match_parent"

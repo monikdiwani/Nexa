@@ -105,6 +105,14 @@ public class NotesFragment extends Fragment {
                     for (DocumentSnapshot doc : snapshots) {
                         notes.add(Note.fromDocument(doc));
                     }
+                    
+                    // Sort locally: Pinned notes first, then by updatedAt
+                    notes.sort((n1, n2) -> {
+                        if (n1.isPinned() && !n2.isPinned()) return -1;
+                        if (!n1.isPinned() && n2.isPinned()) return 1;
+                        return Long.compare(n2.getUpdatedAt(), n1.getUpdatedAt());
+                    });
+                    
                     adapter.notifyDataSetChanged();
 
                     if (notes.isEmpty()) {
@@ -152,23 +160,32 @@ public class NotesFragment extends Fragment {
             SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
             holder.txtDate.setText(sdf.format(new Date(note.getUpdatedAt())));
 
-            // Dynamic pastel background color based on ID hash code
-            int[] pastelColors = {
-                R.color.note_bg_1,
-                R.color.note_bg_2,
-                R.color.note_bg_3,
-                R.color.note_bg_4,
-                R.color.note_bg_5,
-                R.color.note_bg_6
-            };
-            int colorIndex = Math.abs(note.getId() != null ? note.getId().hashCode() : position) % pastelColors.length;
-            int colorVal = androidx.core.content.ContextCompat.getColor(holder.itemView.getContext(), pastelColors[colorIndex]);
+            // Custom color background
+            String colorStr = note.getColorCode();
+            if (colorStr == null || colorStr.isEmpty()) colorStr = "#FFFFFF";
+            int colorVal = android.graphics.Color.parseColor(colorStr);
             android.graphics.drawable.Drawable background = holder.itemView.getBackground();
             if (background instanceof android.graphics.drawable.GradientDrawable) {
                 android.graphics.drawable.GradientDrawable gd = (android.graphics.drawable.GradientDrawable) background.mutate();
                 gd.setColor(colorVal);
             } else {
                 holder.itemView.setBackgroundColor(colorVal);
+            }
+            
+            // Pin Icon
+            if (note.isPinned()) {
+                holder.imgPinned.setVisibility(View.VISIBLE);
+            } else {
+                holder.imgPinned.setVisibility(View.GONE);
+            }
+            
+            // Label
+            String label = note.getLabel();
+            if (label != null && !label.trim().isEmpty()) {
+                holder.txtLabel.setText(label);
+                holder.txtLabel.setVisibility(View.VISIBLE);
+            } else {
+                holder.txtLabel.setVisibility(View.GONE);
             }
 
             holder.itemView.setOnClickListener(v -> {
@@ -227,13 +244,16 @@ public class NotesFragment extends Fragment {
         }
 
         class ViewHolder extends RecyclerView.ViewHolder {
-            TextView txtTitle, txtContent, txtDate;
+            TextView txtTitle, txtContent, txtDate, txtLabel;
+            android.widget.ImageView imgPinned;
 
             public ViewHolder(@NonNull View itemView) {
                 super(itemView);
                 txtTitle = itemView.findViewById(R.id.txtNoteTitle);
                 txtContent = itemView.findViewById(R.id.txtNoteContent);
                 txtDate = itemView.findViewById(R.id.txtNoteDate);
+                txtLabel = itemView.findViewById(R.id.txtNoteLabel);
+                imgPinned = itemView.findViewById(R.id.imgPinned);
             }
         }
     }
