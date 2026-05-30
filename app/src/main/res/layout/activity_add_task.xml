@@ -80,6 +80,34 @@
                     android:gravity="top" />
             </com.google.android.material.textfield.TextInputLayout>
 
+            <!-- Subtasks -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Subtasks"
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary"
+                android:layout_marginBottom="6dp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:id="@+id/layoutSubtasks"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginBottom="8dp">
+                <!-- Dynamically added subtasks go here -->
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btnAddSubtask"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="+ Add Subtask"
+                android:layout_marginBottom="16dp"
+                android:textColor="@color/primary" />
+
             <!-- Priority -->
             <TextView
                 android:layout_width="wrap_content"

@@ -37,7 +37,7 @@ import com.example.frienddebt.utils.StatusBarUtil;
 public class TasksActivity extends AppCompatActivity {
 
     private ImageButton btnBack;
-    private TextView chipAll, chipToday, chipWeek, chipCompleted, txtEmptyTasks;
+    private TextView chipAll, chipToday, chipWeek, chipCompleted, chipArchived, txtEmptyTasks;
     private RecyclerView rvTasks;
     private FloatingActionButton fabAddTask;
 
@@ -66,6 +66,7 @@ public class TasksActivity extends AppCompatActivity {
         chipToday = findViewById(R.id.chipToday);
         chipWeek = findViewById(R.id.chipWeek);
         chipCompleted = findViewById(R.id.chipCompleted);
+        chipArchived = findViewById(R.id.chipArchived);
         txtEmptyTasks = findViewById(R.id.txtEmptyTasks);
         rvTasks = findViewById(R.id.rvTasks);
         fabAddTask = findViewById(R.id.fabAddTask);
@@ -94,6 +95,7 @@ public class TasksActivity extends AppCompatActivity {
         chipToday.setOnClickListener(v -> setFilter("TODAY", chipToday));
         chipWeek.setOnClickListener(v -> setFilter("WEEK", chipWeek));
         chipCompleted.setOnClickListener(v -> setFilter("COMPLETED", chipCompleted));
+        chipArchived.setOnClickListener(v -> setFilter("ARCHIVED", chipArchived));
     }
 
     private void setFilter(String filter, TextView activeChip) {
@@ -105,7 +107,7 @@ public class TasksActivity extends AppCompatActivity {
     }
 
     private void resetChipStyles() {
-        TextView[] chips = {chipAll, chipToday, chipWeek, chipCompleted};
+        TextView[] chips = {chipAll, chipToday, chipWeek, chipCompleted, chipArchived};
         for (TextView chip : chips) {
             chip.setBackgroundResource(R.drawable.chip_background);
             chip.setTextColor(getResources().getColor(R.color.text_secondary));
@@ -141,41 +143,50 @@ public class TasksActivity extends AppCompatActivity {
 
         for (Task task : allTasks) {
             boolean matches = false;
-            switch (activeFilter) {
-                case "ALL":
-                    matches = true;
-                    break;
-                case "TODAY":
-                    if (!task.isCompleted() && task.getDueDate() != null) {
-                        cal.set(Calendar.HOUR_OF_DAY, 0);
-                        cal.set(Calendar.MINUTE, 0);
-                        cal.set(Calendar.SECOND, 0);
-                        cal.set(Calendar.MILLISECOND, 0);
-                        long startOfDay = cal.getTimeInMillis();
-                        cal.set(Calendar.HOUR_OF_DAY, 23);
-                        cal.set(Calendar.MINUTE, 59);
-                        cal.set(Calendar.SECOND, 59);
-                        cal.set(Calendar.MILLISECOND, 999);
-                        long endOfDay = cal.getTimeInMillis();
-                        matches = task.getDueDate() >= startOfDay && task.getDueDate() <= endOfDay;
-                    }
-                    break;
-                case "WEEK":
-                    if (!task.isCompleted() && task.getDueDate() != null) {
-                        cal.set(Calendar.DAY_OF_WEEK, cal.getFirstDayOfWeek());
-                        cal.set(Calendar.HOUR_OF_DAY, 0);
-                        cal.set(Calendar.MINUTE, 0);
-                        cal.set(Calendar.SECOND, 0);
-                        cal.set(Calendar.MILLISECOND, 0);
-                        long startOfWeek = cal.getTimeInMillis();
-                        cal.add(Calendar.DAY_OF_YEAR, 7);
-                        long endOfWeek = cal.getTimeInMillis();
-                        matches = task.getDueDate() >= startOfWeek && task.getDueDate() <= endOfWeek;
-                    }
-                    break;
-                case "COMPLETED":
-                    matches = task.isCompleted();
-                    break;
+            
+            // If the filter is ARCHIVED, show only archived tasks
+            if ("ARCHIVED".equals(activeFilter)) {
+                if (task.isArchived()) matches = true;
+            } else {
+                // If it's anything else, hide archived tasks
+                if (task.isArchived()) continue;
+                
+                switch (activeFilter) {
+                    case "ALL":
+                        matches = true;
+                        break;
+                    case "TODAY":
+                        if (!task.isCompleted() && task.getDueDate() != null) {
+                            cal.set(Calendar.HOUR_OF_DAY, 0);
+                            cal.set(Calendar.MINUTE, 0);
+                            cal.set(Calendar.SECOND, 0);
+                            cal.set(Calendar.MILLISECOND, 0);
+                            long startOfDay = cal.getTimeInMillis();
+                            cal.set(Calendar.HOUR_OF_DAY, 23);
+                            cal.set(Calendar.MINUTE, 59);
+                            cal.set(Calendar.SECOND, 59);
+                            cal.set(Calendar.MILLISECOND, 999);
+                            long endOfDay = cal.getTimeInMillis();
+                            matches = task.getDueDate() >= startOfDay && task.getDueDate() <= endOfDay;
+                        }
+                        break;
+                    case "WEEK":
+                        if (!task.isCompleted() && task.getDueDate() != null) {
+                            cal.set(Calendar.DAY_OF_WEEK, cal.getFirstDayOfWeek());
+                            cal.set(Calendar.HOUR_OF_DAY, 0);
+                            cal.set(Calendar.MINUTE, 0);
+                            cal.set(Calendar.SECOND, 0);
+                            cal.set(Calendar.MILLISECOND, 0);
+                            long startOfWeek = cal.getTimeInMillis();
+                            cal.add(Calendar.DAY_OF_YEAR, 7);
+                            long endOfWeek = cal.getTimeInMillis();
+                            matches = task.getDueDate() >= startOfWeek && task.getDueDate() <= endOfWeek;
+                        }
+                        break;
+                    case "COMPLETED":
+                        matches = task.isCompleted();
+                        break;
+                }
             }
 
             if (matches) {
@@ -257,20 +268,27 @@ public class TasksActivity extends AppCompatActivity {
                         }
                     } else if (direction == androidx.recyclerview.widget.ItemTouchHelper.LEFT) {
                         new AlertDialog.Builder(TasksActivity.this)
-                                .setTitle("Delete Task")
-                                .setMessage("Are you sure you want to delete this task?")
-                                .setPositiveButton("Delete", (dialog, which) -> {
+                                .setTitle("Task Action")
+                                .setItems(new String[]{"Archive Task", "Delete Task"}, (dialog, which) -> {
                                     if (auth.getCurrentUser() != null) {
-                                        db.collection("users")
-                                                .document(auth.getCurrentUser().getUid())
-                                                .collection("tasks")
-                                                .document(task.getId())
-                                                .delete();
-                                        Toast.makeText(TasksActivity.this, "Task deleted", Toast.LENGTH_SHORT).show();
+                                        if (which == 0) {
+                                            // Archive
+                                            db.collection("users")
+                                                    .document(auth.getCurrentUser().getUid())
+                                                    .collection("tasks")
+                                                    .document(task.getId())
+                                                    .update("isArchived", true);
+                                            Toast.makeText(TasksActivity.this, "Task Archived", Toast.LENGTH_SHORT).show();
+                                        } else {
+                                            // Delete
+                                            db.collection("users")
+                                                    .document(auth.getCurrentUser().getUid())
+                                                    .collection("tasks")
+                                                    .document(task.getId())
+                                                    .delete();
+                                            Toast.makeText(TasksActivity.this, "Task Deleted", Toast.LENGTH_SHORT).show();
+                                        }
                                     }
-                                })
-                                .setNegativeButton("Cancel", (dialog, which) -> {
-                                    adapter.notifyItemChanged(position);
                                 })
                                 .setOnCancelListener(dialog -> {
                                     adapter.notifyItemChanged(position);
@@ -339,6 +357,21 @@ public class TasksActivity extends AppCompatActivity {
             } else {
                 holder.txtDueDate.setVisibility(View.GONE);
             }
+            
+            // Subtask Progress
+            if (task.getSubtasks() != null && !task.getSubtasks().isEmpty()) {
+                holder.layoutSubtaskProgress.setVisibility(View.VISIBLE);
+                int total = task.getSubtasks().size();
+                int completed = 0;
+                for (Task.Subtask st : task.getSubtasks()) {
+                    if (st.isCompleted()) completed++;
+                }
+                holder.pbSubtasks.setMax(total);
+                holder.pbSubtasks.setProgress(completed);
+                holder.txtSubtaskCount.setText(completed + "/" + total);
+            } else {
+                holder.layoutSubtaskProgress.setVisibility(View.GONE);
+            }
 
             // Priority styling
             holder.txtPriority.setText(task.getPriority());
@@ -381,7 +414,9 @@ public class TasksActivity extends AppCompatActivity {
 
         class ViewHolder extends RecyclerView.ViewHolder {
             CheckBox cbStatus;
-            TextView txtTitle, txtDueDate, txtPriority;
+            TextView txtTitle, txtDueDate, txtPriority, txtSubtaskCount;
+            android.widget.ProgressBar pbSubtasks;
+            android.widget.LinearLayout layoutSubtaskProgress;
 
             public ViewHolder(@NonNull View itemView) {
                 super(itemView);
@@ -389,6 +424,20 @@ public class TasksActivity extends AppCompatActivity {
                 txtTitle = itemView.findViewById(R.id.txtTaskTitle);
                 txtDueDate = itemView.findViewById(R.id.txtTaskDueDate);
                 txtPriority = itemView.findViewById(R.id.txtTaskPriority);
+                txtSubtaskCount = itemView.findViewById(R.id.txtSubtaskCount);
+                pbSubtasks = itemView.findViewById(R.id.pbSubtasks);
+                layoutSubtaskProgress = itemView.findViewById(R.id.layoutSubtaskProgress);
+                
+                // Allow tapping the task to edit
+                itemView.setOnClickListener(v -> {
+                    int pos = getAdapterPosition();
+                    if (pos != RecyclerView.NO_POSITION) {
+                        Task task = list.get(pos);
+                        Intent intent = new Intent(TasksActivity.this, AddTaskActivity.class);
+                        intent.putExtra("TASK_ID", task.getId());
+                        startActivity(intent);
+                    }
+                });
             }
         }
     }

@@ -13,9 +13,14 @@ public class Task {
     private boolean isCompleted;
     private long createdAt;
     private Long completedAt;
+    
+    // Phase 17: Advanced Tasks
+    private boolean isArchived;
+    private java.util.List<Subtask> subtasks;
 
     public Task() {
         // Required for Firestore
+        this.subtasks = new java.util.ArrayList<>();
     }
 
     public Task(String id, String title, String description, Long dueDate, String priority, boolean isCompleted, long createdAt, Long completedAt) {
@@ -27,8 +32,11 @@ public class Task {
         this.isCompleted = isCompleted;
         this.createdAt = createdAt;
         this.completedAt = completedAt;
+        this.isArchived = false;
+        this.subtasks = new java.util.ArrayList<>();
     }
 
+    // Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 
@@ -52,6 +60,12 @@ public class Task {
 
     public Long getCompletedAt() { return completedAt; }
     public void setCompletedAt(Long completedAt) { this.completedAt = completedAt; }
+    
+    public boolean isArchived() { return isArchived; }
+    public void setArchived(boolean archived) { isArchived = archived; }
+    
+    public java.util.List<Subtask> getSubtasks() { return subtasks; }
+    public void setSubtasks(java.util.List<Subtask> subtasks) { this.subtasks = subtasks; }
 
     public static Task fromDocument(DocumentSnapshot doc) {
         Task t = new Task();
@@ -63,6 +77,22 @@ public class Task {
         t.setCompleted(doc.getBoolean("isCompleted") != null ? doc.getBoolean("isCompleted") : false);
         t.setCreatedAt(doc.getLong("createdAt") != null ? doc.getLong("createdAt") : 0L);
         t.setCompletedAt(doc.getLong("completedAt"));
+        
+        t.setArchived(doc.getBoolean("isArchived") != null ? doc.getBoolean("isArchived") : false);
+        
+        java.util.List<java.util.Map<String, Object>> subtasksMapList = (java.util.List<java.util.Map<String, Object>>) doc.get("subtasks");
+        if (subtasksMapList != null) {
+            java.util.List<Subtask> subtasks = new java.util.ArrayList<>();
+            for (java.util.Map<String, Object> map : subtasksMapList) {
+                Subtask subtask = new Subtask();
+                subtask.setTitle((String) map.get("title"));
+                Boolean completed = (Boolean) map.get("isCompleted");
+                subtask.setCompleted(completed != null && completed);
+                subtasks.add(subtask);
+            }
+            t.setSubtasks(subtasks);
+        }
+        
         return t;
     }
 
@@ -75,6 +105,37 @@ public class Task {
         map.put("isCompleted", isCompleted);
         map.put("createdAt", createdAt);
         map.put("completedAt", completedAt);
+        map.put("isArchived", isArchived);
+        
+        if (subtasks != null) {
+            java.util.List<java.util.Map<String, Object>> subtasksMapList = new java.util.ArrayList<>();
+            for (Subtask subtask : subtasks) {
+                java.util.Map<String, Object> subMap = new java.util.HashMap<>();
+                subMap.put("title", subtask.getTitle());
+                subMap.put("isCompleted", subtask.isCompleted());
+                subtasksMapList.add(subMap);
+            }
+            map.put("subtasks", subtasksMapList);
+        }
+        
         return map;
+    }
+    
+    public static class Subtask {
+        private String title;
+        private boolean isCompleted;
+        
+        public Subtask() {}
+        
+        public Subtask(String title, boolean isCompleted) {
+            this.title = title;
+            this.isCompleted = isCompleted;
+        }
+        
+        public String getTitle() { return title; }
+        public void setTitle(String title) { this.title = title; }
+        
+        public boolean isCompleted() { return isCompleted; }
+        public void setCompleted(boolean completed) { isCompleted = completed; }
     }
 }

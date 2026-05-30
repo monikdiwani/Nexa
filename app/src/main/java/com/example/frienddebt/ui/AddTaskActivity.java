@@ -20,8 +20,12 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import com.example.frienddebt.utils.StatusBarUtil;
 
@@ -32,9 +36,11 @@ public class AddTaskActivity extends AppCompatActivity {
     private CheckBox cbHasDueDate;
     private LinearLayout layoutDueDate;
     private TextView txtSelectedDate;
-    private Button btnSelectDate, btnSaveTask;
+    private Button btnSelectDate, btnSaveTask, btnAddSubtask;
+    private LinearLayout layoutSubtasks;
     private ImageButton btnBack;
 
+    private String taskId;
     private Calendar calendar = Calendar.getInstance();
     private FirebaseAuth auth;
     private FirebaseFirestore db;
@@ -58,6 +64,15 @@ public class AddTaskActivity extends AppCompatActivity {
         btnSelectDate = findViewById(R.id.btnSelectDate);
         btnSaveTask = findViewById(R.id.btnSaveTask);
         btnBack = findViewById(R.id.btnBack);
+        btnAddSubtask = findViewById(R.id.btnAddSubtask);
+        layoutSubtasks = findViewById(R.id.layoutSubtasks);
+
+        taskId = getIntent().getStringExtra("TASK_ID");
+
+        if (taskId != null) {
+            btnSaveTask.setText("Update Task");
+            loadTaskDetails();
+        }
 
         btnBack.setOnClickListener(v -> finish());
 
@@ -72,6 +87,46 @@ public class AddTaskActivity extends AppCompatActivity {
 
         // Save Button Click
         btnSaveTask.setOnClickListener(v -> saveTask());
+        btnAddSubtask.setOnClickListener(v -> addSubtaskView("", false));
+    }
+
+    private void loadTaskDetails() {
+        if (auth.getCurrentUser() == null) return;
+        String userId = auth.getCurrentUser().getUid();
+
+        db.collection("users")
+                .document(userId)
+                .collection("tasks")
+                .document(taskId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        Task task = Task.fromDocument(documentSnapshot);
+                        etTaskTitle.setText(task.getTitle());
+                        etTaskDesc.setText(task.getDescription());
+
+                        if (task.getDueDate() != null) {
+                            cbHasDueDate.setChecked(true);
+                            calendar.setTimeInMillis(task.getDueDate());
+                            updateDateText();
+                        }
+
+                        if ("LOW".equals(task.getPriority())) {
+                            rgPriority.check(R.id.rbLow);
+                        } else if ("MEDIUM".equals(task.getPriority())) {
+                            rgPriority.check(R.id.rbMedium);
+                        } else {
+                            rgPriority.check(R.id.rbHigh);
+                        }
+                        
+                        layoutSubtasks.removeAllViews();
+                        if (task.getSubtasks() != null) {
+                            for (Task.Subtask subtask : task.getSubtasks()) {
+                                addSubtaskView(subtask.getTitle(), subtask.isCompleted());
+                            }
+                        }
+                    }
+                });
     }
 
     private void updateDateText() {
@@ -92,6 +147,20 @@ public class AddTaskActivity extends AppCompatActivity {
                 calendar.get(Calendar.MONTH),
                 calendar.get(Calendar.DAY_OF_MONTH)
         ).show();
+    }
+
+    private void addSubtaskView(String title, boolean isCompleted) {
+        View view = getLayoutInflater().inflate(R.layout.item_subtask_edit, layoutSubtasks, false);
+        EditText etSubtaskTitle = view.findViewById(R.id.etSubtaskTitle);
+        CheckBox cbSubtask = view.findViewById(R.id.cbSubtask);
+        ImageButton btnRemoveSubtask = view.findViewById(R.id.btnRemoveSubtask);
+
+        etSubtaskTitle.setText(title);
+        cbSubtask.setChecked(isCompleted);
+
+        btnRemoveSubtask.setOnClickListener(v -> layoutSubtasks.removeView(view));
+
+        layoutSubtasks.addView(view);
     }
 
     private void saveTask() {
@@ -120,25 +189,63 @@ public class AddTaskActivity extends AppCompatActivity {
         }
 
         String userId = auth.getCurrentUser().getUid();
-        long createdAt = System.currentTimeMillis();
-
-        Task task = new Task(null, title, desc, dueDate, priority, false, createdAt, null);
+        
+        Map<String, Object> data = new HashMap<>();
+        data.put("title", title);
+        data.put("description", desc);
+        data.put("dueDate", dueDate);
+        data.put("priority", priority);
+        
+        List<Map<String, Object>> subtasksList = new ArrayList<>();
+        for (int i = 0; i < layoutSubtasks.getChildCount(); i++) {
+            View view = layoutSubtasks.getChildAt(i);
+            EditText etSubTitle = view.findViewById(R.id.etSubtaskTitle);
+            CheckBox cbSub = view.findViewById(R.id.cbSubtask);
+            String subTitle = etSubTitle.getText().toString().trim();
+            if (!subTitle.isEmpty()) {
+                Map<String, Object> subMap = new HashMap<>();
+                subMap.put("title", subTitle);
+                subMap.put("isCompleted", cbSub.isChecked());
+                subtasksList.add(subMap);
+            }
+        }
+        data.put("subtasks", subtasksList);
 
         btnSaveTask.setEnabled(false);
         btnSaveTask.setText("Saving...");
 
-        db.collection("users")
-                .document(userId)
-                .collection("tasks")
-                .add(task.toFirestoreMap())
-                .addOnSuccessListener(documentReference -> {
-                    Toast.makeText(AddTaskActivity.this, "Task saved successfully!", Toast.LENGTH_SHORT).show();
-                    finish();
-                })
-                .addOnFailureListener(e -> {
-                    btnSaveTask.setEnabled(true);
-                    btnSaveTask.setText("Save Task");
-                    Toast.makeText(AddTaskActivity.this, "Failed to save task: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                });
+        if (taskId == null) {
+            data.put("isCompleted", false);
+            data.put("isArchived", false);
+            data.put("createdAt", System.currentTimeMillis());
+            db.collection("users")
+                    .document(userId)
+                    .collection("tasks")
+                    .add(data)
+                    .addOnSuccessListener(documentReference -> {
+                        Toast.makeText(AddTaskActivity.this, "Task saved successfully!", Toast.LENGTH_SHORT).show();
+                        finish();
+                    })
+                    .addOnFailureListener(e -> {
+                        btnSaveTask.setEnabled(true);
+                        btnSaveTask.setText("Save Task");
+                        Toast.makeText(AddTaskActivity.this, "Failed to save task: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    });
+        } else {
+            db.collection("users")
+                    .document(userId)
+                    .collection("tasks")
+                    .document(taskId)
+                    .update(data)
+                    .addOnSuccessListener(aVoid -> {
+                        Toast.makeText(AddTaskActivity.this, "Task updated successfully!", Toast.LENGTH_SHORT).show();
+                        finish();
+                    })
+                    .addOnFailureListener(e -> {
+                        btnSaveTask.setEnabled(true);
+                        btnSaveTask.setText("Update Task");
+                        Toast.makeText(AddTaskActivity.this, "Failed to update task: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    });
+        }
     }
 }
