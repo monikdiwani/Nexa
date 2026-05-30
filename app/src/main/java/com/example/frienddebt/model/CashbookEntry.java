@@ -22,6 +22,12 @@ public class CashbookEntry {
     private String createdBy;
     private long lastModifiedAt;
     
+    // Shared Expense fields
+    private String paidBy; // User ID who paid
+    private String splitMethod; // EQUAL, PERCENTAGE, EXACT
+    private java.util.List<String> participants; // User IDs involved
+    private java.util.Map<String, Double> splits; // User ID -> Exact amount they owe
+    
     private long createdAt;
 
     public CashbookEntry() {
@@ -85,6 +91,18 @@ public class CashbookEntry {
     public long getLastModifiedAt() { return lastModifiedAt; }
     public void setLastModifiedAt(long lastModifiedAt) { this.lastModifiedAt = lastModifiedAt; }
 
+    public String getPaidBy() { return paidBy; }
+    public void setPaidBy(String paidBy) { this.paidBy = paidBy; }
+
+    public String getSplitMethod() { return splitMethod; }
+    public void setSplitMethod(String splitMethod) { this.splitMethod = splitMethod; }
+
+    public java.util.List<String> getParticipants() { return participants; }
+    public void setParticipants(java.util.List<String> participants) { this.participants = participants; }
+
+    public java.util.Map<String, Double> getSplits() { return splits; }
+    public void setSplits(java.util.Map<String, Double> splits) { this.splits = splits; }
+
     public long getCreatedAt() { return createdAt; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
 
@@ -106,6 +124,11 @@ public class CashbookEntry {
         entry.setCreatedBy(doc.getString("createdBy"));
         entry.setLastModifiedAt(doc.getLong("lastModifiedAt") != null ? doc.getLong("lastModifiedAt") : 0L);
         
+        entry.setPaidBy(doc.getString("paidBy"));
+        entry.setSplitMethod(doc.getString("splitMethod"));
+        entry.setParticipants((java.util.List<String>) doc.get("participants"));
+        entry.setSplits((java.util.Map<String, Double>) doc.get("splits"));
+        
         entry.setCreatedAt(doc.getLong("createdAt") != null ? doc.getLong("createdAt") : 0L);
         return entry;
     }
@@ -126,6 +149,11 @@ public class CashbookEntry {
         map.put("contactPhone", contactPhone);
         map.put("createdBy", createdBy);
         map.put("lastModifiedAt", lastModifiedAt);
+        
+        map.put("paidBy", paidBy);
+        map.put("splitMethod", splitMethod);
+        map.put("participants", participants);
+        map.put("splits", splits);
         
         map.put("createdAt", createdAt);
         return map;

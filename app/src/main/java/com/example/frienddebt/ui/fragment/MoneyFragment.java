@@ -76,7 +76,7 @@ public class MoneyFragment extends Fragment {
 
         sheetView.findViewById(R.id.btnActionAddSharedExpense).setOnClickListener(v -> {
             bottomSheetDialog.dismiss();
-            android.widget.Toast.makeText(requireContext(), "Coming soon: Shared Expenses!", android.widget.Toast.LENGTH_SHORT).show();
+            startActivity(new android.content.Intent(requireActivity(), com.example.frienddebt.ui.AddSharedExpenseActivity.class));
         });
 
         sheetView.findViewById(R.id.btnActionSettleUp).setOnClickListener(v -> {

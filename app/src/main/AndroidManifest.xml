@@ -53,6 +53,12 @@
             android:name=".ui.CreateLedgerBookActivity"
             android:exported="false" />
         <activity
+            android:name=".ui.AddCashbookEntryActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.AddSharedExpenseActivity"
+            android:exported="false" />
+        <activity
             android:name=".ui.LedgerBookDetailActivity"
             android:exported="false" />
         <activity

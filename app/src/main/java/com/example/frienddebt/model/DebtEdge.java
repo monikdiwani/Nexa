@@ -2,21 +2,21 @@ package com.example.frienddebt.model;
 
 public class DebtEdge {
 
-    private User from;
-    private User to;
+    private String from;
+    private String to;
     private double amount;
 
-    public DebtEdge(User from, User to, double amount) {
+    public DebtEdge(String from, String to, double amount) {
         this.from = from;
         this.to = to;
         this.amount = amount;
     }
 
-    public User getFrom() {
+    public String getFrom() {
         return from;
     }
 
-    public User getTo() {
+    public String getTo() {
         return to;
     }
 
