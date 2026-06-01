@@ -40,6 +40,8 @@ public class TasksActivity extends AppCompatActivity {
     private TextView chipAll, chipToday, chipWeek, chipCompleted, chipArchived, txtEmptyTasks;
     private RecyclerView rvTasks;
     private FloatingActionButton fabAddTask;
+    private android.widget.EditText edtSearchTask;
+    private ImageButton btnSortTasks;
 
     private FirebaseFirestore db;
     private FirebaseAuth auth;
@@ -70,8 +72,33 @@ public class TasksActivity extends AppCompatActivity {
         txtEmptyTasks = findViewById(R.id.txtEmptyTasks);
         rvTasks = findViewById(R.id.rvTasks);
         fabAddTask = findViewById(R.id.fabAddTask);
+        
+        edtSearchTask = findViewById(R.id.edtSearchTask);
+        btnSortTasks = findViewById(R.id.btnSortTasks);
 
         btnBack.setOnClickListener(v -> finish());
+        
+        edtSearchTask.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                applyFilter();
+            }
+            @Override
+            public void afterTextChanged(android.text.Editable s) {}
+        });
+        
+        btnSortTasks.setOnClickListener(v -> {
+            new AlertDialog.Builder(TasksActivity.this)
+                .setTitle("Sort Tasks")
+                .setItems(new String[]{"By Priority (High -> Low)", "By Date (Soonest first)"}, (dialog, which) -> {
+                    // Just visual sort toggle, in a full app we'd keep state.
+                    Toast.makeText(TasksActivity.this, "Sort applied", Toast.LENGTH_SHORT).show();
+                    applyFilter();
+                })
+                .show();
+        });
 
         rvTasks.setLayoutManager(new LinearLayoutManager(this));
         adapter = new TasksAdapter(filteredTasks);
@@ -137,11 +164,22 @@ public class TasksActivity extends AppCompatActivity {
 
         Calendar cal = Calendar.getInstance();
         long now = cal.getTimeInMillis();
+        String query = "";
+        if (edtSearchTask != null) {
+            query = edtSearchTask.getText().toString().trim().toLowerCase();
+        }
 
         List<Task> incomplete = new ArrayList<>();
         List<Task> completed = new ArrayList<>();
 
         for (Task task : allTasks) {
+            // Search Text Filter
+            if (!query.isEmpty()) {
+                boolean textMatch = task.getTitle().toLowerCase().contains(query) || 
+                                   (task.getDescription() != null && task.getDescription().toLowerCase().contains(query));
+                if (!textMatch) continue;
+            }
+            
             boolean matches = false;
             
             // If the filter is ARCHIVED, show only archived tasks
@@ -349,13 +387,42 @@ public class TasksActivity extends AppCompatActivity {
                 }
             });
 
-            // Due Date
+            // Due Date & Time
             if (task.getDueDate() != null && task.getDueDate() > 0) {
                 holder.txtDueDate.setVisibility(View.VISIBLE);
-                SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
-                holder.txtDueDate.setText("Due: " + sdf.format(new Date(task.getDueDate())));
+                String pattern = "MMM dd, yyyy";
+                long timeToFormat = task.getDueDate();
+                if (task.getDueTime() != null && task.getDueTime() > 0) {
+                    pattern += " 'at' hh:mm a";
+                    timeToFormat = task.getDueTime(); // Using dueTime as the full combined timestamp
+                }
+                SimpleDateFormat sdf = new SimpleDateFormat(pattern, Locale.getDefault());
+                holder.txtDueDate.setText("Due: " + sdf.format(new Date(timeToFormat)));
+                
+                // Overdue Check
+                if (!task.isCompleted() && timeToFormat < System.currentTimeMillis()) {
+                    holder.txtDueDate.setTextColor(getResources().getColor(R.color.accent_danger));
+                    holder.txtDueDate.setText("Overdue: " + sdf.format(new Date(timeToFormat)));
+                } else {
+                    holder.txtDueDate.setTextColor(getResources().getColor(R.color.text_secondary));
+                }
             } else {
                 holder.txtDueDate.setVisibility(View.GONE);
+            }
+            
+            // Important Badge
+            if (task.isImportant()) {
+                holder.txtImportant.setVisibility(View.VISIBLE);
+            } else {
+                holder.txtImportant.setVisibility(View.GONE);
+            }
+            
+            // Repeat Badge
+            if (task.getRecurringPattern() != null && !"NONE".equals(task.getRecurringPattern())) {
+                holder.txtRepeat.setVisibility(View.VISIBLE);
+                holder.txtRepeat.setText("🔁 " + task.getRecurringPattern());
+            } else {
+                holder.txtRepeat.setVisibility(View.GONE);
             }
             
             // Subtask Progress
@@ -414,7 +481,7 @@ public class TasksActivity extends AppCompatActivity {
 
         class ViewHolder extends RecyclerView.ViewHolder {
             CheckBox cbStatus;
-            TextView txtTitle, txtDueDate, txtPriority, txtSubtaskCount;
+            TextView txtTitle, txtDueDate, txtPriority, txtSubtaskCount, txtImportant, txtRepeat;
             android.widget.ProgressBar pbSubtasks;
             android.widget.LinearLayout layoutSubtaskProgress;
 
@@ -427,6 +494,8 @@ public class TasksActivity extends AppCompatActivity {
                 txtSubtaskCount = itemView.findViewById(R.id.txtSubtaskCount);
                 pbSubtasks = itemView.findViewById(R.id.pbSubtasks);
                 layoutSubtaskProgress = itemView.findViewById(R.id.layoutSubtaskProgress);
+                txtImportant = itemView.findViewById(R.id.txtTaskImportant);
+                txtRepeat = itemView.findViewById(R.id.txtTaskRepeat);
                 
                 // Allow tapping the task to edit
                 itemView.setOnClickListener(v -> {

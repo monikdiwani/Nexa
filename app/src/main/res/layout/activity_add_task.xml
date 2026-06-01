@@ -123,7 +123,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginBottom="20dp">
+                android:layout_marginBottom="16dp">
 
                 <RadioButton
                     android:id="@+id/rbLow"
@@ -153,13 +153,23 @@
                     android:buttonTint="@color/priority_high"
                     android:textColor="@color/text_primary" />
             </RadioGroup>
+            
+            <!-- Important Toggle -->
+            <CheckBox
+                android:id="@+id/cbImportant"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⭐ Mark as Important"
+                android:textColor="@color/text_primary"
+                android:buttonTint="@color/primary"
+                android:layout_marginBottom="16dp" />
 
             <!-- Due Date Checkbox & Selector -->
             <CheckBox
                 android:id="@+id/cbHasDueDate"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Set Due Date"
+                android:text="Set Due Date &amp; Time"
                 android:textColor="@color/text_primary"
                 android:buttonTint="@color/primary"
                 android:layout_marginBottom="12dp" />
@@ -168,27 +178,75 @@
                 android:id="@+id/layoutDueDate"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="24dp"
+                android:orientation="vertical"
+                android:layout_marginBottom="16dp"
                 android:visibility="gone">
 
-                <TextView
-                    android:id="@+id/txtSelectedDate"
-                    android:layout_width="0dp"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Due Date: Oct 12, 2023"
-                    android:textColor="@color/text_primary"
-                    android:textSize="15sp" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="8dp">
 
-                <Button
-                    android:id="@+id/btnSelectDate"
-                    android:layout_width="wrap_content"
+                    <TextView
+                        android:id="@+id/txtSelectedDate"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Date: Oct 12, 2023"
+                        android:textColor="@color/text_primary"
+                        android:textSize="15sp" />
+
+                    <Button
+                        android:id="@+id/btnSelectDate"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:text="Select Date" />
+                </LinearLayout>
+                
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:text="Select Date" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="8dp">
+
+                    <TextView
+                        android:id="@+id/txtSelectedTime"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Time: None"
+                        android:textColor="@color/text_primary"
+                        android:textSize="15sp" />
+
+                    <Button
+                        android:id="@+id/btnSelectTime"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:text="Select Time" />
+                </LinearLayout>
             </LinearLayout>
+            
+            <!-- Repeat -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Repeat"
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary"
+                android:layout_marginBottom="6dp"
+                android:textStyle="bold" />
+
+            <Spinner
+                android:id="@+id/spinnerRepeat"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginBottom="24dp"
+                android:background="@drawable/rounded_card" />
 
             <!-- Save Button -->
             <Button

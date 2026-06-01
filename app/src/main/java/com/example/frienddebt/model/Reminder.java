@@ -17,6 +17,7 @@ public class Reminder {
     private Long snoozeUntil;
     private long createdAt;
     private Long completedAt;
+    private String linkedTaskId;
 
     public Reminder() {
         // Required for Firestore
@@ -35,6 +36,7 @@ public class Reminder {
         this.snoozeUntil = snoozeUntil;
         this.createdAt = createdAt;
         this.completedAt = completedAt;
+        this.linkedTaskId = null;
     }
 
     public String getId() { return id; }
@@ -73,6 +75,9 @@ public class Reminder {
     public Long getCompletedAt() { return completedAt; }
     public void setCompletedAt(Long completedAt) { this.completedAt = completedAt; }
 
+    public String getLinkedTaskId() { return linkedTaskId; }
+    public void setLinkedTaskId(String linkedTaskId) { this.linkedTaskId = linkedTaskId; }
+
     public static Reminder fromDocument(DocumentSnapshot doc) {
         Reminder r = new Reminder();
         r.setId(doc.getId());
@@ -87,6 +92,7 @@ public class Reminder {
         r.setSnoozeUntil(doc.getLong("snoozeUntil"));
         r.setCreatedAt(doc.getLong("createdAt") != null ? doc.getLong("createdAt") : 0L);
         r.setCompletedAt(doc.getLong("completedAt"));
+        r.setLinkedTaskId(doc.getString("linkedTaskId"));
         return r;
     }
 
@@ -103,6 +109,7 @@ public class Reminder {
         map.put("snoozeUntil", snoozeUntil);
         map.put("createdAt", createdAt);
         map.put("completedAt", completedAt);
+        map.put("linkedTaskId", linkedTaskId);
         return map;
     }
 }

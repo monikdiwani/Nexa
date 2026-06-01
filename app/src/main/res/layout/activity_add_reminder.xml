@@ -225,6 +225,23 @@
                     android:text="Set Time" />
             </LinearLayout>
 
+            <!-- Link to Task -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Link to Task (Optional)"
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary"
+                android:layout_marginBottom="6dp"
+                android:textStyle="bold" />
+
+            <Spinner
+                android:id="@+id/spinnerTasks"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginBottom="24dp"
+                android:background="@drawable/rounded_card" />
+
             <!-- Save Button -->
             <Button
                 android:id="@+id/btnSaveReminder"

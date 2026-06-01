@@ -39,8 +39,11 @@ public class AddReminderActivity extends AppCompatActivity {
     private TextView txtSelectedDate, txtSelectedTime;
     private Button btnSelectDate, btnSelectTime, btnSaveReminder;
     private ImageButton btnBack;
+    private android.widget.Spinner spinnerTasks;
 
     private Calendar calendar = Calendar.getInstance();
+    private java.util.List<com.example.frienddebt.model.Task> availableTasks = new java.util.ArrayList<>();
+    private java.util.List<String> taskNames = new java.util.ArrayList<>();
     private FirebaseAuth auth;
     private FirebaseFirestore db;
 
@@ -70,6 +73,7 @@ public class AddReminderActivity extends AppCompatActivity {
         btnBack = findViewById(R.id.btnBack);
         tilCustomCategory = findViewById(R.id.tilCustomCategory);
         etCustomCategory = findViewById(R.id.etCustomCategory);
+        spinnerTasks = findViewById(R.id.spinnerTasks);
 
         btnBack.setOnClickListener(v -> finish());
 
@@ -103,6 +107,34 @@ public class AddReminderActivity extends AppCompatActivity {
         btnSelectTime.setOnClickListener(v -> showTimePicker());
 
         btnSaveReminder.setOnClickListener(v -> saveReminder());
+        
+        loadTasksForSpinner();
+    }
+    
+    private void loadTasksForSpinner() {
+        if (auth.getCurrentUser() == null) return;
+        
+        taskNames.add("None");
+        availableTasks.add(null);
+        
+        ArrayAdapter<String> taskAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, taskNames);
+        taskAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerTasks.setAdapter(taskAdapter);
+        
+        db.collection("users")
+                .document(auth.getCurrentUser().getUid())
+                .collection("tasks")
+                .whereEqualTo("isCompleted", false)
+                .whereEqualTo("isArchived", false)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : queryDocumentSnapshots) {
+                        com.example.frienddebt.model.Task t = com.example.frienddebt.model.Task.fromDocument(doc);
+                        availableTasks.add(t);
+                        taskNames.add(t.getTitle());
+                    }
+                    taskAdapter.notifyDataSetChanged();
+                });
     }
 
     private void updateDateText() {
@@ -189,8 +221,15 @@ public class AddReminderActivity extends AppCompatActivity {
 
         String userId = auth.getCurrentUser().getUid();
         long createdAt = System.currentTimeMillis();
+        
+        String linkedTaskId = null;
+        int selectedTaskPos = spinnerTasks.getSelectedItemPosition();
+        if (selectedTaskPos > 0 && selectedTaskPos < availableTasks.size()) {
+            linkedTaskId = availableTasks.get(selectedTaskPos).getId();
+        }
 
         Reminder reminder = new Reminder(null, title, msg, triggerTime, repeat, priority, category, false, false, null, createdAt, null);
+        reminder.setLinkedTaskId(linkedTaskId);
 
         btnSaveReminder.setEnabled(false);
         btnSaveReminder.setText("Scheduling...");

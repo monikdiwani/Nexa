@@ -252,12 +252,23 @@ public class RemindersActivity extends AppCompatActivity {
                 holder.txtRepeat.setVisibility(View.GONE);
             }
 
-            // Normal click option: Complete it
-            holder.itemView.setOnClickListener(v -> {
-                if (!r.isCompleted()) {
-                    showCompleteDialog(r);
-                }
-            });
+            // Linked Task badge
+            if (r.getLinkedTaskId() != null && !r.getLinkedTaskId().isEmpty()) {
+                holder.txtLinkedTask.setVisibility(View.VISIBLE);
+                holder.itemView.setOnClickListener(v -> {
+                    Intent intent = new Intent(RemindersActivity.this, TasksActivity.class);
+                    // In a more advanced implementation, we would pass the linkedTaskId to highlight it
+                    startActivity(intent);
+                });
+            } else {
+                holder.txtLinkedTask.setVisibility(View.GONE);
+                // Normal click option: Complete it
+                holder.itemView.setOnClickListener(v -> {
+                    if (!r.isCompleted()) {
+                        showCompleteDialog(r);
+                    }
+                });
+            }
 
             // Long click option: Delete it
             holder.itemView.setOnLongClickListener(v -> {
@@ -340,7 +351,7 @@ public class RemindersActivity extends AppCompatActivity {
         }
 
         class ViewHolder extends RecyclerView.ViewHolder {
-            TextView txtIcon, txtTitle, txtMsg, txtTime, txtRepeat, txtPriority, txtCountdown;
+            TextView txtIcon, txtTitle, txtMsg, txtTime, txtRepeat, txtPriority, txtCountdown, txtLinkedTask;
 
             public ViewHolder(@NonNull View itemView) {
                 super(itemView);
@@ -351,6 +362,7 @@ public class RemindersActivity extends AppCompatActivity {
                 txtRepeat = itemView.findViewById(R.id.txtReminderRepeat);
                 txtPriority = itemView.findViewById(R.id.txtReminderPriority);
                 txtCountdown = itemView.findViewById(R.id.txtReminderCountdown);
+                txtLinkedTask = itemView.findViewById(R.id.txtReminderLinkedTask);
             }
         }
     }

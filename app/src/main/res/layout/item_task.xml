@@ -75,17 +75,45 @@
 
     </LinearLayout>
 
-    <!-- Priority Indicator -->
-    <TextView
-        android:id="@+id/txtTaskPriority"
+    <!-- Badges Container -->
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="HIGH"
-        android:textSize="10sp"
-        android:textStyle="bold"
-        android:textColor="@color/white"
-        android:background="@drawable/chip_background"
-        android:paddingHorizontal="8dp"
-        android:paddingVertical="4dp" />
+        android:orientation="vertical"
+        android:gravity="end">
+
+        <!-- Important Indicator -->
+        <TextView
+            android:id="@+id/txtTaskImportant"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⭐"
+            android:textSize="14sp"
+            android:visibility="gone"
+            android:layout_marginBottom="4dp" />
+
+        <!-- Priority Indicator -->
+        <TextView
+            android:id="@+id/txtTaskPriority"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="HIGH"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:textColor="@color/white"
+            android:background="@drawable/chip_background"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="4dp" />
+
+        <!-- Repeat Indicator -->
+        <TextView
+            android:id="@+id/txtTaskRepeat"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🔁"
+            android:textSize="12sp"
+            android:visibility="gone"
+            android:layout_marginTop="4dp" />
+    </LinearLayout>
 
 </LinearLayout>

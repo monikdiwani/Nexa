@@ -17,6 +17,11 @@ public class Task {
     // Phase 17: Advanced Tasks
     private boolean isArchived;
     private java.util.List<Subtask> subtasks;
+    
+    // Phase 19: Productivity Polish
+    private boolean isImportant;
+    private Long dueTime;
+    private String recurringPattern;
 
     public Task() {
         // Required for Firestore
@@ -33,6 +38,8 @@ public class Task {
         this.createdAt = createdAt;
         this.completedAt = completedAt;
         this.isArchived = false;
+        this.isImportant = false;
+        this.recurringPattern = "NONE";
         this.subtasks = new java.util.ArrayList<>();
     }
 
@@ -64,6 +71,15 @@ public class Task {
     public boolean isArchived() { return isArchived; }
     public void setArchived(boolean archived) { isArchived = archived; }
     
+    public boolean isImportant() { return isImportant; }
+    public void setImportant(boolean important) { isImportant = important; }
+    
+    public Long getDueTime() { return dueTime; }
+    public void setDueTime(Long dueTime) { this.dueTime = dueTime; }
+    
+    public String getRecurringPattern() { return recurringPattern; }
+    public void setRecurringPattern(String recurringPattern) { this.recurringPattern = recurringPattern; }
+    
     public java.util.List<Subtask> getSubtasks() { return subtasks; }
     public void setSubtasks(java.util.List<Subtask> subtasks) { this.subtasks = subtasks; }
 
@@ -79,6 +95,9 @@ public class Task {
         t.setCompletedAt(doc.getLong("completedAt"));
         
         t.setArchived(doc.getBoolean("isArchived") != null ? doc.getBoolean("isArchived") : false);
+        t.setImportant(doc.getBoolean("isImportant") != null ? doc.getBoolean("isImportant") : false);
+        t.setDueTime(doc.getLong("dueTime"));
+        t.setRecurringPattern(doc.getString("recurringPattern") != null ? doc.getString("recurringPattern") : "NONE");
         
         java.util.List<java.util.Map<String, Object>> subtasksMapList = (java.util.List<java.util.Map<String, Object>>) doc.get("subtasks");
         if (subtasksMapList != null) {
@@ -106,6 +125,9 @@ public class Task {
         map.put("createdAt", createdAt);
         map.put("completedAt", completedAt);
         map.put("isArchived", isArchived);
+        map.put("isImportant", isImportant);
+        map.put("dueTime", dueTime);
+        map.put("recurringPattern", recurringPattern);
         
         if (subtasks != null) {
             java.util.List<java.util.Map<String, Object>> subtasksMapList = new java.util.ArrayList<>();

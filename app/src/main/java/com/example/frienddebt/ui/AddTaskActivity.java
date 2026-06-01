@@ -33,12 +33,14 @@ public class AddTaskActivity extends AppCompatActivity {
 
     private EditText etTaskTitle, etTaskDesc;
     private RadioGroup rgPriority;
-    private CheckBox cbHasDueDate;
+    private CheckBox cbHasDueDate, cbImportant;
     private LinearLayout layoutDueDate;
-    private TextView txtSelectedDate;
-    private Button btnSelectDate, btnSaveTask, btnAddSubtask;
+    private TextView txtSelectedDate, txtSelectedTime;
+    private Button btnSelectDate, btnSelectTime, btnSaveTask, btnAddSubtask;
     private LinearLayout layoutSubtasks;
     private ImageButton btnBack;
+    private android.widget.Spinner spinnerRepeat;
+    private boolean hasSelectedTime = false;
 
     private String taskId;
     private Calendar calendar = Calendar.getInstance();
@@ -59,13 +61,23 @@ public class AddTaskActivity extends AppCompatActivity {
         etTaskDesc = findViewById(R.id.etTaskDesc);
         rgPriority = findViewById(R.id.rgPriority);
         cbHasDueDate = findViewById(R.id.cbHasDueDate);
+        cbImportant = findViewById(R.id.cbImportant);
         layoutDueDate = findViewById(R.id.layoutDueDate);
         txtSelectedDate = findViewById(R.id.txtSelectedDate);
+        txtSelectedTime = findViewById(R.id.txtSelectedTime);
         btnSelectDate = findViewById(R.id.btnSelectDate);
+        btnSelectTime = findViewById(R.id.btnSelectTime);
         btnSaveTask = findViewById(R.id.btnSaveTask);
         btnBack = findViewById(R.id.btnBack);
         btnAddSubtask = findViewById(R.id.btnAddSubtask);
         layoutSubtasks = findViewById(R.id.layoutSubtasks);
+        spinnerRepeat = findViewById(R.id.spinnerRepeat);
+
+        // Setup Spinner
+        String[] repeatOptions = {"None", "Daily", "Weekly", "Monthly"};
+        android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_item, repeatOptions);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerRepeat.setAdapter(adapter);
 
         taskId = getIntent().getStringExtra("TASK_ID");
 
@@ -81,9 +93,11 @@ public class AddTaskActivity extends AppCompatActivity {
             layoutDueDate.setVisibility(isChecked ? View.VISIBLE : View.GONE);
         });
 
-        // Setup Date Picker
+        // Setup Date & Time Pickers
         updateDateText();
+        updateTimeText();
         btnSelectDate.setOnClickListener(v -> showDatePicker());
+        btnSelectTime.setOnClickListener(v -> showTimePicker());
 
         // Save Button Click
         btnSaveTask.setOnClickListener(v -> saveTask());
@@ -109,7 +123,19 @@ public class AddTaskActivity extends AppCompatActivity {
                             cbHasDueDate.setChecked(true);
                             calendar.setTimeInMillis(task.getDueDate());
                             updateDateText();
+                            if (task.getDueTime() != null && task.getDueTime() > 0) {
+                                hasSelectedTime = true;
+                                updateTimeText();
+                            }
                         }
+                        
+                        cbImportant.setChecked(task.isImportant());
+                        
+                        String repeat = task.getRecurringPattern();
+                        if ("Daily".equalsIgnoreCase(repeat)) spinnerRepeat.setSelection(1);
+                        else if ("Weekly".equalsIgnoreCase(repeat)) spinnerRepeat.setSelection(2);
+                        else if ("Monthly".equalsIgnoreCase(repeat)) spinnerRepeat.setSelection(3);
+                        else spinnerRepeat.setSelection(0);
 
                         if ("LOW".equals(task.getPriority())) {
                             rgPriority.check(R.id.rbLow);
@@ -131,7 +157,16 @@ public class AddTaskActivity extends AppCompatActivity {
 
     private void updateDateText() {
         SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
-        txtSelectedDate.setText("Due Date: " + sdf.format(calendar.getTime()));
+        txtSelectedDate.setText("Date: " + sdf.format(calendar.getTime()));
+    }
+
+    private void updateTimeText() {
+        if (!hasSelectedTime) {
+            txtSelectedTime.setText("Time: None");
+            return;
+        }
+        SimpleDateFormat sdf = new SimpleDateFormat("hh:mm a", Locale.getDefault());
+        txtSelectedTime.setText("Time: " + sdf.format(calendar.getTime()));
     }
 
     private void showDatePicker() {
@@ -146,6 +181,22 @@ public class AddTaskActivity extends AppCompatActivity {
                 calendar.get(Calendar.YEAR),
                 calendar.get(Calendar.MONTH),
                 calendar.get(Calendar.DAY_OF_MONTH)
+        ).show();
+    }
+    
+    private void showTimePicker() {
+        new android.app.TimePickerDialog(
+                this,
+                (view, hourOfDay, minute) -> {
+                    calendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
+                    calendar.set(Calendar.MINUTE, minute);
+                    calendar.set(Calendar.SECOND, 0);
+                    hasSelectedTime = true;
+                    updateTimeText();
+                },
+                calendar.get(Calendar.HOUR_OF_DAY),
+                calendar.get(Calendar.MINUTE),
+                false
         ).show();
     }
 
@@ -182,6 +233,7 @@ public class AddTaskActivity extends AppCompatActivity {
         }
 
         Long dueDate = cbHasDueDate.isChecked() ? calendar.getTimeInMillis() : null;
+        Long dueTime = (cbHasDueDate.isChecked() && hasSelectedTime) ? calendar.getTimeInMillis() : null;
 
         if (auth.getCurrentUser() == null) {
             Toast.makeText(this, "User not logged in", Toast.LENGTH_SHORT).show();
@@ -194,7 +246,10 @@ public class AddTaskActivity extends AppCompatActivity {
         data.put("title", title);
         data.put("description", desc);
         data.put("dueDate", dueDate);
+        data.put("dueTime", dueTime);
         data.put("priority", priority);
+        data.put("isImportant", cbImportant.isChecked());
+        data.put("recurringPattern", spinnerRepeat.getSelectedItem().toString());
         
         List<Map<String, Object>> subtasksList = new ArrayList<>();
         for (int i = 0; i < layoutSubtasks.getChildCount(); i++) {
