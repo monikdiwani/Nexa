@@ -43,6 +43,11 @@ public class HomeFragment extends Fragment {
     private LinearLayout btnQuickExpense, btnQuickTask, btnQuickReminder, btnQuickReports;
     private LinearLayout cardTasks, cardReminders, cardGroups;
     private ImageView imgProfile;
+    private TextView txtInsight;
+
+    private int pendingTasksCount = 0;
+    private int upcomingRemindersCount = 0;
+    private double totalCashOut = 0.0;
 
     private FirebaseAuth auth;
     private FirebaseFirestore db;
@@ -82,6 +87,7 @@ public class HomeFragment extends Fragment {
         cardReminders = view.findViewById(R.id.cardReminders);
         cardGroups = view.findViewById(R.id.cardGroups);
         imgProfile = view.findViewById(R.id.imgProfile);
+        txtInsight = view.findViewById(R.id.txtInsight);
 
         auth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
@@ -213,6 +219,8 @@ public class HomeFragment extends Fragment {
                         if (out != null) cashOutSum += out;
                     }
                     
+                    totalCashOut = cashOutSum;
+                    
                     double total = cashInSum - cashOutSum;
                     txtTotalBalance.setText(String.format(Locale.getDefault(), "₹%.2f", total));
                     txtHomeCashIn.setText(String.format(Locale.getDefault(), "₹%.2f", cashInSum));
@@ -224,6 +232,7 @@ public class HomeFragment extends Fragment {
                     } else {
                         txtLedgerPreview.setText("Create or join a ledger to track expenses");
                     }
+                    updateInsight();
                 });
 
         // 2. Tasks preview
@@ -251,6 +260,9 @@ public class HomeFragment extends Fragment {
                     } else {
                         txtTaskPreview.setText("No tasks for today");
                     }
+                    
+                    pendingTasksCount = count;
+                    updateInsight();
                 });
 
         // 3. Reminders preview
@@ -284,8 +296,31 @@ public class HomeFragment extends Fragment {
                     } else {
                         txtReminderPreview.setText("No upcoming reminders");
                     }
+                    
+                    upcomingRemindersCount = count;
+                    updateInsight();
                 });
 
+    }
+
+    private void updateInsight() {
+        if (txtInsight == null) return;
+        
+        txtInsight.setVisibility(View.VISIBLE);
+        
+        if (pendingTasksCount > 0) {
+            txtInsight.setText("✨ You have " + pendingTasksCount + " tasks left to tackle. You can do it!");
+            txtInsight.setTextColor(getResources().getColor(R.color.primary));
+        } else if (upcomingRemindersCount > 0) {
+            txtInsight.setText("🔔 Don't forget your " + upcomingRemindersCount + " upcoming reminders.");
+            txtInsight.setTextColor(getResources().getColor(R.color.accent_warning));
+        } else if (totalCashOut > 0) {
+            txtInsight.setText("💸 You've spent " + String.format(Locale.getDefault(), "₹%.2f", totalCashOut) + " in total. Keep tracking!");
+            txtInsight.setTextColor(getResources().getColor(R.color.text_secondary));
+        } else {
+            txtInsight.setText("✨ You're all caught up for today. Relax!");
+            txtInsight.setTextColor(getResources().getColor(R.color.primary));
+        }
     }
 
     private void removeListeners() {

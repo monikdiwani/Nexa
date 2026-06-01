@@ -56,6 +56,21 @@
                 android:contentDescription="Profile" />
         </LinearLayout>
 
+        <!-- ══════ Insight Line ══════ -->
+        <TextView
+            android:id="@+id/txtInsight"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="✨ You're all caught up for today!"
+            android:textSize="14sp"
+            android:textStyle="italic"
+            android:textColor="@color/primary"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/chip_background"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="8dp"
+            android:visibility="gone"/>
+
         <!-- ══════ Balance Overview Card ══════ -->
         <LinearLayout
             android:id="@+id/cardBalance"

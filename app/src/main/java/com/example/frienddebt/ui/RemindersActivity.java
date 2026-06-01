@@ -207,6 +207,14 @@ public class RemindersActivity extends AppCompatActivity {
             SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy 'at' hh:mm a", Locale.getDefault());
             holder.txtTime.setText(sdf.format(new Date(r.getTriggerTime())));
 
+            // Relative Countdown
+            holder.txtCountdown.setText(getRelativeTime(r.getTriggerTime()));
+            if (r.getTriggerTime() < System.currentTimeMillis() && !r.isCompleted()) {
+                holder.txtCountdown.setTextColor(getResources().getColor(R.color.accent_danger));
+            } else {
+                holder.txtCountdown.setTextColor(getResources().getColor(R.color.accent_warning));
+            }
+
             // Priority
             String priority = r.getPriority();
             if (priority == null || priority.trim().isEmpty()) {
@@ -263,6 +271,29 @@ public class RemindersActivity extends AppCompatActivity {
             return list.size();
         }
 
+        private String getRelativeTime(long timeMs) {
+            long now = System.currentTimeMillis();
+            long diff = timeMs - now;
+            if (diff < 0) {
+                return "Overdue by " + formatDuration(-diff);
+            } else {
+                return "In " + formatDuration(diff);
+            }
+        }
+
+        private String formatDuration(long diffMs) {
+            long diffMinutes = diffMs / (60 * 1000);
+            if (diffMinutes < 60) {
+                return diffMinutes + " min";
+            }
+            long diffHours = diffMinutes / 60;
+            if (diffHours < 24) {
+                return diffHours + " hr " + (diffMinutes % 60) + " min";
+            }
+            long diffDays = diffHours / 24;
+            return diffDays + " days";
+        }
+
         private void showCompleteDialog(Reminder r) {
             new AlertDialog.Builder(RemindersActivity.this)
                     .setTitle("Complete Reminder")
@@ -309,7 +340,7 @@ public class RemindersActivity extends AppCompatActivity {
         }
 
         class ViewHolder extends RecyclerView.ViewHolder {
-            TextView txtIcon, txtTitle, txtMsg, txtTime, txtRepeat, txtPriority;
+            TextView txtIcon, txtTitle, txtMsg, txtTime, txtRepeat, txtPriority, txtCountdown;
 
             public ViewHolder(@NonNull View itemView) {
                 super(itemView);
@@ -319,6 +350,7 @@ public class RemindersActivity extends AppCompatActivity {
                 txtTime = itemView.findViewById(R.id.txtReminderTime);
                 txtRepeat = itemView.findViewById(R.id.txtReminderRepeat);
                 txtPriority = itemView.findViewById(R.id.txtReminderPriority);
+                txtCountdown = itemView.findViewById(R.id.txtReminderCountdown);
             }
         }
     }
