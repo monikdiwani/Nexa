@@ -15,6 +15,11 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.provider.Settings;
+import android.net.Uri;
+import java.io.File;
+import java.io.FileWriter;
+import androidx.core.content.FileProvider;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -49,7 +54,9 @@ public class ProfileFragment extends Fragment {
     private TextView btnEditProfile, txtPasswordHint, txtLoginProvider;
     private LinearLayout rowChangePassword;
     private SwitchCompat switchDarkMode, switchMorningDigest, switchEveningDigest, switchAppLock;
-    private Button btnLogout;
+    private Button btnLogout, btnDeleteAccount;
+    private LinearLayout rowExportData, rowNotificationSettings;
+    private TextView btnAbout, btnFAQ, btnPrivacyPolicy;
 
     private FirebaseAuth auth;
     private SharedPreferences sp;
@@ -81,6 +88,12 @@ public class ProfileFragment extends Fragment {
         switchEveningDigest = view.findViewById(R.id.switchEveningDigest);
         switchAppLock = view.findViewById(R.id.switchAppLock);
         btnLogout = view.findViewById(R.id.btnLogout);
+        btnDeleteAccount = view.findViewById(R.id.btnDeleteAccount);
+        rowExportData = view.findViewById(R.id.rowExportData);
+        rowNotificationSettings = view.findViewById(R.id.rowNotificationSettings);
+        btnAbout = view.findViewById(R.id.btnAbout);
+        btnFAQ = view.findViewById(R.id.btnFAQ);
+        btnPrivacyPolicy = view.findViewById(R.id.btnPrivacyPolicy);
 
         setupUserInfo();
         setupPreferences();
@@ -117,6 +130,20 @@ public class ProfileFragment extends Fragment {
                     .setNegativeButton("Cancel", null)
                     .show();
         });
+
+        rowExportData.setOnClickListener(v -> exportUserData());
+        
+        rowNotificationSettings.setOnClickListener(v -> {
+            Intent intent = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS);
+            intent.putExtra(Settings.EXTRA_APP_PACKAGE, requireContext().getPackageName());
+            startActivity(intent);
+        });
+
+        btnAbout.setOnClickListener(v -> showLegalDialog("About Nexa", "Nexa is your ultimate productivity and finance companion. Built with passion to help you manage your tasks, notes, and money securely."));
+        btnFAQ.setOnClickListener(v -> showLegalDialog("FAQ", "Q: Is my data secure?\nA: Yes, everything is securely stored.\n\nQ: Can I access Nexa offline?\nA: Nexa has basic offline caching but requires internet for syncing."));
+        btnPrivacyPolicy.setOnClickListener(v -> showLegalDialog("Privacy Policy", "We respect your privacy. We do not sell your personal data. Your data is stored securely in Firebase and is only accessible by you."));
+
+        btnDeleteAccount.setOnClickListener(v -> showDeleteAccountDialog());
 
         return view;
     }
@@ -527,5 +554,79 @@ public class ProfileFragment extends Fragment {
 
     private void cancelNightDigest() {
         WorkManager.getInstance(requireContext()).cancelAllWorkByTag("NEXA_NIGHT_DIGEST");
+    }
+
+    private void showLegalDialog(String title, String message) {
+        new AlertDialog.Builder(requireContext())
+                .setTitle(title)
+                .setMessage(message)
+                .setPositiveButton("Close", null)
+                .show();
+    }
+
+    private void exportUserData() {
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) return;
+        Toast.makeText(requireContext(), "Preparing data export...", Toast.LENGTH_SHORT).show();
+        
+        com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                .collection("users")
+                .document(user.getUid())
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    try {
+                        String data = documentSnapshot.getData() != null ? documentSnapshot.getData().toString() : "No data";
+                        File file = new File(requireContext().getCacheDir(), "nexa_export.txt");
+                        FileWriter writer = new FileWriter(file);
+                        writer.write("Nexa User Data Export\n\n");
+                        writer.write("User Info: " + user.getEmail() + "\n");
+                        writer.write("Data: " + data);
+                        writer.flush();
+                        writer.close();
+
+                        Uri uri = FileProvider.getUriForFile(requireContext(), requireContext().getPackageName() + ".provider", file);
+                        Intent intent = new Intent(Intent.ACTION_SEND);
+                        intent.setType("text/plain");
+                        intent.putExtra(Intent.EXTRA_STREAM, uri);
+                        startActivity(Intent.createChooser(intent, "Export Data"));
+                    } catch (Exception e) {
+                        Toast.makeText(requireContext(), "Export failed", Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    private void showDeleteAccountDialog() {
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) return;
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Delete Account")
+                .setMessage("Are you absolutely sure you want to delete your account? This will permanently erase all your data from our servers. This action cannot be undone.")
+                .setPositiveButton("Delete", (dialog, which) -> {
+                    Toast.makeText(requireContext(), "Deleting account...", Toast.LENGTH_SHORT).show();
+                    String uid = user.getUid();
+                    
+                    // 1. Delete Firestore Document (simplistic approach for demonstration)
+                    com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                            .collection("users")
+                            .document(uid)
+                            .delete()
+                            .addOnCompleteListener(task -> {
+                                // 2. Delete Auth User
+                                user.delete().addOnCompleteListener(task1 -> {
+                                    if (task1.isSuccessful()) {
+                                        sp.edit().remove("user_id").apply();
+                                        Intent intent = new Intent(requireActivity(), Login.class);
+                                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                                        startActivity(intent);
+                                        requireActivity().finish();
+                                    } else {
+                                        Toast.makeText(requireContext(), "Failed to delete account. You may need to re-authenticate first.", Toast.LENGTH_LONG).show();
+                                    }
+                                });
+                            });
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 }
