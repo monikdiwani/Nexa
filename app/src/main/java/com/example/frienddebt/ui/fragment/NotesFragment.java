@@ -7,7 +7,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+import android.widget.EditText;
 import android.widget.TextView;
+import android.text.Editable;
+import android.text.TextWatcher;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -38,12 +41,19 @@ public class NotesFragment extends Fragment {
     private RecyclerView rvNotes;
     private FloatingActionButton fabAddNote;
 
+    private TextView chipAll, chipArchive, chipTrash;
+    private EditText etSearchNotes;
+
     private FirebaseFirestore db;
     private FirebaseAuth auth;
     private ListenerRegistration notesListener;
 
-    private List<Note> notes = new ArrayList<>();
+    private List<Note> allNotes = new ArrayList<>();
+    private List<Note> filteredNotes = new ArrayList<>();
     private NotesAdapter adapter;
+
+    private String activeFilter = "ALL"; // ALL, ARCHIVE, TRASH
+    private String searchQuery = "";
 
     @Nullable
     @Override
@@ -56,11 +66,18 @@ public class NotesFragment extends Fragment {
         txtEmptyNotes = view.findViewById(R.id.txtEmptyNotes);
         rvNotes = view.findViewById(R.id.rvNotes);
         fabAddNote = view.findViewById(R.id.fabAddNote);
+        chipAll = view.findViewById(R.id.chipAll);
+        chipArchive = view.findViewById(R.id.chipArchive);
+        chipTrash = view.findViewById(R.id.chipTrash);
+        etSearchNotes = view.findViewById(R.id.etSearchNotes);
 
         // Grid of 2 columns
         rvNotes.setLayoutManager(new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL));
-        adapter = new NotesAdapter(notes);
+        adapter = new NotesAdapter(filteredNotes);
         rvNotes.setAdapter(adapter);
+        
+        setupFilters();
+        setupSearch();
 
         fabAddNote.setOnClickListener(v -> {
             Animation pop = AnimationUtils.loadAnimation(requireContext(), R.anim.button_pop);
@@ -69,6 +86,44 @@ public class NotesFragment extends Fragment {
         });
 
         return view;
+    }
+
+    private void setupFilters() {
+        chipAll.setOnClickListener(v -> setFilter("ALL", chipAll));
+        chipArchive.setOnClickListener(v -> setFilter("ARCHIVE", chipArchive));
+        chipTrash.setOnClickListener(v -> setFilter("TRASH", chipTrash));
+    }
+
+    private void setFilter(String filter, TextView activeChip) {
+        activeFilter = filter;
+        resetChipStyles();
+        activeChip.setBackgroundResource(R.drawable.rounded_button);
+        activeChip.setTextColor(getResources().getColor(R.color.on_primary));
+        applyFilter();
+    }
+
+    private void resetChipStyles() {
+        TextView[] chips = {chipAll, chipArchive, chipTrash};
+        for (TextView chip : chips) {
+            chip.setBackgroundResource(R.drawable.chip_background);
+            chip.setTextColor(getResources().getColor(R.color.text_secondary));
+        }
+    }
+
+    private void setupSearch() {
+        etSearchNotes.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                searchQuery = s.toString().toLowerCase().trim();
+                applyFilter();
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
     }
 
     @Override
@@ -101,28 +156,60 @@ public class NotesFragment extends Fragment {
                 .orderBy("updatedAt", Query.Direction.DESCENDING)
                 .addSnapshotListener((snapshots, e) -> {
                     if (snapshots == null) return;
-                    notes.clear();
+                    allNotes.clear();
                     for (DocumentSnapshot doc : snapshots) {
-                        notes.add(Note.fromDocument(doc));
+                        allNotes.add(Note.fromDocument(doc));
                     }
-                    
-                    // Sort locally: Pinned notes first, then by updatedAt
-                    notes.sort((n1, n2) -> {
-                        if (n1.isPinned() && !n2.isPinned()) return -1;
-                        if (!n1.isPinned() && n2.isPinned()) return 1;
-                        return Long.compare(n2.getUpdatedAt(), n1.getUpdatedAt());
-                    });
-                    
-                    adapter.notifyDataSetChanged();
-
-                    if (notes.isEmpty()) {
-                        txtEmptyNotes.setVisibility(View.VISIBLE);
-                        rvNotes.setVisibility(View.GONE);
-                    } else {
-                        txtEmptyNotes.setVisibility(View.GONE);
-                        rvNotes.setVisibility(View.VISIBLE);
-                    }
+                    applyFilter();
                 });
+    }
+
+    private void applyFilter() {
+        filteredNotes.clear();
+
+        for (Note n : allNotes) {
+            boolean matchesFilter = false;
+            switch (activeFilter) {
+                case "ALL":
+                    matchesFilter = !n.isArchived() && !n.isDeleted();
+                    break;
+                case "ARCHIVE":
+                    matchesFilter = n.isArchived() && !n.isDeleted();
+                    break;
+                case "TRASH":
+                    matchesFilter = n.isDeleted();
+                    break;
+            }
+
+            if (!matchesFilter) continue;
+
+            if (!searchQuery.isEmpty()) {
+                boolean matchesSearch = false;
+                if (n.getTitle() != null && n.getTitle().toLowerCase().contains(searchQuery)) matchesSearch = true;
+                if (n.getContent() != null && n.getContent().toLowerCase().contains(searchQuery)) matchesSearch = true;
+                if (n.getLabel() != null && n.getLabel().toLowerCase().contains(searchQuery)) matchesSearch = true;
+                if (!matchesSearch) continue;
+            }
+
+            filteredNotes.add(n);
+        }
+
+        // Sort locally: Pinned notes first, then by updatedAt
+        filteredNotes.sort((n1, n2) -> {
+            if (n1.isPinned() && !n2.isPinned()) return -1;
+            if (!n1.isPinned() && n2.isPinned()) return 1;
+            return Long.compare(n2.getUpdatedAt(), n1.getUpdatedAt());
+        });
+        
+        adapter.notifyDataSetChanged();
+
+        if (filteredNotes.isEmpty()) {
+            txtEmptyNotes.setVisibility(View.VISIBLE);
+            rvNotes.setVisibility(View.GONE);
+        } else {
+            txtEmptyNotes.setVisibility(View.GONE);
+            rvNotes.setVisibility(View.VISIBLE);
+        }
     }
 
     // Grid Adapter
@@ -179,6 +266,18 @@ public class NotesFragment extends Fragment {
                 holder.imgPinned.setVisibility(View.GONE);
             }
             
+            // Image Preview
+            if (note.getImageUrl() != null && !note.getImageUrl().isEmpty()) {
+                holder.imgNoteAttachment.setVisibility(View.VISIBLE);
+                try {
+                    holder.imgNoteAttachment.setImageURI(android.net.Uri.parse(note.getImageUrl()));
+                } catch (Exception e) {
+                    holder.imgNoteAttachment.setVisibility(View.GONE);
+                }
+            } else {
+                holder.imgNoteAttachment.setVisibility(View.GONE);
+            }
+            
             // Label
             String label = note.getLabel();
             if (label != null && !label.trim().isEmpty()) {
@@ -197,15 +296,30 @@ public class NotesFragment extends Fragment {
             holder.itemView.setOnLongClickListener(v -> {
                 android.widget.PopupMenu popup = new android.widget.PopupMenu(holder.itemView.getContext(), holder.itemView);
                 popup.getMenu().add("Edit");
-                popup.getMenu().add("Delete");
-                popup.getMenu().add("Share");
+                if (activeFilter.equals("TRASH")) {
+                    popup.getMenu().add("Restore");
+                    popup.getMenu().add("Delete Permanently");
+                } else {
+                    popup.getMenu().add(note.isArchived() ? "Unarchive" : "Archive");
+                    popup.getMenu().add("Move to Recycle Bin");
+                    popup.getMenu().add("Share");
+                }
+                
                 popup.setOnMenuItemClickListener(item -> {
                     String titleSelected = item.getTitle().toString();
                     if ("Edit".equals(titleSelected)) {
                         Intent intent = new Intent(requireActivity(), AddEditNoteActivity.class);
                         intent.putExtra("NOTE_ID", note.getId());
                         startActivity(intent);
-                    } else if ("Delete".equals(titleSelected)) {
+                    } else if ("Move to Recycle Bin".equals(titleSelected)) {
+                        updateNoteStatus(note.getId(), "isDeleted", true);
+                    } else if ("Archive".equals(titleSelected)) {
+                        updateNoteStatus(note.getId(), "isArchived", true);
+                    } else if ("Unarchive".equals(titleSelected)) {
+                        updateNoteStatus(note.getId(), "isArchived", false);
+                    } else if ("Restore".equals(titleSelected)) {
+                        updateNoteStatus(note.getId(), "isDeleted", false);
+                    } else if ("Delete Permanently".equals(titleSelected)) {
                         showDeleteDialog(note);
                     } else if ("Share".equals(titleSelected)) {
                         Intent shareIntent = new Intent(Intent.ACTION_SEND);
@@ -226,10 +340,20 @@ public class NotesFragment extends Fragment {
             return list.size();
         }
 
+        private void updateNoteStatus(String noteId, String field, boolean value) {
+            if (auth.getCurrentUser() != null) {
+                db.collection("users")
+                        .document(auth.getCurrentUser().getUid())
+                        .collection("notes")
+                        .document(noteId)
+                        .update(field, value);
+            }
+        }
+
         private void showDeleteDialog(Note note) {
             new AlertDialog.Builder(requireContext())
-                    .setTitle("Delete Note")
-                    .setMessage("Are you sure you want to delete this note?")
+                    .setTitle("Delete Permanently")
+                    .setMessage("Are you sure you want to permanently delete this note?")
                     .setPositiveButton("Delete", (dialog, which) -> {
                         if (auth.getCurrentUser() != null) {
                             db.collection("users")
@@ -245,7 +369,7 @@ public class NotesFragment extends Fragment {
 
         class ViewHolder extends RecyclerView.ViewHolder {
             TextView txtTitle, txtContent, txtDate, txtLabel;
-            android.widget.ImageView imgPinned;
+            android.widget.ImageView imgPinned, imgNoteAttachment;
 
             public ViewHolder(@NonNull View itemView) {
                 super(itemView);
@@ -254,6 +378,7 @@ public class NotesFragment extends Fragment {
                 txtDate = itemView.findViewById(R.id.txtNoteDate);
                 txtLabel = itemView.findViewById(R.id.txtNoteLabel);
                 imgPinned = itemView.findViewById(R.id.imgPinned);
+                imgNoteAttachment = itemView.findViewById(R.id.imgNoteAttachment);
             }
         }
     }

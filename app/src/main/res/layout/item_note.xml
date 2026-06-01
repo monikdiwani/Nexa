@@ -8,6 +8,15 @@
     android:layout_margin="6dp"
     android:elevation="1dp">
 
+    <ImageView
+        android:id="@+id/imgNoteAttachment"
+        android:layout_width="match_parent"
+        android:layout_height="120dp"
+        android:scaleType="centerCrop"
+        android:layout_marginBottom="12dp"
+        android:background="#1A000000"
+        android:visibility="gone" />
+
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content">

@@ -17,6 +17,13 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.HashMap;
 import java.util.Map;
 
+import android.content.Intent;
+import android.net.Uri;
+import android.provider.MediaStore;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import android.widget.ImageView;
+
 public class AddEditNoteActivity extends AppCompatActivity {
 
     private EditText etNoteTitle, etNoteContent;
@@ -34,9 +41,30 @@ public class AddEditNoteActivity extends AppCompatActivity {
     private android.widget.EditText etNoteLabel;
     private ImageButton btnPin;
     private android.widget.LinearLayout layoutColors;
+    private ImageView imgPreview;
+
+    private String selectedImageUrl = null;
 
     // Guard flag to prevent double-finish
     private boolean isFinishing = false;
+
+    private final ActivityResultLauncher<Intent> imagePickerLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    Uri imageUri = result.getData().getData();
+                    if (imageUri != null) {
+                        try {
+                            getContentResolver().takePersistableUriPermission(imageUri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        selectedImageUrl = imageUri.toString();
+                        displayImagePreview(selectedImageUrl);
+                    }
+                }
+            }
+    );
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,6 +82,7 @@ public class AddEditNoteActivity extends AppCompatActivity {
         btnSave = findViewById(R.id.btnSave);
         btnPin = findViewById(R.id.btnPin);
         layoutColors = findViewById(R.id.layoutColors);
+        imgPreview = findViewById(R.id.imgPreview);
 
         noteId = getIntent().getStringExtra("NOTE_ID");
 
@@ -99,6 +128,13 @@ public class AddEditNoteActivity extends AppCompatActivity {
         findViewById(R.id.btnFormatHeader).setOnClickListener(v -> insertMarkdownAtLineStart("### "));
         findViewById(R.id.btnFormatBullet).setOnClickListener(v -> insertMarkdownAtLineStart("- "));
         findViewById(R.id.btnFormatTask).setOnClickListener(v -> insertMarkdownAtLineStart("- [ ] "));
+
+        findViewById(R.id.btnAddImage).setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("image/*");
+            imagePickerLauncher.launch(intent);
+        });
 
         android.widget.Button btnTogglePreview = findViewById(R.id.btnTogglePreview);
         android.widget.TextView txtPreview = findViewById(R.id.txtMarkdownPreview);
@@ -184,6 +220,7 @@ public class AddEditNoteActivity extends AppCompatActivity {
                         selectedColor = note.getColorCode() != null ? note.getColorCode() : "#FFFFFF";
                         isPinned = note.isPinned();
                         String label = note.getLabel() != null ? note.getLabel() : "";
+                        selectedImageUrl = note.getImageUrl();
 
                         etNoteTitle.setText(originalTitle);
                         etNoteContent.setText(originalContent);
@@ -191,6 +228,9 @@ public class AddEditNoteActivity extends AppCompatActivity {
                         
                         applyColor(selectedColor);
                         updatePinIcon();
+                        if (selectedImageUrl != null && !selectedImageUrl.isEmpty()) {
+                            displayImagePreview(selectedImageUrl);
+                        }
                     }
                 });
     }
@@ -226,6 +266,20 @@ public class AddEditNoteActivity extends AppCompatActivity {
             btnPin.setColorFilter(getResources().getColor(R.color.primary));
         } else {
             btnPin.setColorFilter(getResources().getColor(R.color.text_secondary));
+        }
+    }
+
+    private void displayImagePreview(String uriString) {
+        if (uriString == null || uriString.isEmpty()) {
+            imgPreview.setVisibility(android.view.View.GONE);
+            return;
+        }
+        imgPreview.setVisibility(android.view.View.VISIBLE);
+        try {
+            imgPreview.setImageURI(Uri.parse(uriString));
+        } catch (Exception e) {
+            e.printStackTrace();
+            imgPreview.setVisibility(android.view.View.GONE);
         }
     }
 
@@ -269,6 +323,7 @@ public class AddEditNoteActivity extends AppCompatActivity {
         data.put("colorCode", selectedColor);
         data.put("label", label);
         data.put("isPinned", isPinned);
+        data.put("imageUrl", selectedImageUrl);
         data.put("updatedAt", System.currentTimeMillis());
 
         if (noteId == null) {
@@ -278,6 +333,8 @@ public class AddEditNoteActivity extends AppCompatActivity {
                     .document()
                     .getId();
             data.put("createdAt", System.currentTimeMillis());
+            data.put("isArchived", false);
+            data.put("isDeleted", false);
         }
 
         originalTitle = title;
