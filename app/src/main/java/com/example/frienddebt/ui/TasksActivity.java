@@ -455,9 +455,9 @@ public class TasksActivity extends AppCompatActivity {
             }
             holder.txtPriority.setBackgroundColor(getResources().getColor(priorityColorBg));
 
-            // Delete action
+            // Options action
             holder.itemView.setOnLongClickListener(v -> {
-                showDeleteDialog(task);
+                showOptionsDialog(task);
                 return true;
             });
         }
@@ -467,20 +467,34 @@ public class TasksActivity extends AppCompatActivity {
             return list.size();
         }
 
-        private void showDeleteDialog(Task task) {
+        private void showOptionsDialog(Task task) {
             new AlertDialog.Builder(TasksActivity.this)
-                    .setTitle("Delete Task")
-                    .setMessage("Are you sure you want to delete this task?")
-                    .setPositiveButton("Delete", (dialog, which) -> {
-                        if (auth.getCurrentUser() != null) {
-                            db.collection("users")
-                                    .document(auth.getCurrentUser().getUid())
-                                    .collection("tasks")
-                                    .document(task.getId())
-                                    .delete();
+                    .setTitle("Task Options")
+                    .setItems(new String[]{"Set Reminder", "Delete Task"}, (dialog, which) -> {
+                        if (which == 0) {
+                            // Phase 28: Set Reminder (Cross-Module Linking)
+                            Intent intent = new Intent(TasksActivity.this, AddReminderActivity.class);
+                            intent.putExtra("LINKED_TITLE", task.getTitle());
+                            intent.putExtra("LINKED_ID", task.getId());
+                            intent.putExtra("LINKED_TYPE", "TASK");
+                            startActivity(intent);
+                        } else if (which == 1) {
+                            new AlertDialog.Builder(TasksActivity.this)
+                                    .setTitle("Delete Task")
+                                    .setMessage("Are you sure you want to delete this task?")
+                                    .setPositiveButton("Delete", (d, w) -> {
+                                        if (auth.getCurrentUser() != null) {
+                                            db.collection("users")
+                                                    .document(auth.getCurrentUser().getUid())
+                                                    .collection("tasks")
+                                                    .document(task.getId())
+                                                    .delete();
+                                        }
+                                    })
+                                    .setNegativeButton("Cancel", null)
+                                    .show();
                         }
                     })
-                    .setNegativeButton("Cancel", null)
                     .show();
         }
 

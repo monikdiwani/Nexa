@@ -258,11 +258,11 @@ public class RemindersActivity extends AppCompatActivity {
             }
 
             // Linked Task badge
-            if (r.getLinkedTaskId() != null && !r.getLinkedTaskId().isEmpty()) {
+            if (r.getLinkedItemId() != null && !r.getLinkedItemId().isEmpty()) {
                 holder.txtLinkedTask.setVisibility(View.VISIBLE);
                 holder.itemView.setOnClickListener(v -> {
                     Intent intent = new Intent(RemindersActivity.this, TasksActivity.class);
-                    // In a more advanced implementation, we would pass the linkedTaskId to highlight it
+                    // In a more advanced implementation, we would pass the linkedItemId to highlight it
                     startActivity(intent);
                 });
             } else {

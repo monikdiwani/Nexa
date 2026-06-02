@@ -27,6 +27,10 @@ public class Task {
     private boolean isRecurring;
     private Long nextOccurrence;
     private String recurringId;
+    
+    // Phase 28: Cross-Module Linking
+    private String linkedItemId;
+    private String linkedItemType;
 
     public Task() {
         // Required for Firestore
@@ -96,6 +100,12 @@ public class Task {
     
     public java.util.List<Subtask> getSubtasks() { return subtasks; }
     public void setSubtasks(java.util.List<Subtask> subtasks) { this.subtasks = subtasks; }
+    
+    public String getLinkedItemId() { return linkedItemId; }
+    public void setLinkedItemId(String linkedItemId) { this.linkedItemId = linkedItemId; }
+    
+    public String getLinkedItemType() { return linkedItemType; }
+    public void setLinkedItemType(String linkedItemType) { this.linkedItemType = linkedItemType; }
 
     public static Task fromDocument(DocumentSnapshot doc) {
         Task t = new Task();
@@ -116,6 +126,9 @@ public class Task {
         t.setRecurring(doc.getBoolean("isRecurring") != null ? doc.getBoolean("isRecurring") : false);
         t.setNextOccurrence(doc.getLong("nextOccurrence"));
         t.setRecurringId(doc.getString("recurringId"));
+        
+        t.setLinkedItemId(doc.getString("linkedItemId"));
+        t.setLinkedItemType(doc.getString("linkedItemType"));
         
         java.util.List<java.util.Map<String, Object>> subtasksMapList = (java.util.List<java.util.Map<String, Object>>) doc.get("subtasks");
         if (subtasksMapList != null) {
@@ -150,6 +163,9 @@ public class Task {
         map.put("isRecurring", isRecurring);
         map.put("nextOccurrence", nextOccurrence);
         map.put("recurringId", recurringId);
+        
+        map.put("linkedItemId", linkedItemId);
+        map.put("linkedItemType", linkedItemType);
         
         if (subtasks != null) {
             java.util.List<java.util.Map<String, Object>> subtasksMapList = new java.util.ArrayList<>();

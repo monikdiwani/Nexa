@@ -48,6 +48,8 @@ public class AddTaskActivity extends AppCompatActivity {
     private Calendar calendar = Calendar.getInstance();
     private FirebaseAuth auth;
     private FirebaseFirestore db;
+    private String linkedItemId;
+    private String linkedItemType;
 
     @Override
     protected void onCreate(Bundle Bundle) {
@@ -92,6 +94,18 @@ public class AddTaskActivity extends AppCompatActivity {
         if (taskId != null) {
             btnSaveTask.setText("Update Task");
             loadTaskDetails();
+        } else {
+            // Phase 28: Handle Cross-Module Linking pre-fill
+            String incomingTitle = getIntent().getStringExtra("LINKED_TITLE");
+            linkedItemId = getIntent().getStringExtra("LINKED_ID");
+            linkedItemType = getIntent().getStringExtra("LINKED_TYPE");
+            
+            if (incomingTitle != null && !incomingTitle.isEmpty()) {
+                etTaskTitle.setText(incomingTitle);
+                if (linkedItemType != null) {
+                    etTaskDesc.setText("Linked to " + linkedItemType + ": " + incomingTitle);
+                }
+            }
         }
 
         btnBack.setOnClickListener(v -> finish());
@@ -301,6 +315,11 @@ public class AddTaskActivity extends AppCompatActivity {
             }
         }
         data.put("subtasks", subtasksList);
+        
+        if (linkedItemId != null && linkedItemType != null) {
+            data.put("linkedItemId", linkedItemId);
+            data.put("linkedItemType", linkedItemType);
+        }
 
         btnSaveTask.setEnabled(false);
         btnSaveTask.setText("Saving...");

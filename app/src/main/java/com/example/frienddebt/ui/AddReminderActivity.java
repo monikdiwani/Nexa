@@ -47,6 +47,8 @@ public class AddReminderActivity extends AppCompatActivity {
     private java.util.List<String> taskNames = new java.util.ArrayList<>();
     private FirebaseAuth auth;
     private FirebaseFirestore db;
+    private String linkedItemId;
+    private String linkedItemType;
 
     private static final String[] CATEGORIES = {"BILL", "MEETING", "TASK", "MEDICINE", "SHOPPING", "CUSTOM"};
     private static final String[] REPEAT_OPTIONS = {"NONE", "DAILY", "WEEKLY", "MONTHLY", "YEARLY"};
@@ -116,6 +118,18 @@ public class AddReminderActivity extends AppCompatActivity {
         btnSelectTime.setOnClickListener(v -> showTimePicker());
 
         btnSaveReminder.setOnClickListener(v -> saveReminder());
+        
+        // Phase 28: Handle Cross-Module Linking pre-fill
+        String incomingTitle = getIntent().getStringExtra("LINKED_TITLE");
+        linkedItemId = getIntent().getStringExtra("LINKED_ID");
+        linkedItemType = getIntent().getStringExtra("LINKED_TYPE");
+        
+        if (incomingTitle != null && !incomingTitle.isEmpty()) {
+            etReminderTitle.setText("Reminder for: " + incomingTitle);
+            if (linkedItemType != null) {
+                etReminderMsg.setText("Linked to " + linkedItemType + ": " + incomingTitle);
+            }
+        }
         
         loadTasksForSpinner();
     }
@@ -240,7 +254,15 @@ public class AddReminderActivity extends AppCompatActivity {
         String repeat = isRecurring ? actvRecurringFrequency.getText().toString() : "NONE";
 
         Reminder reminder = new Reminder(null, title, msg, triggerTime, repeat, priority, category, false, false, null, createdAt, null);
-        reminder.setLinkedTaskId(linkedTaskId);
+        
+        if (linkedItemId != null && linkedItemType != null) {
+            reminder.setLinkedItemId(linkedItemId);
+            reminder.setLinkedItemType(linkedItemType);
+        } else if (linkedTaskId != null) {
+            // Fallback for old manual task linking
+            reminder.setLinkedItemId(linkedTaskId);
+            reminder.setLinkedItemType("TASK");
+        }
         
         if (isRecurring) {
             reminder.setRecurring(true);

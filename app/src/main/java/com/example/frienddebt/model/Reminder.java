@@ -17,7 +17,8 @@ public class Reminder {
     private Long snoozeUntil;
     private long createdAt;
     private Long completedAt;
-    private String linkedTaskId;
+    private String linkedItemId;
+    private String linkedItemType;
     
     // Phase 24: Recurring Engine
     private boolean isRecurring;
@@ -41,7 +42,8 @@ public class Reminder {
         this.snoozeUntil = snoozeUntil;
         this.createdAt = createdAt;
         this.completedAt = completedAt;
-        this.linkedTaskId = null;
+        this.linkedItemId = null;
+        this.linkedItemType = null;
     }
 
     public String getId() { return id; }
@@ -80,8 +82,11 @@ public class Reminder {
     public Long getCompletedAt() { return completedAt; }
     public void setCompletedAt(Long completedAt) { this.completedAt = completedAt; }
 
-    public String getLinkedTaskId() { return linkedTaskId; }
-    public void setLinkedTaskId(String linkedTaskId) { this.linkedTaskId = linkedTaskId; }
+    public String getLinkedItemId() { return linkedItemId; }
+    public void setLinkedItemId(String linkedItemId) { this.linkedItemId = linkedItemId; }
+
+    public String getLinkedItemType() { return linkedItemType; }
+    public void setLinkedItemType(String linkedItemType) { this.linkedItemType = linkedItemType; }
 
     public boolean isRecurring() { return isRecurring; }
     public void setRecurring(boolean recurring) { isRecurring = recurring; }
@@ -106,7 +111,8 @@ public class Reminder {
         r.setSnoozeUntil(doc.getLong("snoozeUntil"));
         r.setCreatedAt(doc.getLong("createdAt") != null ? doc.getLong("createdAt") : 0L);
         r.setCompletedAt(doc.getLong("completedAt"));
-        r.setLinkedTaskId(doc.getString("linkedTaskId"));
+        r.setLinkedItemId(doc.getString("linkedItemId"));
+        r.setLinkedItemType(doc.getString("linkedItemType"));
         
         r.setRecurring(doc.getBoolean("isRecurring") != null ? doc.getBoolean("isRecurring") : false);
         r.setNextOccurrence(doc.getLong("nextOccurrence"));
@@ -128,7 +134,8 @@ public class Reminder {
         map.put("snoozeUntil", snoozeUntil);
         map.put("createdAt", createdAt);
         map.put("completedAt", completedAt);
-        map.put("linkedTaskId", linkedTaskId);
+        map.put("linkedItemId", linkedItemId);
+        map.put("linkedItemType", linkedItemType);
         
         map.put("isRecurring", isRecurring);
         map.put("nextOccurrence", nextOccurrence);

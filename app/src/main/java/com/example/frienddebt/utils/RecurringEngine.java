@@ -164,7 +164,8 @@ public class RecurringEngine {
         r.setCompleted(false);
         r.setSnoozed(false);
         r.setCreatedAt(System.currentTimeMillis());
-        r.setLinkedTaskId(old.getLinkedTaskId());
+        r.setLinkedItemId(old.getLinkedItemId());
+        r.setLinkedItemType(old.getLinkedItemType());
         
         r.setRecurring(true);
         r.setRecurringPattern(old.getRecurringPattern());

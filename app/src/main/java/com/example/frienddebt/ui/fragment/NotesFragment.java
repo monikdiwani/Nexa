@@ -306,6 +306,7 @@ public class NotesFragment extends Fragment {
                     popup.getMenu().add("Restore");
                     popup.getMenu().add("Delete Permanently");
                 } else {
+                    popup.getMenu().add("Create Task");
                     popup.getMenu().add(note.isArchived() ? "Unarchive" : "Archive");
                     popup.getMenu().add("Move to Recycle Bin");
                     popup.getMenu().add("Share");
@@ -316,6 +317,12 @@ public class NotesFragment extends Fragment {
                     if ("Edit".equals(titleSelected)) {
                         Intent intent = new Intent(requireActivity(), AddEditNoteActivity.class);
                         intent.putExtra("NOTE_ID", note.getId());
+                        startActivity(intent);
+                    } else if ("Create Task".equals(titleSelected)) {
+                        Intent intent = new Intent(requireActivity(), com.example.frienddebt.ui.AddTaskActivity.class);
+                        intent.putExtra("LINKED_TITLE", note.getTitle() != null && !note.getTitle().isEmpty() ? note.getTitle() : "Note");
+                        intent.putExtra("LINKED_ID", note.getId());
+                        intent.putExtra("LINKED_TYPE", "NOTE");
                         startActivity(intent);
                     } else if ("Move to Recycle Bin".equals(titleSelected)) {
                         updateNoteStatus(note.getId(), "isDeleted", true);
