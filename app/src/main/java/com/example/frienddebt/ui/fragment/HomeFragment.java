@@ -42,7 +42,7 @@ public class HomeFragment extends Fragment {
 
     private LinearLayout btnQuickExpense, btnQuickTask, btnQuickReminder, btnQuickReports;
     private LinearLayout cardTasks, cardReminders, cardGroups;
-    private ImageView imgProfile, imgSearch;
+    private ImageView imgProfile, imgSearch, imgAIAssistant;
     private TextView txtInsight;
 
     private int pendingTasksCount = 0;
@@ -88,6 +88,8 @@ public class HomeFragment extends Fragment {
         cardReminders = view.findViewById(R.id.cardReminders);
         cardGroups = view.findViewById(R.id.cardGroups);
         imgProfile = view.findViewById(R.id.imgProfile);
+        imgSearch = view.findViewById(R.id.imgSearch);
+        imgAIAssistant = view.findViewById(R.id.imgAIAssistant);
         txtInsight = view.findViewById(R.id.txtInsight);
 
         auth = FirebaseAuth.getInstance();
@@ -184,6 +186,11 @@ public class HomeFragment extends Fragment {
         });
 
         imgSearch.setOnClickListener(v -> startActivity(new Intent(requireContext(), com.example.frienddebt.ui.GlobalSearchActivity.class)));
+        
+        imgAIAssistant.setOnClickListener(v -> {
+            playButtonPop(v);
+            startActivity(new Intent(requireActivity(), com.example.frienddebt.ui.AIAssistantActivity.class));
+        });
 
         imgProfile.setOnClickListener(v -> {
             playButtonPop(v);

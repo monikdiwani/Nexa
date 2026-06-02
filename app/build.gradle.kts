@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.google.gms.google.services)
@@ -17,6 +20,18 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        val properties = Properties()
+        val localPropertiesFile = project.rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            properties.load(FileInputStream(localPropertiesFile))
+        }
+        val geminiApiKey = properties.getProperty("GEMINI_API_KEY") ?: ""
+        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     buildTypes {
@@ -68,6 +83,9 @@ dependencies {
     
     // ✅ ML Kit Text Recognition for Receipt Scanner
     implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.0")
+
+    // ✅ Google Generative AI (Gemini) SDK
+    implementation("com.google.ai.client.generativeai:generativeai:0.7.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)

@@ -100,6 +100,10 @@
         <activity
             android:name=".ui.ReportsActivity"
             android:exported="false" />
+        <activity
+            android:name=".ui.AIAssistantActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
 
         <!-- Receivers for Reminders -->
         <receiver
