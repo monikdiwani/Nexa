@@ -71,6 +71,10 @@
             android:name=".ui.ActivityLogActivity"
             android:exported="false" />
         <activity
+            android:name=".ui.GlobalSearchActivity"
+            android:exported="false"
+            android:windowSoftInputMode="stateVisible|adjustResize" />
+        <activity
             android:name=".ui.CashCounterActivity"
             android:exported="false" />
         <activity

@@ -67,6 +67,11 @@ public class RemindersActivity extends AppCompatActivity {
         rvReminders = findViewById(R.id.rvReminders);
         fabAddReminder = findViewById(R.id.fabAddReminder);
 
+        android.widget.ImageButton btnSearchGlobal = findViewById(R.id.btnSearchGlobal);
+        if (btnSearchGlobal != null) {
+            btnSearchGlobal.setOnClickListener(v -> startActivity(new android.content.Intent(this, com.example.frienddebt.ui.GlobalSearchActivity.class)));
+        }
+
         btnBack.setOnClickListener(v -> finish());
 
         rvReminders.setLayoutManager(new LinearLayoutManager(this));

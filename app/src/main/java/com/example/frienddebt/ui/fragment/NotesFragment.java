@@ -66,6 +66,12 @@ public class NotesFragment extends Fragment {
         txtEmptyNotes = view.findViewById(R.id.txtEmptyNotes);
         rvNotes = view.findViewById(R.id.rvNotes);
         fabAddNote = view.findViewById(R.id.fabAddNote);
+
+        android.widget.ImageButton btnSearchNotes = view.findViewById(R.id.btnSearchNotes);
+        if (btnSearchNotes != null) {
+            btnSearchNotes.setOnClickListener(v -> startActivity(new android.content.Intent(requireContext(), com.example.frienddebt.ui.GlobalSearchActivity.class)));
+        }
+
         chipAll = view.findViewById(R.id.chipAll);
         chipArchive = view.findViewById(R.id.chipArchive);
         chipTrash = view.findViewById(R.id.chipTrash);

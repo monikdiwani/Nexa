@@ -182,6 +182,8 @@ public class HomeFragment extends Fragment {
             }
         });
 
+        imgSearch.setOnClickListener(v -> startActivity(new Intent(requireContext(), GlobalSearchActivity.class)));
+
         imgProfile.setOnClickListener(v -> {
             playButtonPop(v);
             if (requireActivity() instanceof DashboardActivity) {

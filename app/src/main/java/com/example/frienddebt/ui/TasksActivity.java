@@ -73,6 +73,11 @@ public class TasksActivity extends AppCompatActivity {
         rvTasks = findViewById(R.id.rvTasks);
         fabAddTask = findViewById(R.id.fabAddTask);
         
+        android.widget.ImageButton btnSearchGlobal = findViewById(R.id.btnSearchGlobal);
+        if (btnSearchGlobal != null) {
+            btnSearchGlobal.setOnClickListener(v -> startActivity(new android.content.Intent(this, com.example.frienddebt.ui.GlobalSearchActivity.class)));
+        }
+
         edtSearchTask = findViewById(R.id.edtSearchTask);
         btnSortTasks = findViewById(R.id.btnSortTasks);
 

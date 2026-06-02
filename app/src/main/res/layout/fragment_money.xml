@@ -24,10 +24,19 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Money"
-                android:textSize="26sp"
+                android:text="Money &amp; Ledgers"
+                android:textSize="24sp"
                 android:textStyle="bold"
                 android:textColor="@color/text_primary" />
+
+            <ImageButton
+                android:id="@+id/btnSearchMoney"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@android:drawable/ic_menu_search"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Search"
+                android:tint="@color/text_primary" />
 
         </LinearLayout>
 
