@@ -15,6 +15,14 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.Locale;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Collections;
+import com.example.frienddebt.model.CashbookEntry;
+import com.example.frienddebt.model.LedgerBook;
+import com.example.frienddebt.dsa.DebtSimplifier;
+import com.example.frienddebt.model.DebtEdge;
+import com.google.android.gms.tasks.Tasks;
 
 /**
  * Unified Money fragment that hosts:
@@ -24,6 +32,9 @@ import java.util.Locale;
 public class MoneyFragment extends Fragment {
 
     private TextView txtNetBalance, txtMoneyIn, txtMoneyOut;
+    private android.widget.LinearLayout layoutPendingSettlements, layoutRecentActivity;
+    private TextView btnViewSettlements;
+    private androidx.recyclerview.widget.RecyclerView rvRecentTransactions;
     private FirebaseAuth auth;
     private FirebaseFirestore db;
     private com.google.android.material.tabs.TabLayout tabLayoutMoney;
@@ -41,6 +52,16 @@ public class MoneyFragment extends Fragment {
         txtNetBalance = view.findViewById(R.id.txtNetBalance);
         txtMoneyIn = view.findViewById(R.id.txtMoneyIn);
         txtMoneyOut = view.findViewById(R.id.txtMoneyOut);
+        
+        layoutPendingSettlements = view.findViewById(R.id.layoutPendingSettlements);
+        layoutRecentActivity = view.findViewById(R.id.layoutRecentActivity);
+        btnViewSettlements = view.findViewById(R.id.btnViewSettlements);
+        rvRecentTransactions = view.findViewById(R.id.rvRecentTransactions);
+        rvRecentTransactions.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(requireContext()));
+        
+        btnViewSettlements.setOnClickListener(v -> {
+            startActivity(new android.content.Intent(requireContext(), com.example.frienddebt.ui.SettleUpActivity.class));
+        });
 
         android.widget.ImageButton btnSearchMoney = view.findViewById(R.id.btnSearchMoney);
         if (btnSearchMoney != null) {
@@ -153,7 +174,111 @@ public class MoneyFragment extends Fragment {
                     txtNetBalance.setText(String.format(Locale.getDefault(), "₹%.2f", net));
                     txtMoneyIn.setText(String.format(Locale.getDefault(), "₹%.0f", cashIn));
                     txtMoneyOut.setText(String.format(Locale.getDefault(), "₹%.0f", cashOut));
+                    
+                    loadDeepInsights(snapshots.getDocuments());
                 });
+    }
+
+    private void loadDeepInsights(List<com.google.firebase.firestore.DocumentSnapshot> bookDocs) {
+        if (auth.getCurrentUser() == null) return;
+        String userId = auth.getCurrentUser().getUid();
+
+        List<com.google.android.gms.tasks.Task<com.google.firebase.firestore.QuerySnapshot>> tasks = new ArrayList<>();
+        List<LedgerBook> sharedBooks = new ArrayList<>();
+        
+        for (com.google.firebase.firestore.DocumentSnapshot bookDoc : bookDocs) {
+            LedgerBook book = LedgerBook.fromDocument(bookDoc);
+            if (book.getMembers() != null && book.getMembers().size() > 1) {
+                sharedBooks.add(book);
+            }
+            tasks.add(db.collection("cashbooks").document(book.getId()).collection("entries").get());
+        }
+
+        if (tasks.isEmpty()) return;
+
+        Tasks.whenAllSuccess(tasks).addOnSuccessListener(results -> {
+            List<CashbookEntry> allEntries = new ArrayList<>();
+            for (Object res : results) {
+                com.google.firebase.firestore.QuerySnapshot snap = (com.google.firebase.firestore.QuerySnapshot) res;
+                for (com.google.firebase.firestore.DocumentSnapshot doc : snap.getDocuments()) {
+                    allEntries.add(CashbookEntry.fromDocument(doc));
+                }
+            }
+            
+            // 1. Check Pending Settlements
+            boolean hasPending = false;
+            for (LedgerBook sBook : sharedBooks) {
+                List<CashbookEntry> bookEntries = new ArrayList<>();
+                for (CashbookEntry e : allEntries) {
+                    if (sBook.getId().equals(e.getBookId())) bookEntries.add(e);
+                }
+                List<DebtEdge> edges = DebtSimplifier.simplifyDebts(bookEntries);
+                for (DebtEdge edge : edges) {
+                    if (edge.getFrom().equals(userId)) {
+                        hasPending = true; break;
+                    }
+                }
+                if (hasPending) break;
+            }
+            layoutPendingSettlements.setVisibility(hasPending ? View.VISIBLE : View.GONE);
+
+            // 2. Load Recent Activity
+            Collections.sort(allEntries, (e1, e2) -> Long.compare(e2.getDate(), e1.getDate()));
+            List<CashbookEntry> recent = allEntries.size() > 3 ? allEntries.subList(0, 3) : allEntries;
+            
+            if (!recent.isEmpty()) {
+                layoutRecentActivity.setVisibility(View.VISIBLE);
+                rvRecentTransactions.setAdapter(new RecentAdapter(recent));
+            } else {
+                layoutRecentActivity.setVisibility(View.GONE);
+            }
+        });
+    }
+    
+    private class RecentAdapter extends androidx.recyclerview.widget.RecyclerView.Adapter<RecentAdapter.ViewHolder> {
+        private final List<CashbookEntry> list;
+        public RecentAdapter(List<CashbookEntry> list) { this.list = list; }
+        
+        @NonNull
+        @Override
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_cashbook_entry, parent, false);
+            return new ViewHolder(view);
+        }
+        @Override
+        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            CashbookEntry entry = list.get(position);
+            holder.txtParticulars.setText(entry.getParticulars());
+            holder.txtCategory.setText(entry.getCategory() != null ? entry.getCategory() : "Other");
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
+            holder.txtDate.setText(sdf.format(new java.util.Date(entry.getDate())));
+            String prefix = "CASH_IN".equalsIgnoreCase(entry.getType()) ? "+" : "-";
+            holder.txtAmount.setText(String.format(Locale.getDefault(), "%s₹%.2f", prefix, entry.getAmount()));
+            int colorRes = "CASH_IN".equalsIgnoreCase(entry.getType()) ? R.color.accent_positive : R.color.accent_negative;
+            holder.txtAmount.setTextColor(getResources().getColor(colorRes));
+            holder.txtIcon.setText("CASH_IN".equalsIgnoreCase(entry.getType()) ? "💵" : "💸");
+            holder.txtMedium.setText("CASH".equalsIgnoreCase(entry.getMedium()) ? "💵 Cash" : "🏦 Bank");
+            
+            holder.itemView.setOnClickListener(v -> {
+                 android.content.Intent intent = new android.content.Intent(requireContext(), com.example.frienddebt.ui.LedgerBookDetailActivity.class);
+                 intent.putExtra("BOOK_ID", entry.getBookId());
+                 startActivity(intent);
+            });
+        }
+        @Override
+        public int getItemCount() { return list.size(); }
+        class ViewHolder extends androidx.recyclerview.widget.RecyclerView.ViewHolder {
+            TextView txtIcon, txtParticulars, txtDate, txtCategory, txtAmount, txtMedium;
+            public ViewHolder(@NonNull View itemView) {
+                super(itemView);
+                txtIcon = itemView.findViewById(R.id.txtEntryIcon);
+                txtParticulars = itemView.findViewById(R.id.txtEntryParticulars);
+                txtDate = itemView.findViewById(R.id.txtEntryDate);
+                txtCategory = itemView.findViewById(R.id.txtEntryCategory);
+                txtAmount = itemView.findViewById(R.id.txtEntryAmount);
+                txtMedium = itemView.findViewById(R.id.txtEntryMedium);
+            }
+        }
     }
 
     private static class MoneyPagerAdapter extends androidx.viewpager2.adapter.FragmentStateAdapter {

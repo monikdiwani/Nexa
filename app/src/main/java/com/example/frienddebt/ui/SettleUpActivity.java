@@ -181,7 +181,20 @@ public class SettleUpActivity extends AppCompatActivity {
         db.collection("cashbooks").document(selectedLedger.getId())
                 .collection("entries").document(entryId)
                 .set(entry.toFirestoreMap())
-                .addOnSuccessListener(aVoid -> Toast.makeText(this, "Settlement Recorded!", Toast.LENGTH_SHORT).show());
+                .addOnSuccessListener(aVoid -> {
+                    // Write audit log in background
+                    String actorName = resolveName(currentUserId);
+                    String logId = db.collection("cashbooks").document(selectedLedger.getId()).collection("logs").document().getId();
+                    String logDetails = actorName + " settled ₹" + String.format(Locale.getDefault(), "%.2f", edge.getAmount()) + " from " + resolveName(edge.getFrom()) + " to " + resolveName(edge.getTo());
+
+                    com.example.frienddebt.model.AuditLog audit = new com.example.frienddebt.model.AuditLog(
+                            logId, selectedLedger.getId(), "SETTLE", currentUserId, actorName, "Settlement", edge.getAmount(), "SETTLEMENT", System.currentTimeMillis(), logDetails
+                    );
+                    db.collection("cashbooks").document(selectedLedger.getId()).collection("logs").document(logId).set(audit.toFirestoreMap())
+                            .addOnCompleteListener(task -> {
+                                Toast.makeText(this, "Settlement Recorded!", Toast.LENGTH_SHORT).show();
+                            });
+                });
     }
 
     private String resolveName(String userId) {

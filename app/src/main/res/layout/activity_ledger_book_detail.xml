@@ -36,6 +36,25 @@
             android:textColor="@color/text_primary"
             android:layout_marginStart="8dp" />
             
+        <EditText
+            android:id="@+id/etSearchTransaction"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:hint="Search transactions..."
+            android:visibility="gone"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:singleLine="true"/>
+            
+        <ImageButton
+            android:id="@+id/btnSearchTransactions"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@android:drawable/ic_menu_search"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            app:tint="@color/text_primary" />
+
         <ImageButton
             android:id="@+id/btnBookSettings"
             android:layout_width="48dp"

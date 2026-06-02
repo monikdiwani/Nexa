@@ -144,6 +144,9 @@ public class ReportsActivity extends AppCompatActivity {
     }
 
     private void calculateReports() {
+        if (auth.getCurrentUser() == null) return;
+        String userId = auth.getCurrentUser().getUid();
+
         Calendar cal = Calendar.getInstance();
         cal.add(Calendar.DAY_OF_YEAR, -activeDays);
         long cutoffTime = cal.getTimeInMillis();
@@ -157,8 +160,8 @@ public class ReportsActivity extends AppCompatActivity {
         }
 
         // Calculate totals
-        double totalIn = ReportCalculator.getTotalCashIn(filteredEntries);
-        double totalOut = ReportCalculator.getTotalCashOut(filteredEntries);
+        double totalIn = ReportCalculator.getTotalCashIn(filteredEntries, userId);
+        double totalOut = ReportCalculator.getTotalCashOut(filteredEntries, userId);
         double netBalance = totalIn - totalOut;
 
         txtTotalCashIn.setText(formatCurrency(totalIn));
@@ -168,10 +171,10 @@ public class ReportsActivity extends AppCompatActivity {
                 netBalance >= 0 ? R.color.accent_positive : R.color.accent_negative));
 
         // Insight stats
-        double avgDaily = ReportCalculator.getAverageDailySpending(filteredEntries, activeDays);
-        double highestDay = ReportCalculator.getHighestDaySpending(filteredEntries, activeDays);
+        double avgDaily = ReportCalculator.getAverageDailySpending(filteredEntries, activeDays, userId);
+        double highestDay = ReportCalculator.getHighestDaySpending(filteredEntries, activeDays, userId);
         int transactionCount = ReportCalculator.getTransactionCount(filteredEntries);
-        int zeroSpendDays = ReportCalculator.getZeroSpendDays(filteredEntries, activeDays);
+        int zeroSpendDays = ReportCalculator.getZeroSpendDays(filteredEntries, activeDays, userId);
 
         txtAvgDaily.setText(formatCurrencyShort(avgDaily));
         txtHighestDay.setText(formatCurrencyShort(highestDay));
@@ -188,12 +191,12 @@ public class ReportsActivity extends AppCompatActivity {
                 zeroSpendDays > 0 ? R.color.accent_positive : R.color.text_hint));
 
         // Bar chart data
-        Map<String, Double> trend = ReportCalculator.getDailyTrend(filteredEntries, activeDays);
+        Map<String, Double> trend = ReportCalculator.getDailyTrend(filteredEntries, activeDays, userId);
         barChart.setData(trend);
 
         // Category breakdown
         categoryContainer.removeAllViews();
-        Map<String, Double> breakdown = ReportCalculator.getCategoryBreakdown(filteredEntries);
+        Map<String, Double> breakdown = ReportCalculator.getCategoryBreakdown(filteredEntries, userId);
 
         if (breakdown.isEmpty()) {
             TextView txtEmpty = new TextView(this);

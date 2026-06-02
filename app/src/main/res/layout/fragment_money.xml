@@ -139,6 +139,71 @@
 
         </LinearLayout>
 
+        <!-- Pending Settlements Banner -->
+        <LinearLayout
+            android:id="@+id/layoutPendingSettlements"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="20dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/rounded_background_warning"
+            android:padding="12dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:visibility="gone">
+            
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⚠️"
+                android:textSize="18sp"
+                android:layout_marginEnd="12dp"/>
+                
+            <TextView
+                android:id="@+id/txtPendingSettlementMsg"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="You have pending settlements to review."
+                android:textColor="@color/accent_warning"
+                android:textSize="13sp"
+                android:textStyle="bold"/>
+                
+            <TextView
+                android:id="@+id/btnViewSettlements"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="View"
+                android:textColor="@color/accent_warning"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:padding="4dp"/>
+        </LinearLayout>
+        
+        <!-- Recent Transactions Preview -->
+        <LinearLayout
+            android:id="@+id/layoutRecentActivity"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginHorizontal="20dp"
+            android:layout_marginTop="12dp"
+            android:visibility="gone">
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Recent Activity"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_primary"
+                android:layout_marginBottom="8dp"/>
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvRecentTransactions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </LinearLayout>
+
         <!-- Tabs -->
         <com.google.android.material.tabs.TabLayout
             android:id="@+id/tabLayoutMoney"

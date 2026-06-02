@@ -41,6 +41,10 @@ public class AddCashbookEntryActivity extends AppCompatActivity {
     private FirebaseAuth auth;
     private FirebaseFirestore db;
     private String bookId;
+    private String entryId;
+    private boolean isEditMode = false;
+    private boolean isDuplicateMode = false;
+    private CashbookEntry originalEntry;
 
     private static final String[] CATEGORIES = {
             "Sales", "Rent", "Salary", "Office", "Personal", "Food", "Transport", "Shopping", "Bills", "Other"
@@ -56,6 +60,10 @@ public class AddCashbookEntryActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
 
         bookId = getIntent().getStringExtra("BOOK_ID");
+        entryId = getIntent().getStringExtra("ENTRY_ID");
+        isEditMode = getIntent().getBooleanExtra("IS_EDIT_MODE", false);
+        isDuplicateMode = getIntent().getBooleanExtra("IS_DUPLICATE_MODE", false);
+        
         if (bookId == null) {
             Toast.makeText(this, "Book ID missing", Toast.LENGTH_SHORT).show();
             finish();
@@ -137,6 +145,52 @@ public class AddCashbookEntryActivity extends AppCompatActivity {
 
         // Setup Save
         btnSaveEntry.setOnClickListener(v -> saveEntry());
+
+        // Load existing entry if needed
+        if ((isEditMode || isDuplicateMode) && entryId != null) {
+            if (isEditMode) {
+                ((TextView) findViewById(R.id.txtTitle)).setText("Edit Transaction");
+                btnSaveEntry.setText("Update Transaction");
+            } else {
+                ((TextView) findViewById(R.id.txtTitle)).setText("Duplicate Transaction");
+            }
+            loadExistingEntry();
+        }
+    }
+
+    private void loadExistingEntry() {
+        db.collection("cashbooks").document(bookId).collection("entries").document(entryId).get()
+            .addOnSuccessListener(doc -> {
+                if (doc.exists()) {
+                    originalEntry = CashbookEntry.fromDocument(doc);
+                    populateUI(originalEntry);
+                }
+            })
+            .addOnFailureListener(e -> Toast.makeText(this, "Failed to load entry", Toast.LENGTH_SHORT).show());
+    }
+
+    private void populateUI(CashbookEntry entry) {
+        etParticulars.setText(entry.getParticulars());
+        if (entry.getContactName() != null) etContactName.setText(entry.getContactName());
+        etAmount.setText(String.valueOf(entry.getAmount()));
+        if (entry.getCategory() != null) actvCategory.setText(entry.getCategory(), false);
+        if (entry.getNote() != null) etNote.setText(entry.getNote());
+        
+        if ("CASH_IN".equals(entry.getType())) rgType.check(R.id.rbCashIn);
+        else rgType.check(R.id.rbCashOut);
+        
+        if ("BANK".equals(entry.getMedium())) rgMedium.check(R.id.rbMediumBank);
+        else rgMedium.check(R.id.rbMediumCash);
+        
+        if (!isDuplicateMode) {
+            calendar.setTimeInMillis(entry.getDate());
+            updateDateText();
+        }
+        
+        if (entry.isRecurring()) {
+            switchRecurring.setChecked(true);
+            if (entry.getRecurringPattern() != null) actvRecurringFrequency.setText(entry.getRecurringPattern(), false);
+        }
     }
 
     private void updateDateText() {
@@ -202,11 +256,11 @@ public class AddCashbookEntryActivity extends AppCompatActivity {
 
         String userId = auth.getCurrentUser().getUid();
         long dateMs = calendar.getTimeInMillis();
-        long createdAt = System.currentTimeMillis();
+        long createdAt = isEditMode ? (originalEntry != null ? originalEntry.getCreatedAt() : System.currentTimeMillis()) : System.currentTimeMillis();
 
-        String newEntryId = db.collection("cashbooks").document(bookId).collection("entries").document().getId();
+        String targetEntryId = isEditMode ? entryId : db.collection("cashbooks").document(bookId).collection("entries").document().getId();
 
-        CashbookEntry entry = new CashbookEntry(newEntryId, bookId, dateMs, particulars, type, medium, amount, category, note, createdAt);
+        CashbookEntry entry = new CashbookEntry(targetEntryId, bookId, dateMs, particulars, type, medium, amount, category, note, createdAt);
         entry.setContactName(contactName);
         entry.setCreatedBy(userId);
         entry.setLastModifiedAt(createdAt);
@@ -232,23 +286,23 @@ public class AddCashbookEntryActivity extends AppCompatActivity {
         btnSaveEntry.setText("Saving...");
 
         db.collection("cashbooks").document(bookId)
-                .collection("entries").document(newEntryId)
+                .collection("entries").document(targetEntryId)
                 .set(entry.toFirestoreMap())
                 .addOnSuccessListener(aVoid -> {
                     // Write audit log in background
                     if (auth.getCurrentUser() != null) {
                         String actorName = auth.getCurrentUser().getDisplayName();
-                        if (actorName == null || actorName.trim().isEmpty()) {
-                            actorName = auth.getCurrentUser().getEmail();
-                        }
-                        if (actorName == null || actorName.trim().isEmpty()) {
-                            actorName = "Unknown Member";
-                        }
+                        if (actorName == null || actorName.trim().isEmpty()) actorName = auth.getCurrentUser().getEmail();
+                        if (actorName == null || actorName.trim().isEmpty()) actorName = "Unknown Member";
+                        
+                        String action = isEditMode ? "EDIT" : "CREATE";
+                        String verb = isEditMode ? "updated" : (isDuplicateMode ? "duplicated" : "added");
+                        
                         String logId = db.collection("cashbooks").document(bookId).collection("logs").document().getId();
-                        String logDetails = actorName + " added " + ("CASH_IN".equalsIgnoreCase(type) ? "CASH IN" : "CASH OUT") + " of ₹" + String.format(Locale.getDefault(), "%.2f", amount) + " for \"" + particulars + "\"";
+                        String logDetails = actorName + " " + verb + " " + ("CASH_IN".equalsIgnoreCase(type) ? "CASH IN" : "CASH OUT") + " of ₹" + String.format(Locale.getDefault(), "%.2f", amount) + " for \"" + particulars + "\"";
 
                         com.example.frienddebt.model.AuditLog audit = new com.example.frienddebt.model.AuditLog(
-                                logId, bookId, "CREATE", userId, actorName, particulars, amount, type, System.currentTimeMillis(), logDetails
+                                logId, bookId, action, userId, actorName, particulars, amount, type, System.currentTimeMillis(), logDetails
                         );
                         db.collection("cashbooks").document(bookId).collection("logs").document(logId).set(audit.toFirestoreMap())
                                 .addOnCompleteListener(task -> {

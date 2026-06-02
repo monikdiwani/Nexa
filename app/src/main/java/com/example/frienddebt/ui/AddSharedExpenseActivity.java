@@ -38,7 +38,7 @@ public class AddSharedExpenseActivity extends AppCompatActivity {
     private Spinner spinnerLedger, spinnerPaidBy;
     private TextInputEditText etTitle, etAmount;
     private RadioGroup rgSplitMethod;
-    private RadioButton rbEqually, rbExact;
+    private RadioButton rbEqually, rbExact, rbPercent, rbShares;
     private LinearLayout containerSplits;
     private Button btnSaveExpense;
 
@@ -74,6 +74,8 @@ public class AddSharedExpenseActivity extends AppCompatActivity {
         rgSplitMethod = findViewById(R.id.rgSplitMethod);
         rbEqually = findViewById(R.id.rbEqually);
         rbExact = findViewById(R.id.rbExact);
+        rbPercent = findViewById(R.id.rbPercent);
+        rbShares = findViewById(R.id.rbShares);
         containerSplits = findViewById(R.id.containerSplits);
         btnSaveExpense = findViewById(R.id.btnSaveExpense);
 
@@ -82,9 +84,9 @@ public class AddSharedExpenseActivity extends AppCompatActivity {
         rgSplitMethod.setOnCheckedChangeListener((group, checkedId) -> {
             if (checkedId == R.id.rbEqually) {
                 containerSplits.setVisibility(View.GONE);
-            } else if (checkedId == R.id.rbExact) {
+            } else {
                 containerSplits.setVisibility(View.VISIBLE);
-                buildExactAmountUI();
+                buildDynamicSplitUI(checkedId);
             }
         });
         
@@ -168,14 +170,18 @@ public class AddSharedExpenseActivity extends AppCompatActivity {
             spinnerPaidBy.setSelection(myIndex);
         }
 
-        if (rbExact.isChecked()) {
-            buildExactAmountUI();
+        if (!rbEqually.isChecked()) {
+            buildDynamicSplitUI(rgSplitMethod.getCheckedRadioButtonId());
         }
     }
 
-    private void buildExactAmountUI() {
+    private void buildDynamicSplitUI(int checkedId) {
         containerSplits.removeAllViews();
         exactAmountInputs.clear();
+
+        String hint = "0.00";
+        if (checkedId == R.id.rbPercent) hint = "0 %";
+        else if (checkedId == R.id.rbShares) hint = "0 Shares";
 
         for (int i = 0; i < memberIds.size(); i++) {
             String uId = memberIds.get(i);
@@ -192,17 +198,17 @@ public class AddSharedExpenseActivity extends AppCompatActivity {
             LinearLayout.LayoutParams nameParams = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
             txtName.setLayoutParams(nameParams);
 
-            TextInputEditText etSplitAmount = new TextInputEditText(this);
-            etSplitAmount.setHint("0.00");
-            etSplitAmount.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
+            TextInputEditText etSplitInput = new TextInputEditText(this);
+            etSplitInput.setHint(hint);
+            etSplitInput.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
             LinearLayout.LayoutParams inputParams = new LinearLayout.LayoutParams(dpToPx(120), LinearLayout.LayoutParams.WRAP_CONTENT);
-            etSplitAmount.setLayoutParams(inputParams);
+            etSplitInput.setLayoutParams(inputParams);
 
             row.addView(txtName);
-            row.addView(etSplitAmount);
+            row.addView(etSplitInput);
             containerSplits.addView(row);
 
-            exactAmountInputs.put(uId, etSplitAmount);
+            exactAmountInputs.put(uId, etSplitInput);
         }
     }
 
@@ -241,20 +247,41 @@ public class AddSharedExpenseActivity extends AppCompatActivity {
                 splits.put(uid, splitAmount);
             }
         } else {
-            double sum = 0;
+            double sumInput = 0;
+            Map<String, Double> inputVals = new HashMap<>();
             for (Map.Entry<String, TextInputEditText> entry : exactAmountInputs.entrySet()) {
                 String val = entry.getValue().getText().toString();
                 if (!val.isEmpty()) {
                     try {
-                        double amt = Double.parseDouble(val);
-                        splits.put(entry.getKey(), amt);
-                        sum += amt;
+                        double valDouble = Double.parseDouble(val);
+                        inputVals.put(entry.getKey(), valDouble);
+                        sumInput += valDouble;
                     } catch (Exception ignored) {}
                 }
             }
-            if (Math.abs(sum - totalAmount) > 0.01) {
-                Toast.makeText(this, "Split amounts must equal total amount!", Toast.LENGTH_SHORT).show();
-                return;
+
+            if (rbExact.isChecked()) {
+                if (Math.abs(sumInput - totalAmount) > 0.01) {
+                    Toast.makeText(this, "Exact amounts must equal total amount!", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                splits.putAll(inputVals);
+            } else if (rbPercent.isChecked()) {
+                if (Math.abs(sumInput - 100.0) > 0.01) {
+                    Toast.makeText(this, "Percentages must add up to 100!", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                for (Map.Entry<String, Double> entry : inputVals.entrySet()) {
+                    splits.put(entry.getKey(), totalAmount * (entry.getValue() / 100.0));
+                }
+            } else if (rbShares.isChecked()) {
+                if (sumInput <= 0) {
+                    Toast.makeText(this, "Total shares must be > 0!", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                for (Map.Entry<String, Double> entry : inputVals.entrySet()) {
+                    splits.put(entry.getKey(), totalAmount * (entry.getValue() / sumInput));
+                }
             }
         }
 
@@ -275,7 +302,11 @@ public class AddSharedExpenseActivity extends AppCompatActivity {
         );
         entry.setCreatedBy(currentUserId);
         entry.setPaidBy(payerId);
-        entry.setSplitMethod(rbEqually.isChecked() ? "EQUAL" : "EXACT");
+        String splitMethodStr = "EQUAL";
+        if (rbExact.isChecked()) splitMethodStr = "EXACT";
+        else if (rbPercent.isChecked()) splitMethodStr = "PERCENT";
+        else if (rbShares.isChecked()) splitMethodStr = "SHARES";
+        entry.setSplitMethod(splitMethodStr);
         entry.setParticipants(memberIds);
         entry.setSplits(splits);
 

@@ -33,6 +33,8 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.HashMap;
 
 import com.example.frienddebt.utils.StatusBarUtil;
 
@@ -43,7 +45,8 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
     private RecyclerView rvCashbookEntries;
     private android.widget.LinearLayout containerDebtSummary, layoutDebtEdges;
     private FloatingActionButton fabAddEntry;
-    private ImageButton btnBack, btnBookSettings;
+    private ImageButton btnBack, btnBookSettings, btnSearchTransactions;
+    private android.widget.EditText etSearchTransaction;
 
     private FirebaseFirestore db;
     private FirebaseAuth auth;
@@ -57,6 +60,8 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
     private String bookId;
     private String bookName;
     private String userRole;
+    private String searchQuery = "";
+    private Map<String, Double> runningBalances = new HashMap<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -87,6 +92,8 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
         fabAddEntry = findViewById(R.id.fabAddEntry);
         btnBack = findViewById(R.id.btnBack);
         btnBookSettings = findViewById(R.id.btnBookSettings);
+        btnSearchTransactions = findViewById(R.id.btnSearchTransactions);
+        etSearchTransaction = findViewById(R.id.etSearchTransaction);
 
         chipAll = findViewById(R.id.chipAll);
         chipCash = findViewById(R.id.chipCash);
@@ -104,6 +111,30 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
         setupFilters();
 
         btnBack.setOnClickListener(v -> finish());
+        
+        btnSearchTransactions.setOnClickListener(v -> {
+            if (etSearchTransaction.getVisibility() == View.VISIBLE) {
+                etSearchTransaction.setVisibility(View.GONE);
+                etSearchTransaction.setText("");
+                searchQuery = "";
+                applyFilter();
+            } else {
+                etSearchTransaction.setVisibility(View.VISIBLE);
+                etSearchTransaction.requestFocus();
+                // show keyboard
+                android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
+                if (imm != null) imm.showSoftInput(etSearchTransaction, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
+            }
+        });
+        
+        etSearchTransaction.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override public void afterTextChanged(android.text.Editable s) {
+                searchQuery = s.toString().toLowerCase().trim();
+                applyFilter();
+            }
+        });
         
         btnBookSettings.setOnClickListener(v -> {
             androidx.appcompat.widget.PopupMenu popup = new androidx.appcompat.widget.PopupMenu(this, v);
@@ -220,6 +251,17 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                         }
                     }
                     
+                    // Calculate running balances (assuming entries are sorted descending by date)
+                    double rb = 0.0;
+                    runningBalances.clear();
+                    // Iterate backwards (from oldest to newest) to calculate running balance correctly
+                    for (int i = allEntries.size() - 1; i >= 0; i--) {
+                        CashbookEntry entryObj = allEntries.get(i);
+                        if ("CASH_IN".equals(entryObj.getType())) rb += entryObj.getAmount();
+                        else rb -= entryObj.getAmount();
+                        runningBalances.put(entryObj.getId(), rb);
+                    }
+                    
                     // Update Book balances in background
                     updateBookBalances(totalIn, totalOut);
                     
@@ -322,6 +364,20 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                 cal.set(Calendar.DAY_OF_MONTH, 1); cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0); cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0);
                 filteredEntries.addAll(filterByDateRange(allEntries, cal.getTimeInMillis(), now));
                 break;
+        }
+
+        // Apply Search Text Filter
+        if (!searchQuery.isEmpty()) {
+            List<CashbookEntry> searchResult = new ArrayList<>();
+            for (CashbookEntry e : filteredEntries) {
+                boolean matches = false;
+                if (e.getParticulars() != null && e.getParticulars().toLowerCase().contains(searchQuery)) matches = true;
+                if (e.getCategory() != null && e.getCategory().toLowerCase().contains(searchQuery)) matches = true;
+                if (String.valueOf(e.getAmount()).contains(searchQuery)) matches = true;
+                if (matches) searchResult.add(e);
+            }
+            filteredEntries.clear();
+            filteredEntries.addAll(searchResult);
         }
 
         adapter.notifyDataSetChanged();
@@ -444,6 +500,14 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
             String mediumText = "CASH".equalsIgnoreCase(entry.getMedium()) ? "💵 Cash" : "🏦 Bank";
             holder.txtMedium.setText(mediumText);
 
+            Double rb = runningBalances.get(entry.getId());
+            if (rb != null) {
+                holder.txtRunningBalance.setText(String.format(Locale.getDefault(), "Bal: ₹%.2f", rb));
+                holder.txtRunningBalance.setVisibility(View.VISIBLE);
+            } else {
+                holder.txtRunningBalance.setVisibility(View.GONE);
+            }
+
             // Viewer cannot delete
             if (!"VIEWER".equalsIgnoreCase(userRole)) {
                 holder.itemView.setOnLongClickListener(v -> {
@@ -451,6 +515,10 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                     return true;
                 });
             }
+            
+            holder.itemView.setOnClickListener(v -> {
+                showTransactionDetails(entry);
+            });
         }
 
         @Override
@@ -460,21 +528,38 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
 
         private void showActionDialog(CashbookEntry entry) {
             boolean isUdhaar = entry.getContactName() != null && !entry.getContactName().isEmpty();
-            String[] options = isUdhaar ? new String[]{"Send WhatsApp Reminder", "Delete Transaction"} : new String[]{"Delete Transaction"};
+            List<String> options = new ArrayList<>();
+            if (isUdhaar) options.add("Send WhatsApp Reminder");
+            options.add("Edit Transaction");
+            options.add("Duplicate Transaction");
+            options.add("Delete Transaction");
 
             new AlertDialog.Builder(LedgerBookDetailActivity.this)
                     .setTitle("Transaction Options")
-                    .setItems(options, (dialog, which) -> {
-                        if (isUdhaar && which == 0) {
+                    .setItems(options.toArray(new String[0]), (dialog, which) -> {
+                        String selected = options.get(which);
+                        if ("Send WhatsApp Reminder".equals(selected)) {
                             // Send Reminder
                             com.example.frienddebt.utils.WhatsAppReminderUtil.sendUdhaarReminder(
                                     LedgerBookDetailActivity.this,
-                                    entry.getContactPhone() != null ? entry.getContactPhone() : "", // Prompt for phone could be added
+                                    entry.getContactPhone() != null ? entry.getContactPhone() : "",
                                     entry.getContactName(),
                                     entry.getAmount(),
                                     bookName
                             );
-                        } else {
+                        } else if ("Edit Transaction".equals(selected)) {
+                            Intent intent = new Intent(LedgerBookDetailActivity.this, AddCashbookEntryActivity.class);
+                            intent.putExtra("BOOK_ID", bookId);
+                            intent.putExtra("ENTRY_ID", entry.getId());
+                            intent.putExtra("IS_EDIT_MODE", true);
+                            startActivity(intent);
+                        } else if ("Duplicate Transaction".equals(selected)) {
+                            Intent intent = new Intent(LedgerBookDetailActivity.this, AddCashbookEntryActivity.class);
+                            intent.putExtra("BOOK_ID", bookId);
+                            intent.putExtra("ENTRY_ID", entry.getId());
+                            intent.putExtra("IS_DUPLICATE_MODE", true);
+                            startActivity(intent);
+                        } else if ("Delete Transaction".equals(selected)) {
                             // Delete
                             new AlertDialog.Builder(LedgerBookDetailActivity.this)
                                 .setTitle("Delete Transaction")
@@ -509,8 +594,39 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                     .show();
         }
 
+        private void showTransactionDetails(CashbookEntry entry) {
+            SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy hh:mm a", Locale.getDefault());
+            String dateStr = sdf.format(new Date(entry.getDate()));
+            String createdBy = entry.getCreatedBy() != null ? entry.getCreatedBy() : "Unknown";
+            
+            String msg = "Amount: ₹" + entry.getAmount() + "\n" +
+                         "Type: " + entry.getType() + "\n" +
+                         "Category: " + (entry.getCategory() != null ? entry.getCategory() : "Other") + "\n" +
+                         "Medium: " + entry.getMedium() + "\n" +
+                         "Date: " + dateStr + "\n" +
+                         "Particulars: " + entry.getParticulars() + "\n";
+                         
+            if (entry.getContactName() != null && !entry.getContactName().isEmpty()) {
+                msg += "Contact: " + entry.getContactName() + "\n";
+            }
+            if (entry.getSplitMethod() != null && !entry.getSplitMethod().isEmpty()) {
+                msg += "Split: " + entry.getSplitMethod() + "\n";
+            }
+            
+            Double rb = runningBalances.get(entry.getId());
+            if (rb != null) {
+                msg += "Running Balance after this: ₹" + String.format(Locale.getDefault(), "%.2f", rb) + "\n";
+            }
+            
+            new AlertDialog.Builder(LedgerBookDetailActivity.this)
+                .setTitle("Transaction Details")
+                .setMessage(msg)
+                .setPositiveButton("Close", null)
+                .show();
+        }
+
         class ViewHolder extends RecyclerView.ViewHolder {
-            TextView txtIcon, txtParticulars, txtDate, txtCategory, txtAmount, txtMedium;
+            TextView txtIcon, txtParticulars, txtDate, txtCategory, txtAmount, txtMedium, txtRunningBalance;
 
             public ViewHolder(@NonNull View itemView) {
                 super(itemView);
@@ -520,6 +636,7 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                 txtCategory = itemView.findViewById(R.id.txtEntryCategory);
                 txtAmount = itemView.findViewById(R.id.txtEntryAmount);
                 txtMedium = itemView.findViewById(R.id.txtEntryMedium);
+                txtRunningBalance = itemView.findViewById(R.id.txtRunningBalance);
             }
         }
     }

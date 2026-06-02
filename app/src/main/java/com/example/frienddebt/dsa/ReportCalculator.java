@@ -12,7 +12,7 @@ import java.util.Map;
 
 public class ReportCalculator {
 
-    public static Map<String, Double> getCategoryBreakdown(List<CashbookEntry> entries) {
+    public static Map<String, Double> getCategoryBreakdown(List<CashbookEntry> entries, String userId) {
         Map<String, Double> breakdown = new LinkedHashMap<>();
         for (CashbookEntry entry : entries) {
             if ("CASH_OUT".equalsIgnoreCase(entry.getType())) {
@@ -20,7 +20,10 @@ public class ReportCalculator {
                 if (cat == null || cat.isEmpty()) {
                     cat = "Other";
                 }
-                breakdown.put(cat, breakdown.getOrDefault(cat, 0.0) + entry.getAmount());
+                double amount = getPersonalAmount(entry, userId);
+                if (amount > 0) {
+                    breakdown.put(cat, breakdown.getOrDefault(cat, 0.0) + amount);
+                }
             }
         }
         return breakdown;
@@ -30,15 +33,15 @@ public class ReportCalculator {
      * Returns daily trend for 7-day view (one bar per day),
      * or weekly trend for 30-day view (bars grouped by week).
      */
-    public static Map<String, Double> getDailyTrend(List<CashbookEntry> entries, int days) {
+    public static Map<String, Double> getDailyTrend(List<CashbookEntry> entries, int days, String userId) {
         if (days <= 7) {
-            return getDailyTrendDaily(entries, days);
+            return getDailyTrendDaily(entries, days, userId);
         } else {
-            return getWeeklyTrend(entries, days);
+            return getWeeklyTrend(entries, days, userId);
         }
     }
 
-    private static Map<String, Double> getDailyTrendDaily(List<CashbookEntry> entries, int days) {
+    private static Map<String, Double> getDailyTrendDaily(List<CashbookEntry> entries, int days, String userId) {
         Map<String, Double> trend = new LinkedHashMap<>();
         SimpleDateFormat sdf = new SimpleDateFormat("MM/dd", Locale.getDefault());
         String[] dateLabels = new String[days];
@@ -67,10 +70,13 @@ public class ReportCalculator {
         for (CashbookEntry entry : entries) {
             if ("CASH_OUT".equalsIgnoreCase(entry.getType())) {
                 long date = entry.getDate();
-                for (int i = 0; i < days; i++) {
-                    if (date >= startTimes[i] && date <= endTimes[i]) {
-                        trend.put(dateLabels[i], trend.get(dateLabels[i]) + entry.getAmount());
-                        break;
+                double amount = getPersonalAmount(entry, userId);
+                if (amount > 0) {
+                    for (int i = 0; i < days; i++) {
+                        if (date >= startTimes[i] && date <= endTimes[i]) {
+                            trend.put(dateLabels[i], trend.get(dateLabels[i]) + amount);
+                            break;
+                        }
                     }
                 }
             }
@@ -83,7 +89,7 @@ public class ReportCalculator {
      * Groups spending into weekly buckets for 30-day view.
      * Produces ~4-5 bars labeled "Week 1", "Week 2", etc. with date ranges.
      */
-    private static Map<String, Double> getWeeklyTrend(List<CashbookEntry> entries, int days) {
+    private static Map<String, Double> getWeeklyTrend(List<CashbookEntry> entries, int days, String userId) {
         Map<String, Double> trend = new LinkedHashMap<>();
         SimpleDateFormat sdf = new SimpleDateFormat("MMM d", Locale.getDefault());
 
@@ -120,10 +126,13 @@ public class ReportCalculator {
         for (CashbookEntry entry : entries) {
             if ("CASH_OUT".equalsIgnoreCase(entry.getType())) {
                 long date = entry.getDate();
-                for (int w = 0; w < numWeeks; w++) {
-                    if (date >= startTimes[w] && date <= endTimes[w]) {
-                        trend.put(labels[w], trend.get(labels[w]) + entry.getAmount());
-                        break;
+                double amount = getPersonalAmount(entry, userId);
+                if (amount > 0) {
+                    for (int w = 0; w < numWeeks; w++) {
+                        if (date >= startTimes[w] && date <= endTimes[w]) {
+                            trend.put(labels[w], trend.get(labels[w]) + amount);
+                            break;
+                        }
                     }
                 }
             }
@@ -135,11 +144,11 @@ public class ReportCalculator {
     /**
      * Returns the average daily spending for the period.
      */
-    public static double getAverageDailySpending(List<CashbookEntry> entries, int days) {
+    public static double getAverageDailySpending(List<CashbookEntry> entries, int days, String userId) {
         double total = 0;
         for (CashbookEntry entry : entries) {
             if ("CASH_OUT".equalsIgnoreCase(entry.getType())) {
-                total += entry.getAmount();
+                total += getPersonalAmount(entry, userId);
             }
         }
         return days > 0 ? total / days : 0;
@@ -148,8 +157,8 @@ public class ReportCalculator {
     /**
      * Returns the highest single-day spending amount.
      */
-    public static double getHighestDaySpending(List<CashbookEntry> entries, int days) {
-        Map<String, Double> daily = getDailyTrendDaily(entries, days);
+    public static double getHighestDaySpending(List<CashbookEntry> entries, int days, String userId) {
+        Map<String, Double> daily = getDailyTrendDaily(entries, days, userId);
         double max = 0;
         for (Double val : daily.values()) {
             if (val > max) max = val;
@@ -160,8 +169,8 @@ public class ReportCalculator {
     /**
      * Returns the number of days with zero spending.
      */
-    public static int getZeroSpendDays(List<CashbookEntry> entries, int days) {
-        Map<String, Double> daily = getDailyTrendDaily(entries, days);
+    public static int getZeroSpendDays(List<CashbookEntry> entries, int days, String userId) {
+        Map<String, Double> daily = getDailyTrendDaily(entries, days, userId);
         int count = 0;
         for (Double val : daily.values()) {
             if (val == 0) count++;
@@ -179,11 +188,11 @@ public class ReportCalculator {
     /**
      * Returns cash in total for filtered entries.
      */
-    public static double getTotalCashIn(List<CashbookEntry> entries) {
+    public static double getTotalCashIn(List<CashbookEntry> entries, String userId) {
         double total = 0;
         for (CashbookEntry entry : entries) {
             if ("CASH_IN".equalsIgnoreCase(entry.getType())) {
-                total += entry.getAmount();
+                total += getPersonalAmount(entry, userId);
             }
         }
         return total;
@@ -192,11 +201,11 @@ public class ReportCalculator {
     /**
      * Returns cash out total for filtered entries.
      */
-    public static double getTotalCashOut(List<CashbookEntry> entries) {
+    public static double getTotalCashOut(List<CashbookEntry> entries, String userId) {
         double total = 0;
         for (CashbookEntry entry : entries) {
             if ("CASH_OUT".equalsIgnoreCase(entry.getType())) {
-                total += entry.getAmount();
+                total += getPersonalAmount(entry, userId);
             }
         }
         return total;
@@ -211,5 +220,12 @@ public class ReportCalculator {
             }
         }
         return (int) (((double) completed / tasks.size()) * 100);
+    }
+
+    private static double getPersonalAmount(CashbookEntry entry, String userId) {
+        if (entry.getSplits() != null && entry.getSplits().containsKey(userId)) {
+            return entry.getSplits().get(userId);
+        }
+        return entry.getAmount();
     }
 }

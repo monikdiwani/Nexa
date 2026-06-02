@@ -148,7 +148,23 @@
                     android:layout_width="0dp"
                     android:layout_weight="1"
                     android:layout_height="wrap_content"
-                    android:text="Exact Amounts"
+                    android:text="Exact"
+                    android:textColor="@color/text_primary" />
+                    
+                <RadioButton
+                    android:id="@+id/rbPercent"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="Percent"
+                    android:textColor="@color/text_primary" />
+                    
+                <RadioButton
+                    android:id="@+id/rbShares"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="Shares"
                     android:textColor="@color/text_primary" />
             </RadioGroup>
 
