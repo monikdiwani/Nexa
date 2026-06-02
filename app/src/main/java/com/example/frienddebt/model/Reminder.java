@@ -18,6 +18,11 @@ public class Reminder {
     private long createdAt;
     private Long completedAt;
     private String linkedTaskId;
+    
+    // Phase 24: Recurring Engine
+    private boolean isRecurring;
+    private Long nextOccurrence;
+    private String recurringId;
 
     public Reminder() {
         // Required for Firestore
@@ -78,6 +83,15 @@ public class Reminder {
     public String getLinkedTaskId() { return linkedTaskId; }
     public void setLinkedTaskId(String linkedTaskId) { this.linkedTaskId = linkedTaskId; }
 
+    public boolean isRecurring() { return isRecurring; }
+    public void setRecurring(boolean recurring) { isRecurring = recurring; }
+
+    public Long getNextOccurrence() { return nextOccurrence; }
+    public void setNextOccurrence(Long nextOccurrence) { this.nextOccurrence = nextOccurrence; }
+
+    public String getRecurringId() { return recurringId; }
+    public void setRecurringId(String recurringId) { this.recurringId = recurringId; }
+
     public static Reminder fromDocument(DocumentSnapshot doc) {
         Reminder r = new Reminder();
         r.setId(doc.getId());
@@ -93,6 +107,11 @@ public class Reminder {
         r.setCreatedAt(doc.getLong("createdAt") != null ? doc.getLong("createdAt") : 0L);
         r.setCompletedAt(doc.getLong("completedAt"));
         r.setLinkedTaskId(doc.getString("linkedTaskId"));
+        
+        r.setRecurring(doc.getBoolean("isRecurring") != null ? doc.getBoolean("isRecurring") : false);
+        r.setNextOccurrence(doc.getLong("nextOccurrence"));
+        r.setRecurringId(doc.getString("recurringId"));
+        
         return r;
     }
 
@@ -110,6 +129,11 @@ public class Reminder {
         map.put("createdAt", createdAt);
         map.put("completedAt", completedAt);
         map.put("linkedTaskId", linkedTaskId);
+        
+        map.put("isRecurring", isRecurring);
+        map.put("nextOccurrence", nextOccurrence);
+        map.put("recurringId", recurringId);
+        
         return map;
     }
 }

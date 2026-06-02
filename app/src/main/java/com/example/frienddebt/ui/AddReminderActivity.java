@@ -32,8 +32,9 @@ import com.example.frienddebt.utils.StatusBarUtil;
 public class AddReminderActivity extends AppCompatActivity {
 
     private EditText etReminderTitle, etReminderMsg;
-    private AutoCompleteTextView actvCategory, actvRepeat;
-    private TextInputLayout tilCustomCategory;
+    private AutoCompleteTextView actvCategory, actvRecurringFrequency;
+    private com.google.android.material.materialswitch.MaterialSwitch switchRecurring;
+    private TextInputLayout tilCustomCategory, layoutRecurringFrequency;
     private TextInputEditText etCustomCategory;
     private RadioGroup rgPriority;
     private TextView txtSelectedDate, txtSelectedTime;
@@ -93,10 +94,19 @@ public class AddReminderActivity extends AppCompatActivity {
             }
         });
 
-        // Repeat dropdown Setup
-        ArrayAdapter<String> repeatAdapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, REPEAT_OPTIONS);
-        actvRepeat.setAdapter(repeatAdapter);
-        actvRepeat.setText("NONE", false); // Default to NONE
+        // Repeat Setup
+        switchRecurring = findViewById(R.id.switchRecurring);
+        layoutRecurringFrequency = findViewById(R.id.layoutRecurringFrequency);
+        actvRecurringFrequency = findViewById(R.id.actvRecurringFrequency);
+
+        switchRecurring.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            layoutRecurringFrequency.setVisibility(isChecked ? View.VISIBLE : View.GONE);
+        });
+
+        String[] repeatOptions = {"DAILY", "WEEKLY", "MONTHLY", "YEARLY"};
+        ArrayAdapter<String> repeatAdapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, repeatOptions);
+        actvRecurringFrequency.setAdapter(repeatAdapter);
+        actvRecurringFrequency.setText("DAILY", false);
 
         // Default 10 minutes in future
         calendar.add(Calendar.MINUTE, 10);
@@ -212,7 +222,6 @@ public class AddReminderActivity extends AppCompatActivity {
             }
             category = customCat;
         }
-        String repeat = actvRepeat.getText().toString().trim();
 
         if (auth.getCurrentUser() == null) {
             Toast.makeText(this, "User not logged in", Toast.LENGTH_SHORT).show();
@@ -228,8 +237,25 @@ public class AddReminderActivity extends AppCompatActivity {
             linkedTaskId = availableTasks.get(selectedTaskPos).getId();
         }
 
+        boolean isRecurring = switchRecurring.isChecked();
+        String repeat = isRecurring ? actvRecurringFrequency.getText().toString() : "NONE";
+
         Reminder reminder = new Reminder(null, title, msg, triggerTime, repeat, priority, category, false, false, null, createdAt, null);
         reminder.setLinkedTaskId(linkedTaskId);
+        
+        if (isRecurring) {
+            reminder.setRecurring(true);
+            reminder.setRecurringId(java.util.UUID.randomUUID().toString());
+            Calendar nextCal = Calendar.getInstance();
+            nextCal.setTimeInMillis(triggerTime);
+            switch (repeat) {
+                case "DAILY": nextCal.add(Calendar.DAY_OF_YEAR, 1); break;
+                case "WEEKLY": nextCal.add(Calendar.WEEK_OF_YEAR, 1); break;
+                case "MONTHLY": nextCal.add(Calendar.MONTH, 1); break;
+                case "YEARLY": nextCal.add(Calendar.YEAR, 1); break;
+            }
+            reminder.setNextOccurrence(nextCal.getTimeInMillis());
+        }
 
         btnSaveReminder.setEnabled(false);
         btnSaveReminder.setText("Scheduling...");

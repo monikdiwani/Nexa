@@ -209,6 +209,33 @@
                     android:text="Change Date" />
             </LinearLayout>
 
+            <!-- Recurring Selection -->
+            <com.google.android.material.materialswitch.MaterialSwitch
+                android:id="@+id/switchRecurring"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="🔁 Repeat this item"
+                android:textSize="16sp"
+                android:textColor="@color/text_primary"
+                android:layout_marginBottom="8dp"/>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/layoutRecurringFrequency"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Repeat Frequency"
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                android:visibility="gone"
+                android:layout_marginBottom="16dp">
+
+                <AutoCompleteTextView
+                    android:id="@+id/actvRecurringFrequency"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="none"
+                    android:textColor="@color/text_primary" />
+            </com.google.android.material.textfield.TextInputLayout>
+
             <!-- Note Input -->
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"

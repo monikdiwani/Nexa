@@ -28,6 +28,12 @@ public class CashbookEntry {
     private java.util.List<String> participants; // User IDs involved
     private java.util.Map<String, Double> splits; // User ID -> Exact amount they owe
     
+    // Recurring fields
+    private boolean isRecurring;
+    private String recurringPattern; // NONE, DAILY, WEEKLY, MONTHLY, YEARLY
+    private Long nextOccurrence;
+    private String recurringId;
+
     private long createdAt;
 
     public CashbookEntry() {
@@ -103,6 +109,18 @@ public class CashbookEntry {
     public java.util.Map<String, Double> getSplits() { return splits; }
     public void setSplits(java.util.Map<String, Double> splits) { this.splits = splits; }
 
+    public boolean isRecurring() { return isRecurring; }
+    public void setRecurring(boolean recurring) { isRecurring = recurring; }
+
+    public String getRecurringPattern() { return recurringPattern; }
+    public void setRecurringPattern(String recurringPattern) { this.recurringPattern = recurringPattern; }
+
+    public Long getNextOccurrence() { return nextOccurrence; }
+    public void setNextOccurrence(Long nextOccurrence) { this.nextOccurrence = nextOccurrence; }
+
+    public String getRecurringId() { return recurringId; }
+    public void setRecurringId(String recurringId) { this.recurringId = recurringId; }
+
     public long getCreatedAt() { return createdAt; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
 
@@ -129,6 +147,11 @@ public class CashbookEntry {
         entry.setParticipants((java.util.List<String>) doc.get("participants"));
         entry.setSplits((java.util.Map<String, Double>) doc.get("splits"));
         
+        entry.setRecurring(doc.getBoolean("isRecurring") != null ? doc.getBoolean("isRecurring") : false);
+        entry.setRecurringPattern(doc.getString("recurringPattern"));
+        entry.setNextOccurrence(doc.getLong("nextOccurrence"));
+        entry.setRecurringId(doc.getString("recurringId"));
+        
         entry.setCreatedAt(doc.getLong("createdAt") != null ? doc.getLong("createdAt") : 0L);
         return entry;
     }
@@ -154,6 +177,11 @@ public class CashbookEntry {
         map.put("splitMethod", splitMethod);
         map.put("participants", participants);
         map.put("splits", splits);
+        
+        map.put("isRecurring", isRecurring);
+        map.put("recurringPattern", recurringPattern);
+        map.put("nextOccurrence", nextOccurrence);
+        map.put("recurringId", recurringId);
         
         map.put("createdAt", createdAt);
         return map;

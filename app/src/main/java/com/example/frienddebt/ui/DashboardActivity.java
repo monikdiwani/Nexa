@@ -41,9 +41,16 @@ public class DashboardActivity extends AppCompatActivity {
 
         // Save current user ID to SharedPreferences for background notification receiver access
         com.google.firebase.auth.FirebaseAuth auth = com.google.firebase.auth.FirebaseAuth.getInstance();
-        if (auth.getCurrentUser() != null) {
-            sp.edit().putString("user_id", auth.getCurrentUser().getUid()).apply();
+        if (auth.getCurrentUser() == null) {
+            startActivity(new Intent(this, LoginActivity.class));
+            finish();
+            return;
         }
+
+        // Run Recurring Engine
+        com.example.frienddebt.utils.RecurringEngine.processRecurringItems(this, auth.getCurrentUser().getUid());
+
+        sp.edit().putString("user_id", auth.getCurrentUser().getUid()).apply();
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_dashboard);

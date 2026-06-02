@@ -32,6 +32,10 @@ public class AddCashbookEntryActivity extends AppCompatActivity {
     private TextView txtSelectedDate;
     private Button btnSelectDate, btnSaveEntry;
     private ImageButton btnBack;
+    
+    private com.google.android.material.materialswitch.MaterialSwitch switchRecurring;
+    private com.google.android.material.textfield.TextInputLayout layoutRecurringFrequency;
+    private AutoCompleteTextView actvRecurringFrequency;
 
     private Calendar calendar = Calendar.getInstance();
     private FirebaseAuth auth;
@@ -78,6 +82,19 @@ public class AddCashbookEntryActivity extends AppCompatActivity {
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, CATEGORIES);
         actvCategory.setAdapter(adapter);
         actvCategory.setText(CATEGORIES[CATEGORIES.length - 1], false); // Default to "Other"
+        
+        switchRecurring = findViewById(R.id.switchRecurring);
+        layoutRecurringFrequency = findViewById(R.id.layoutRecurringFrequency);
+        actvRecurringFrequency = findViewById(R.id.actvRecurringFrequency);
+
+        switchRecurring.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            layoutRecurringFrequency.setVisibility(isChecked ? android.view.View.VISIBLE : android.view.View.GONE);
+        });
+
+        String[] frequencies = {"DAILY", "WEEKLY", "MONTHLY", "YEARLY"};
+        ArrayAdapter<String> freqAdapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, frequencies);
+        actvRecurringFrequency.setAdapter(freqAdapter);
+        actvRecurringFrequency.setText("MONTHLY", false);
 
         // Setup Date Picker
         updateDateText();
@@ -158,6 +175,23 @@ public class AddCashbookEntryActivity extends AppCompatActivity {
         entry.setContactName(contactName);
         entry.setCreatedBy(userId);
         entry.setLastModifiedAt(createdAt);
+        
+        if (switchRecurring.isChecked()) {
+            entry.setRecurring(true);
+            entry.setRecurringPattern(actvRecurringFrequency.getText().toString());
+            entry.setRecurringId(java.util.UUID.randomUUID().toString());
+            
+            // Calculate next occurrence
+            Calendar nextCal = Calendar.getInstance();
+            nextCal.setTimeInMillis(dateMs);
+            switch (entry.getRecurringPattern()) {
+                case "DAILY": nextCal.add(Calendar.DAY_OF_YEAR, 1); break;
+                case "WEEKLY": nextCal.add(Calendar.WEEK_OF_YEAR, 1); break;
+                case "MONTHLY": nextCal.add(Calendar.MONTH, 1); break;
+                case "YEARLY": nextCal.add(Calendar.YEAR, 1); break;
+            }
+            entry.setNextOccurrence(nextCal.getTimeInMillis());
+        }
 
         btnSaveEntry.setEnabled(false);
         btnSaveEntry.setText("Saving...");

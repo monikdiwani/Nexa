@@ -39,7 +39,9 @@ public class AddTaskActivity extends AppCompatActivity {
     private Button btnSelectDate, btnSelectTime, btnSaveTask, btnAddSubtask;
     private LinearLayout layoutSubtasks;
     private ImageButton btnBack;
-    private android.widget.Spinner spinnerRepeat;
+    private com.google.android.material.materialswitch.MaterialSwitch switchRecurring;
+    private com.google.android.material.textfield.TextInputLayout layoutRecurringFrequency;
+    private android.widget.AutoCompleteTextView actvRecurringFrequency;
     private boolean hasSelectedTime = false;
 
     private String taskId;
@@ -71,13 +73,19 @@ public class AddTaskActivity extends AppCompatActivity {
         btnBack = findViewById(R.id.btnBack);
         btnAddSubtask = findViewById(R.id.btnAddSubtask);
         layoutSubtasks = findViewById(R.id.layoutSubtasks);
-        spinnerRepeat = findViewById(R.id.spinnerRepeat);
+        
+        switchRecurring = findViewById(R.id.switchRecurring);
+        layoutRecurringFrequency = findViewById(R.id.layoutRecurringFrequency);
+        actvRecurringFrequency = findViewById(R.id.actvRecurringFrequency);
 
-        // Setup Spinner
-        String[] repeatOptions = {"None", "Daily", "Weekly", "Monthly"};
-        android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_item, repeatOptions);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerRepeat.setAdapter(adapter);
+        switchRecurring.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            layoutRecurringFrequency.setVisibility(isChecked ? View.VISIBLE : View.GONE);
+        });
+
+        String[] repeatOptions = {"DAILY", "WEEKLY", "MONTHLY", "YEARLY"};
+        android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, repeatOptions);
+        actvRecurringFrequency.setAdapter(adapter);
+        actvRecurringFrequency.setText("DAILY", false);
 
         taskId = getIntent().getStringExtra("TASK_ID");
 
@@ -131,11 +139,17 @@ public class AddTaskActivity extends AppCompatActivity {
                         
                         cbImportant.setChecked(task.isImportant());
                         
-                        String repeat = task.getRecurringPattern();
-                        if ("Daily".equalsIgnoreCase(repeat)) spinnerRepeat.setSelection(1);
-                        else if ("Weekly".equalsIgnoreCase(repeat)) spinnerRepeat.setSelection(2);
-                        else if ("Monthly".equalsIgnoreCase(repeat)) spinnerRepeat.setSelection(3);
-                        else spinnerRepeat.setSelection(0);
+                        if (task.isRecurring()) {
+                            switchRecurring.setChecked(true);
+                            actvRecurringFrequency.setText(task.getRecurringPattern(), false);
+                        } else {
+                            switchRecurring.setChecked(false);
+                            String repeat = task.getRecurringPattern();
+                            if (repeat != null && !repeat.equals("NONE") && !repeat.isEmpty()) {
+                                switchRecurring.setChecked(true);
+                                actvRecurringFrequency.setText(repeat.toUpperCase(), false);
+                            }
+                        }
 
                         if ("LOW".equals(task.getPriority())) {
                             rgPriority.check(R.id.rbLow);
@@ -249,7 +263,29 @@ public class AddTaskActivity extends AppCompatActivity {
         data.put("dueTime", dueTime);
         data.put("priority", priority);
         data.put("isImportant", cbImportant.isChecked());
-        data.put("recurringPattern", spinnerRepeat.getSelectedItem().toString());
+        
+        boolean isRecurring = switchRecurring.isChecked();
+        data.put("isRecurring", isRecurring);
+        if (isRecurring) {
+            String pattern = actvRecurringFrequency.getText().toString();
+            data.put("recurringPattern", pattern);
+            data.put("recurringId", taskId != null ? taskId : java.util.UUID.randomUUID().toString()); // Use task ID as recurring ID if updating, else new
+            if (dueDate != null) {
+                Calendar nextCal = Calendar.getInstance();
+                nextCal.setTimeInMillis(dueDate);
+                switch (pattern) {
+                    case "DAILY": nextCal.add(Calendar.DAY_OF_YEAR, 1); break;
+                    case "WEEKLY": nextCal.add(Calendar.WEEK_OF_YEAR, 1); break;
+                    case "MONTHLY": nextCal.add(Calendar.MONTH, 1); break;
+                    case "YEARLY": nextCal.add(Calendar.YEAR, 1); break;
+                }
+                data.put("nextOccurrence", nextCal.getTimeInMillis());
+            } else {
+                data.put("nextOccurrence", System.currentTimeMillis()); // Fallback
+            }
+        } else {
+            data.put("recurringPattern", "NONE");
+        }
         
         List<Map<String, Object>> subtasksList = new ArrayList<>();
         for (int i = 0; i < layoutSubtasks.getChildCount(); i++) {

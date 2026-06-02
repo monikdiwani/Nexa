@@ -21,7 +21,12 @@ public class Task {
     // Phase 19: Productivity Polish
     private boolean isImportant;
     private Long dueTime;
-    private String recurringPattern;
+    private String recurringPattern; // NONE, DAILY, WEEKLY, MONTHLY, YEARLY
+    
+    // Phase 24: Recurring Engine
+    private boolean isRecurring;
+    private Long nextOccurrence;
+    private String recurringId;
 
     public Task() {
         // Required for Firestore
@@ -80,6 +85,15 @@ public class Task {
     public String getRecurringPattern() { return recurringPattern; }
     public void setRecurringPattern(String recurringPattern) { this.recurringPattern = recurringPattern; }
     
+    public boolean isRecurring() { return isRecurring; }
+    public void setRecurring(boolean recurring) { isRecurring = recurring; }
+    
+    public Long getNextOccurrence() { return nextOccurrence; }
+    public void setNextOccurrence(Long nextOccurrence) { this.nextOccurrence = nextOccurrence; }
+    
+    public String getRecurringId() { return recurringId; }
+    public void setRecurringId(String recurringId) { this.recurringId = recurringId; }
+    
     public java.util.List<Subtask> getSubtasks() { return subtasks; }
     public void setSubtasks(java.util.List<Subtask> subtasks) { this.subtasks = subtasks; }
 
@@ -98,6 +112,10 @@ public class Task {
         t.setImportant(doc.getBoolean("isImportant") != null ? doc.getBoolean("isImportant") : false);
         t.setDueTime(doc.getLong("dueTime"));
         t.setRecurringPattern(doc.getString("recurringPattern") != null ? doc.getString("recurringPattern") : "NONE");
+        
+        t.setRecurring(doc.getBoolean("isRecurring") != null ? doc.getBoolean("isRecurring") : false);
+        t.setNextOccurrence(doc.getLong("nextOccurrence"));
+        t.setRecurringId(doc.getString("recurringId"));
         
         java.util.List<java.util.Map<String, Object>> subtasksMapList = (java.util.List<java.util.Map<String, Object>>) doc.get("subtasks");
         if (subtasksMapList != null) {
@@ -128,6 +146,10 @@ public class Task {
         map.put("isImportant", isImportant);
         map.put("dueTime", dueTime);
         map.put("recurringPattern", recurringPattern);
+        
+        map.put("isRecurring", isRecurring);
+        map.put("nextOccurrence", nextOccurrence);
+        map.put("recurringId", recurringId);
         
         if (subtasks != null) {
             java.util.List<java.util.Map<String, Object>> subtasksMapList = new java.util.ArrayList<>();
