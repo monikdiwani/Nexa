@@ -30,7 +30,7 @@ public class AddCashbookEntryActivity extends AppCompatActivity {
     private RadioGroup rgType, rgMedium;
     private AutoCompleteTextView actvCategory;
     private TextView txtSelectedDate;
-    private Button btnSelectDate, btnSaveEntry;
+    private Button btnSelectDate, btnSaveEntry, btnScanReceipt;
     private ImageButton btnBack;
     
     private com.google.android.material.materialswitch.MaterialSwitch switchRecurring;
@@ -75,6 +75,8 @@ public class AddCashbookEntryActivity extends AppCompatActivity {
         btnSaveEntry = findViewById(R.id.btnSaveEntry);
         btnBack = findViewById(R.id.btnBack);
 
+        btnScanReceipt = findViewById(R.id.btnScanReceipt);
+
         // Setup Back Button
         btnBack.setOnClickListener(v -> finish());
 
@@ -99,6 +101,39 @@ public class AddCashbookEntryActivity extends AppCompatActivity {
         // Setup Date Picker
         updateDateText();
         btnSelectDate.setOnClickListener(v -> showDatePicker());
+
+        // Setup Scan Receipt
+        androidx.activity.result.ActivityResultLauncher<String> mGetContent = registerForActivityResult(
+                new androidx.activity.result.contract.ActivityResultContracts.GetContent(),
+                uri -> {
+                    if (uri != null) {
+                        android.app.ProgressDialog pd = new android.app.ProgressDialog(this);
+                        pd.setMessage("Scanning Receipt...");
+                        pd.setCancelable(false);
+                        pd.show();
+                        
+                        com.example.frienddebt.utils.ReceiptScanner.scanReceipt(this, uri, new com.example.frienddebt.utils.ReceiptScanner.ScanCallback() {
+                            @Override
+                            public void onSuccess(String vendorName, double totalAmount) {
+                                pd.dismiss();
+                                etParticulars.setText(vendorName);
+                                if (totalAmount > 0) {
+                                    etAmount.setText(String.format(Locale.getDefault(), "%.2f", totalAmount));
+                                    rgType.check(R.id.rbCashOut); // usually receipts are expenses
+                                }
+                                Toast.makeText(AddCashbookEntryActivity.this, "Scan complete!", Toast.LENGTH_SHORT).show();
+                            }
+
+                            @Override
+                            public void onFailure(Exception e) {
+                                pd.dismiss();
+                                Toast.makeText(AddCashbookEntryActivity.this, "Scan failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    }
+                });
+
+        btnScanReceipt.setOnClickListener(v -> mGetContent.launch("image/*"));
 
         // Setup Save
         btnSaveEntry.setOnClickListener(v -> saveEntry());

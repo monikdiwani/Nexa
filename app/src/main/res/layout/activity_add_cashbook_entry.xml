@@ -46,6 +46,17 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
+            <!-- Scan Receipt Button -->
+            <Button
+                android:id="@+id/btnScanReceipt"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:text="📷 Scan Receipt (Auto-fill)"
+                android:layout_marginBottom="16dp"
+                android:textColor="@color/primary"
+                app:strokeColor="@color/primary" />
+
             <!-- Particulars Input -->
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"

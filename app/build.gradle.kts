@@ -65,6 +65,9 @@ dependencies {
     implementation(libs.credentials)
     implementation(libs.credentials.play.services.auth)
     implementation(libs.googleid)
+    
+    // ✅ ML Kit Text Recognition for Receipt Scanner
+    implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
