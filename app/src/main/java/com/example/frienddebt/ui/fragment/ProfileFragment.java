@@ -565,34 +565,7 @@ public class ProfileFragment extends Fragment {
     }
 
     private void exportUserData() {
-        FirebaseUser user = auth.getCurrentUser();
-        if (user == null) return;
-        Toast.makeText(requireContext(), "Preparing data export...", Toast.LENGTH_SHORT).show();
-        
-        com.google.firebase.firestore.FirebaseFirestore.getInstance()
-                .collection("users")
-                .document(user.getUid())
-                .get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    try {
-                        String data = documentSnapshot.getData() != null ? documentSnapshot.getData().toString() : "No data";
-                        File file = new File(requireContext().getCacheDir(), "nexa_export.txt");
-                        FileWriter writer = new FileWriter(file);
-                        writer.write("Nexa User Data Export\n\n");
-                        writer.write("User Info: " + user.getEmail() + "\n");
-                        writer.write("Data: " + data);
-                        writer.flush();
-                        writer.close();
-
-                        Uri uri = FileProvider.getUriForFile(requireContext(), requireContext().getPackageName() + ".provider", file);
-                        Intent intent = new Intent(Intent.ACTION_SEND);
-                        intent.setType("text/plain");
-                        intent.putExtra(Intent.EXTRA_STREAM, uri);
-                        startActivity(Intent.createChooser(intent, "Export Data"));
-                    } catch (Exception e) {
-                        Toast.makeText(requireContext(), "Export failed", Toast.LENGTH_SHORT).show();
-                    }
-                });
+        com.example.frienddebt.utils.DataExportHelper.exportData(requireActivity());
     }
 
     private void showDeleteAccountDialog() {
