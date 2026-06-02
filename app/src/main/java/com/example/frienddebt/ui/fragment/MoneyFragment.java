@@ -47,6 +47,11 @@ public class MoneyFragment extends Fragment {
             btnSearchMoney.setOnClickListener(v -> startActivity(new android.content.Intent(requireContext(), com.example.frienddebt.ui.GlobalSearchActivity.class)));
         }
 
+        android.widget.ImageButton btnBudgets = view.findViewById(R.id.btnBudgets);
+        if (btnBudgets != null) {
+            btnBudgets.setOnClickListener(v -> startActivity(new android.content.Intent(requireContext(), com.example.frienddebt.ui.BudgetsActivity.class)));
+        }
+
         tabLayoutMoney = view.findViewById(R.id.tabLayoutMoney);
         viewPagerMoney = view.findViewById(R.id.viewPagerMoney);
 

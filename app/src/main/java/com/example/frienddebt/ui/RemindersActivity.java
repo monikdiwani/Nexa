@@ -215,7 +215,7 @@ public class RemindersActivity extends AppCompatActivity {
             // Relative Countdown
             holder.txtCountdown.setText(getRelativeTime(r.getTriggerTime()));
             if (r.getTriggerTime() < System.currentTimeMillis() && !r.isCompleted()) {
-                holder.txtCountdown.setTextColor(getResources().getColor(R.color.accent_danger));
+                holder.txtCountdown.setTextColor(android.graphics.Color.parseColor("#FF5252"));
             } else {
                 holder.txtCountdown.setTextColor(getResources().getColor(R.color.accent_warning));
             }

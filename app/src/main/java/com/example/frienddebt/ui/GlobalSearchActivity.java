@@ -172,7 +172,7 @@ public class GlobalSearchActivity extends AppCompatActivity {
                     Note n = Note.fromDocument(doc);
                     String subtitle = n.getContent();
                     if (subtitle == null || subtitle.isEmpty()) {
-                        subtitle = n.getTags() != null ? String.join(", ", n.getTags()) : "";
+                        subtitle = n.getLabel() != null ? n.getLabel() : "";
                     }
                     GlobalSearchResult res = new GlobalSearchResult(
                             n.getId(), GlobalSearchResult.TYPE_NOTE, n.getTitle(),
@@ -190,10 +190,10 @@ public class GlobalSearchActivity extends AppCompatActivity {
             if (task.isSuccessful() && task.getResult() != null) {
                 for (DocumentSnapshot doc : task.getResult()) {
                     Reminder r = Reminder.fromDocument(doc);
-                    String subtitle = "Due: " + new java.text.SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault()).format(new java.util.Date(r.getTimestamp()));
+                    String subtitle = "Due: " + new java.text.SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault()).format(new java.util.Date(r.getTriggerTime()));
                     GlobalSearchResult res = new GlobalSearchResult(
                             r.getId(), GlobalSearchResult.TYPE_REMINDER, r.getTitle(),
-                            subtitle, "🔔", r.getTimestamp()
+                            subtitle, "🔔", r.getTriggerTime()
                     );
                     res.setData(r);
                     allData.add(res);

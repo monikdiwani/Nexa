@@ -42,7 +42,7 @@ public class DashboardActivity extends AppCompatActivity {
         // Save current user ID to SharedPreferences for background notification receiver access
         com.google.firebase.auth.FirebaseAuth auth = com.google.firebase.auth.FirebaseAuth.getInstance();
         if (auth.getCurrentUser() == null) {
-            startActivity(new Intent(this, LoginActivity.class));
+            startActivity(new android.content.Intent(this, Login.class));
             finish();
             return;
         }

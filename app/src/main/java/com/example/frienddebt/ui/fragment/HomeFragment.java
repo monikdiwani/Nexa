@@ -42,7 +42,7 @@ public class HomeFragment extends Fragment {
 
     private LinearLayout btnQuickExpense, btnQuickTask, btnQuickReminder, btnQuickReports;
     private LinearLayout cardTasks, cardReminders, cardGroups;
-    private ImageView imgProfile;
+    private ImageView imgProfile, imgSearch;
     private TextView txtInsight;
 
     private int pendingTasksCount = 0;
@@ -82,6 +82,7 @@ public class HomeFragment extends Fragment {
         btnQuickTask = view.findViewById(R.id.btnQuickTask);
         btnQuickReminder = view.findViewById(R.id.btnQuickReminder);
         btnQuickReports = view.findViewById(R.id.btnQuickReports);
+        imgSearch = view.findViewById(R.id.imgSearch);
 
         cardTasks = view.findViewById(R.id.cardTasks);
         cardReminders = view.findViewById(R.id.cardReminders);
@@ -182,7 +183,7 @@ public class HomeFragment extends Fragment {
             }
         });
 
-        imgSearch.setOnClickListener(v -> startActivity(new Intent(requireContext(), GlobalSearchActivity.class)));
+        imgSearch.setOnClickListener(v -> startActivity(new Intent(requireContext(), com.example.frienddebt.ui.GlobalSearchActivity.class)));
 
         imgProfile.setOnClickListener(v -> {
             playButtonPop(v);

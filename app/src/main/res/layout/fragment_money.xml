@@ -30,6 +30,15 @@
                 android:textColor="@color/text_primary" />
 
             <ImageButton
+                android:id="@+id/btnBudgets"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@android:drawable/ic_menu_agenda"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Budgets"
+                android:tint="@color/text_primary" />
+
+            <ImageButton
                 android:id="@+id/btnSearchMoney"
                 android:layout_width="48dp"
                 android:layout_height="48dp"

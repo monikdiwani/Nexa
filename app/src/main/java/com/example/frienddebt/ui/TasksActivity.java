@@ -406,7 +406,7 @@ public class TasksActivity extends AppCompatActivity {
                 
                 // Overdue Check
                 if (!task.isCompleted() && timeToFormat < System.currentTimeMillis()) {
-                    holder.txtDueDate.setTextColor(getResources().getColor(R.color.accent_danger));
+                    holder.txtDueDate.setTextColor(android.graphics.Color.parseColor("#FF5252"));
                     holder.txtDueDate.setText("Overdue: " + sdf.format(new Date(timeToFormat)));
                 } else {
                     holder.txtDueDate.setTextColor(getResources().getColor(R.color.text_secondary));

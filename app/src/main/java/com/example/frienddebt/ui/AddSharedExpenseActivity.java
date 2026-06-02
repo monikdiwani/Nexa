@@ -279,12 +279,14 @@ public class AddSharedExpenseActivity extends AppCompatActivity {
         entry.setParticipants(memberIds);
         entry.setSplits(splits);
 
+        final double finalTotalAmount = totalAmount;
+
         db.collection("cashbooks").document(selectedLedger.getId())
                 .collection("entries").document(entryId)
                 .set(entry.toFirestoreMap())
                 .addOnSuccessListener(aVoid -> {
                     // Update ledger totals (this is a simplified logic. Real split logic updates member balances)
-                    updateLedgerTotals(selectedLedger.getId(), totalAmount);
+                    updateLedgerTotals(selectedLedger.getId(), finalTotalAmount);
                 })
                 .addOnFailureListener(e -> {
                     btnSaveExpense.setEnabled(true);

@@ -64,9 +64,7 @@
         <activity
             android:name=".ui.LedgerBookDetailActivity"
             android:exported="false" />
-        <activity
-            android:name=".ui.AddCashbookEntryActivity"
-            android:exported="false" />
+
         <activity
             android:name=".ui.ActivityLogActivity"
             android:exported="false" />
@@ -74,6 +72,12 @@
             android:name=".ui.GlobalSearchActivity"
             android:exported="false"
             android:windowSoftInputMode="stateVisible|adjustResize" />
+        <activity
+            android:name=".ui.BudgetsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.AddBudgetActivity"
+            android:exported="false" />
         <activity
             android:name=".ui.CashCounterActivity"
             android:exported="false" />

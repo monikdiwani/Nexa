@@ -64,7 +64,6 @@ public class AddReminderActivity extends AppCompatActivity {
         etReminderTitle = findViewById(R.id.etReminderTitle);
         etReminderMsg = findViewById(R.id.etReminderMsg);
         actvCategory = findViewById(R.id.actvCategory);
-        actvRepeat = findViewById(R.id.actvRepeat);
         rgPriority = findViewById(R.id.rgPriority);
         txtSelectedDate = findViewById(R.id.txtSelectedDate);
         txtSelectedTime = findViewById(R.id.txtSelectedTime);
