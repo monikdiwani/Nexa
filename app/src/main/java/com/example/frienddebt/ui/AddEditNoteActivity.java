@@ -344,7 +344,7 @@ public class AddEditNoteActivity extends AppCompatActivity {
                 .document(userId)
                 .collection("notes")
                 .document(noteId)
-                .set(data)
+                .set(data, com.google.firebase.firestore.SetOptions.merge())
                 .addOnSuccessListener(aVoid -> {
                     if (showToast) {
                         Toast.makeText(AddEditNoteActivity.this, "Note saved!", Toast.LENGTH_SHORT).show();
