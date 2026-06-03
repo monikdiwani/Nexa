@@ -142,6 +142,10 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
             popup.getMenu().add(0, 2, 0, "Export PDF Report");
             popup.getMenu().add(0, 3, 0, "Share Invite Code");
             popup.getMenu().add(0, 4, 0, "View Activity Log");
+            if ("OWNER".equalsIgnoreCase(userRole)) {
+                popup.getMenu().add(0, 5, 0, "Rename Cashbook");
+                popup.getMenu().add(0, 6, 0, "Delete Cashbook");
+            }
             
             popup.setOnMenuItemClickListener(item -> {
                 switch (item.getItemId()) {
@@ -188,13 +192,19 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                             });
                         return true;
                     case 4:
-                        Intent logIntent = new Intent(this, ActivityLogActivity.class);
-                        logIntent.putExtra("BOOK_ID", bookId);
-                        logIntent.putExtra("BOOK_NAME", bookName);
-                        startActivity(logIntent);
+                        Intent activityLogIntent = new Intent(this, ActivityLogActivity.class);
+                        activityLogIntent.putExtra("BOOK_ID", bookId);
+                        startActivity(activityLogIntent);
                         return true;
+                    case 5:
+                        showRenameDialog();
+                        return true;
+                    case 6:
+                        showDeleteCashbookDialog();
+                        return true;
+                    default:
+                        return false;
                 }
-                return false;
             });
             popup.show();
         });
@@ -453,6 +463,48 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
             });
     }
 
+    private void showRenameDialog() {
+        android.widget.EditText input = new android.widget.EditText(this);
+        input.setText(bookName);
+        input.setSelection(bookName.length());
+        
+        new AlertDialog.Builder(this)
+            .setTitle("Rename Cashbook")
+            .setView(input)
+            .setPositiveButton("Rename", (dialog, which) -> {
+                String newName = input.getText().toString().trim();
+                if (!newName.isEmpty() && !newName.equals(bookName)) {
+                    db.collection("cashbooks").document(bookId)
+                        .update("name", newName)
+                        .addOnSuccessListener(aVoid -> {
+                            bookName = newName;
+                            txtBookTitle.setText(newName);
+                            Toast.makeText(this, "Renamed successfully", Toast.LENGTH_SHORT).show();
+                        })
+                        .addOnFailureListener(e -> Toast.makeText(this, "Failed to rename", Toast.LENGTH_SHORT).show());
+                }
+            })
+            .setNegativeButton("Cancel", null)
+            .show();
+    }
+
+    private void showDeleteCashbookDialog() {
+        new AlertDialog.Builder(this)
+            .setTitle("Delete Cashbook")
+            .setMessage("Are you sure you want to delete this cashbook? All transactions inside it will be lost. This cannot be undone.")
+            .setPositiveButton("Delete", (dialog, which) -> {
+                db.collection("cashbooks").document(bookId)
+                    .delete()
+                    .addOnSuccessListener(aVoid -> {
+                        Toast.makeText(this, "Cashbook deleted", Toast.LENGTH_SHORT).show();
+                        finish();
+                    })
+                    .addOnFailureListener(e -> Toast.makeText(this, "Failed to delete", Toast.LENGTH_SHORT).show());
+            })
+            .setNegativeButton("Cancel", null)
+            .show();
+    }
+
     private class LedgerEntryAdapter extends RecyclerView.Adapter<LedgerEntryAdapter.ViewHolder> {
         private final List<CashbookEntry> list;
 
@@ -515,6 +567,10 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                     return true;
                 });
             }
+            
+            holder.btnOptions.setOnClickListener(v -> {
+                showActionDialog(entry);
+            });
             
             holder.itemView.setOnClickListener(v -> {
                 showTransactionDetails(entry);
@@ -627,6 +683,7 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
 
         class ViewHolder extends RecyclerView.ViewHolder {
             TextView txtIcon, txtParticulars, txtDate, txtCategory, txtAmount, txtMedium, txtRunningBalance;
+            android.widget.ImageButton btnOptions;
 
             public ViewHolder(@NonNull View itemView) {
                 super(itemView);
@@ -637,6 +694,7 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                 txtAmount = itemView.findViewById(R.id.txtEntryAmount);
                 txtMedium = itemView.findViewById(R.id.txtEntryMedium);
                 txtRunningBalance = itemView.findViewById(R.id.txtRunningBalance);
+                btnOptions = itemView.findViewById(R.id.btnEntryOptions);
             }
         }
     }
