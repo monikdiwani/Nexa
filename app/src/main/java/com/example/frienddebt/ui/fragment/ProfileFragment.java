@@ -20,6 +20,8 @@ import android.net.Uri;
 import java.io.File;
 import java.io.FileWriter;
 import androidx.core.content.FileProvider;
+import android.widget.ImageView;
+import com.bumptech.glide.Glide;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -51,11 +53,12 @@ import java.util.concurrent.TimeUnit;
 public class ProfileFragment extends Fragment {
 
     private TextView txtProfileInitials, txtProfileName, txtProfileEmail, txtMemberSince;
+    private ImageView imgProfilePicture;
     private TextView btnEditProfile, txtPasswordHint, txtLoginProvider;
     private LinearLayout rowChangePassword;
     private SwitchCompat switchDarkMode, switchMorningDigest, switchEveningDigest, switchAppLock;
     private Button btnLogout, btnDeleteAccount;
-    private LinearLayout rowExportData, rowNotificationSettings;
+    private LinearLayout rowExportData, rowNotificationSettings, rowBatteryOptimization;
     private TextView btnAbout, btnFAQ, btnPrivacyPolicy;
 
     private FirebaseAuth auth;
@@ -76,6 +79,7 @@ public class ProfileFragment extends Fragment {
         sp = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
 
         txtProfileInitials = view.findViewById(R.id.txtProfileInitials);
+        imgProfilePicture = view.findViewById(R.id.imgProfilePicture);
         txtProfileName = view.findViewById(R.id.txtProfileName);
         txtProfileEmail = view.findViewById(R.id.txtProfileEmail);
         txtMemberSince = view.findViewById(R.id.txtMemberSince);
@@ -91,6 +95,7 @@ public class ProfileFragment extends Fragment {
         btnDeleteAccount = view.findViewById(R.id.btnDeleteAccount);
         rowExportData = view.findViewById(R.id.rowExportData);
         rowNotificationSettings = view.findViewById(R.id.rowNotificationSettings);
+        rowBatteryOptimization = view.findViewById(R.id.rowBatteryOptimization);
         btnAbout = view.findViewById(R.id.btnAbout);
         btnFAQ = view.findViewById(R.id.btnFAQ);
         btnPrivacyPolicy = view.findViewById(R.id.btnPrivacyPolicy);
@@ -139,6 +144,19 @@ public class ProfileFragment extends Fragment {
             startActivity(intent);
         });
 
+        rowBatteryOptimization.setOnClickListener(v -> {
+            Intent intent = new Intent();
+            String packageName = requireContext().getPackageName();
+            android.os.PowerManager pm = (android.os.PowerManager) requireContext().getSystemService(Context.POWER_SERVICE);
+            if (pm != null && !pm.isIgnoringBatteryOptimizations(packageName)) {
+                intent.setAction(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                intent.setData(Uri.parse("package:" + packageName));
+                startActivity(intent);
+            } else {
+                Toast.makeText(requireContext(), "Battery Optimization already disabled for Nexa!", Toast.LENGTH_SHORT).show();
+            }
+        });
+
         btnAbout.setOnClickListener(v -> showLegalDialog("About Nexa", "Nexa is your ultimate productivity and finance companion. Built with passion to help you manage your tasks, notes, and money securely."));
         btnFAQ.setOnClickListener(v -> showLegalDialog("FAQ", "Q: Is my data secure?\nA: Yes, everything is securely stored.\n\nQ: Can I access Nexa offline?\nA: Nexa has basic offline caching but requires internet for syncing."));
         btnPrivacyPolicy.setOnClickListener(v -> showLegalDialog("Privacy Policy", "We respect your privacy. We do not sell your personal data. Your data is stored securely in Firebase and is only accessible by you."));
@@ -152,7 +170,7 @@ public class ProfileFragment extends Fragment {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) return;
 
-        // Display name
+        // Display name and Profile Picture
         String displayName = user.getDisplayName();
         if (displayName != null && !displayName.isEmpty()) {
             txtProfileName.setText(displayName);
@@ -164,6 +182,19 @@ public class ProfileFragment extends Fragment {
             if (email != null && !email.isEmpty()) {
                 txtProfileInitials.setText(email.substring(0, 1).toUpperCase());
             }
+        }
+        
+        Uri photoUrl = user.getPhotoUrl();
+        if (photoUrl != null) {
+            imgProfilePicture.setVisibility(View.VISIBLE);
+            txtProfileInitials.setVisibility(View.GONE);
+            Glide.with(this)
+                 .load(photoUrl)
+                 .circleCrop()
+                 .into(imgProfilePicture);
+        } else {
+            imgProfilePicture.setVisibility(View.GONE);
+            txtProfileInitials.setVisibility(View.VISIBLE);
         }
 
         // Email
