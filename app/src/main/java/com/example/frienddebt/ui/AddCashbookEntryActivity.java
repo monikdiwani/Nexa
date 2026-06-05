@@ -29,6 +29,8 @@ public class AddCashbookEntryActivity extends AppCompatActivity {
     private EditText etParticulars, etContactName, etAmount, etNote;
     private RadioGroup rgType, rgMedium;
     private AutoCompleteTextView actvCategory;
+    private com.google.android.material.textfield.TextInputLayout layoutCustomCategory;
+    private EditText etCustomCategory;
     private TextView txtSelectedDate;
     private Button btnSelectDate, btnSaveEntry, btnScanReceipt;
     private ImageButton btnBack;
@@ -92,6 +94,24 @@ public class AddCashbookEntryActivity extends AppCompatActivity {
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, CATEGORIES);
         actvCategory.setAdapter(adapter);
         actvCategory.setText(CATEGORIES[CATEGORIES.length - 1], false); // Default to "Other"
+        
+        layoutCustomCategory = findViewById(R.id.layoutCustomCategory);
+        etCustomCategory = findViewById(R.id.etCustomCategory);
+        
+        actvCategory.setOnItemClickListener((parent, view, position, id) -> {
+            String selected = adapter.getItem(position);
+            if ("Other".equalsIgnoreCase(selected)) {
+                layoutCustomCategory.setVisibility(android.view.View.VISIBLE);
+            } else {
+                layoutCustomCategory.setVisibility(android.view.View.GONE);
+                etCustomCategory.setText("");
+            }
+        });
+        
+        // Ensure initial state
+        if ("Other".equalsIgnoreCase(actvCategory.getText().toString())) {
+            layoutCustomCategory.setVisibility(android.view.View.VISIBLE);
+        }
         
         switchRecurring = findViewById(R.id.switchRecurring);
         layoutRecurringFrequency = findViewById(R.id.layoutRecurringFrequency);
@@ -173,7 +193,22 @@ public class AddCashbookEntryActivity extends AppCompatActivity {
         etParticulars.setText(entry.getParticulars());
         if (entry.getContactName() != null) etContactName.setText(entry.getContactName());
         etAmount.setText(String.valueOf(entry.getAmount()));
-        if (entry.getCategory() != null) actvCategory.setText(entry.getCategory(), false);
+        if (entry.getCategory() != null) {
+            boolean found = false;
+            for (String c : CATEGORIES) {
+                if (c.equalsIgnoreCase(entry.getCategory())) {
+                    found = true; break;
+                }
+            }
+            if (!found) {
+                actvCategory.setText("Other", false);
+                layoutCustomCategory.setVisibility(android.view.View.VISIBLE);
+                etCustomCategory.setText(entry.getCategory());
+            } else {
+                actvCategory.setText(entry.getCategory(), false);
+                layoutCustomCategory.setVisibility(android.view.View.GONE);
+            }
+        }
         if (entry.getNote() != null) etNote.setText(entry.getNote());
         
         if ("CASH_IN".equals(entry.getType())) rgType.check(R.id.rbCashIn);
@@ -218,6 +253,12 @@ public class AddCashbookEntryActivity extends AppCompatActivity {
         String contactName = etContactName.getText().toString().trim();
         String amountStr = etAmount.getText().toString().trim();
         String category = actvCategory.getText().toString().trim();
+        if ("Other".equalsIgnoreCase(category)) {
+            String customCat = etCustomCategory.getText().toString().trim();
+            if (!customCat.isEmpty()) {
+                category = customCat;
+            }
+        }
         String note = etNote.getText().toString().trim();
 
         if (particulars.isEmpty()) {

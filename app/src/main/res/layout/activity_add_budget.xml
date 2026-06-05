@@ -69,6 +69,23 @@
                     android:textColor="@color/text_primary" />
             </com.google.android.material.textfield.TextInputLayout>
 
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/layoutCustomCategory"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Custom Category"
+                android:visibility="gone"
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                android:layout_marginBottom="16dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etCustomCategory"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textCapWords"
+                    android:textColor="@color/text_primary" />
+            </com.google.android.material.textfield.TextInputLayout>
+
             <!-- Amount Input -->
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"

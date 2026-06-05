@@ -198,4 +198,14 @@ public class DashboardActivity extends AppCompatActivity {
         if (profileFragment != null && !profileFragment.isHidden()) return profileFragment;
         return null;
     }
+
+    @Override
+    public void onBackPressed() {
+        BottomNavigationView navView = findViewById(R.id.bottom_navigation);
+        if (navView.getSelectedItemId() == R.id.nav_home) {
+            super.onBackPressed();
+        } else {
+            navView.setSelectedItemId(R.id.nav_home);
+        }
+    }
 }

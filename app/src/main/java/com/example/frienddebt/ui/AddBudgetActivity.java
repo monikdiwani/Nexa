@@ -20,6 +20,8 @@ import com.example.frienddebt.utils.StatusBarUtil;
 public class AddBudgetActivity extends AppCompatActivity {
 
     private AutoCompleteTextView actvCategory;
+    private com.google.android.material.textfield.TextInputLayout layoutCustomCategory;
+    private EditText etCustomCategory;
     private EditText etAmount;
     private Button btnSaveBudget;
     private ImageButton btnBack;
@@ -51,11 +53,30 @@ public class AddBudgetActivity extends AppCompatActivity {
         actvCategory.setAdapter(adapter);
         actvCategory.setText(CATEGORIES[5], false); // Default to Food
 
+        layoutCustomCategory = findViewById(R.id.layoutCustomCategory);
+        etCustomCategory = findViewById(R.id.etCustomCategory);
+
+        actvCategory.setOnItemClickListener((parent, view, position, id) -> {
+            String selected = adapter.getItem(position);
+            if ("Other".equalsIgnoreCase(selected)) {
+                layoutCustomCategory.setVisibility(android.view.View.VISIBLE);
+            } else {
+                layoutCustomCategory.setVisibility(android.view.View.GONE);
+                etCustomCategory.setText("");
+            }
+        });
+
         btnSaveBudget.setOnClickListener(v -> saveBudget());
     }
 
     private void saveBudget() {
         String category = actvCategory.getText().toString().trim();
+        if ("Other".equalsIgnoreCase(category)) {
+            String customCat = etCustomCategory.getText().toString().trim();
+            if (!customCat.isEmpty()) {
+                category = customCat;
+            }
+        }
         String amountStr = etAmount.getText().toString().trim();
 
         if (amountStr.isEmpty()) {

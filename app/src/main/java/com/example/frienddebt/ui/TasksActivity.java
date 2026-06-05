@@ -310,18 +310,20 @@ public class TasksActivity extends AppCompatActivity {
                             adapter.notifyItemChanged(position);
                         }
                     } else if (direction == androidx.recyclerview.widget.ItemTouchHelper.LEFT) {
+                        String archiveLabel = task.isArchived() ? "Unarchive Task" : "Archive Task";
                         new AlertDialog.Builder(TasksActivity.this)
                                 .setTitle("Task Action")
-                                .setItems(new String[]{"Archive Task", "Delete Task"}, (dialog, which) -> {
+                                .setItems(new String[]{archiveLabel, "Delete Task"}, (dialog, which) -> {
                                     if (auth.getCurrentUser() != null) {
                                         if (which == 0) {
-                                            // Archive
+                                            // Toggle Archive
+                                            boolean newState = !task.isArchived();
                                             db.collection("users")
                                                     .document(auth.getCurrentUser().getUid())
                                                     .collection("tasks")
                                                     .document(task.getId())
-                                                    .update("isArchived", true);
-                                            Toast.makeText(TasksActivity.this, "Task Archived", Toast.LENGTH_SHORT).show();
+                                                    .update("isArchived", newState);
+                                            Toast.makeText(TasksActivity.this, newState ? "Task Archived" : "Task Unarchived", Toast.LENGTH_SHORT).show();
                                         } else {
                                             // Delete
                                             db.collection("users")
