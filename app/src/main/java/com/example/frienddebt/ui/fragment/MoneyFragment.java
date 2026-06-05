@@ -54,10 +54,7 @@ public class MoneyFragment extends Fragment {
         txtMoneyOut = view.findViewById(R.id.txtMoneyOut);
         
         layoutPendingSettlements = view.findViewById(R.id.layoutPendingSettlements);
-        layoutRecentActivity = view.findViewById(R.id.layoutRecentActivity);
         btnViewSettlements = view.findViewById(R.id.btnViewSettlements);
-        rvRecentTransactions = view.findViewById(R.id.rvRecentTransactions);
-        rvRecentTransactions.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(requireContext()));
         
         btnViewSettlements.setOnClickListener(v -> {
             startActivity(new android.content.Intent(requireContext(), com.example.frienddebt.ui.SettleUpActivity.class));
@@ -222,66 +219,8 @@ public class MoneyFragment extends Fragment {
             }
             layoutPendingSettlements.setVisibility(hasPending ? View.VISIBLE : View.GONE);
 
-            // 2. Load Recent Activity
-            Collections.sort(allEntries, (e1, e2) -> Long.compare(e2.getDate(), e1.getDate()));
-            List<CashbookEntry> recent = allEntries.size() > 3 ? allEntries.subList(0, 3) : allEntries;
-            
-            if (!recent.isEmpty()) {
-                layoutRecentActivity.setVisibility(View.VISIBLE);
-                rvRecentTransactions.setAdapter(new RecentAdapter(recent));
-            } else {
-                layoutRecentActivity.setVisibility(View.GONE);
-            }
+            // 2. Recent Activity removed as per user request
         });
-    }
-    
-    private class RecentAdapter extends androidx.recyclerview.widget.RecyclerView.Adapter<RecentAdapter.ViewHolder> {
-        private final List<CashbookEntry> list;
-        public RecentAdapter(List<CashbookEntry> list) { this.list = list; }
-        
-        @NonNull
-        @Override
-        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_cashbook_entry, parent, false);
-            return new ViewHolder(view);
-        }
-        @Override
-        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            CashbookEntry entry = list.get(position);
-            holder.txtParticulars.setText(entry.getParticulars());
-            holder.txtCategory.setText(entry.getCategory() != null ? entry.getCategory() : "Other");
-            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
-            holder.txtDate.setText(sdf.format(new java.util.Date(entry.getDate())));
-            String prefix = "CASH_IN".equalsIgnoreCase(entry.getType()) ? "+" : "-";
-            holder.txtAmount.setText(String.format(Locale.getDefault(), "%s₹%.2f", prefix, entry.getAmount()));
-            int colorRes = "CASH_IN".equalsIgnoreCase(entry.getType()) ? R.color.accent_positive : R.color.accent_negative;
-            holder.txtAmount.setTextColor(getResources().getColor(colorRes));
-            holder.txtIcon.setText("CASH_IN".equalsIgnoreCase(entry.getType()) ? "💵" : "💸");
-            holder.txtMedium.setText("CASH".equalsIgnoreCase(entry.getMedium()) ? "💵 Cash" : "🏦 Bank");
-            if (holder.btnOptions != null) holder.btnOptions.setVisibility(View.GONE);
-            
-            holder.itemView.setOnClickListener(v -> {
-                 android.content.Intent intent = new android.content.Intent(requireContext(), com.example.frienddebt.ui.LedgerBookDetailActivity.class);
-                 intent.putExtra("BOOK_ID", entry.getBookId());
-                 startActivity(intent);
-            });
-        }
-        @Override
-        public int getItemCount() { return list.size(); }
-        class ViewHolder extends androidx.recyclerview.widget.RecyclerView.ViewHolder {
-            TextView txtIcon, txtParticulars, txtDate, txtCategory, txtAmount, txtMedium;
-            android.widget.ImageButton btnOptions;
-            public ViewHolder(@NonNull View itemView) {
-                super(itemView);
-                txtIcon = itemView.findViewById(R.id.txtEntryIcon);
-                txtParticulars = itemView.findViewById(R.id.txtEntryParticulars);
-                txtDate = itemView.findViewById(R.id.txtEntryDate);
-                txtCategory = itemView.findViewById(R.id.txtEntryCategory);
-                txtAmount = itemView.findViewById(R.id.txtEntryAmount);
-                txtMedium = itemView.findViewById(R.id.txtEntryMedium);
-                btnOptions = itemView.findViewById(R.id.btnEntryOptions);
-            }
-        }
     }
 
     private static class MoneyPagerAdapter extends androidx.viewpager2.adapter.FragmentStateAdapter {

@@ -180,29 +180,6 @@
                 android:padding="4dp"/>
         </LinearLayout>
         
-        <!-- Recent Transactions Preview -->
-        <LinearLayout
-            android:id="@+id/layoutRecentActivity"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginHorizontal="20dp"
-            android:layout_marginTop="12dp"
-            android:visibility="gone">
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Recent Activity"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:textColor="@color/text_primary"
-                android:layout_marginBottom="8dp"/>
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvRecentTransactions"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical" />
-        </LinearLayout>
 
         <!-- Tabs -->
         <com.google.android.material.tabs.TabLayout
