@@ -78,31 +78,43 @@ public class RecurringEngine {
                     }
                 });
 
-        // 3. Process Cashbook Entries (Collection Group)
-        db.collectionGroup("entries")
-                .whereEqualTo("isRecurring", true)
-                .whereEqualTo("createdBy", userId)
-                .whereLessThanOrEqualTo("nextOccurrence", currentTime)
+        // 3. Process Cashbook Entries
+        db.collection("cashbooks")
+                .whereNotEqualTo("members." + userId, null)
                 .get()
-                .addOnSuccessListener(snapshots -> {
-                    if (!snapshots.isEmpty()) {
+                .addOnSuccessListener(booksSnap -> {
+                    java.util.List<com.google.android.gms.tasks.Task<com.google.firebase.firestore.QuerySnapshot>> tasks = new java.util.ArrayList<>();
+                    for (com.google.firebase.firestore.DocumentSnapshot bookDoc : booksSnap.getDocuments()) {
+                        tasks.add(db.collection("cashbooks").document(bookDoc.getId()).collection("entries")
+                                .whereLessThanOrEqualTo("nextOccurrence", currentTime)
+                                .get());
+                    }
+                    if (tasks.isEmpty()) return;
+
+                    com.google.android.gms.tasks.Tasks.whenAllSuccess(tasks).addOnSuccessListener(results -> {
                         WriteBatch batch = db.batch();
-                        for (QueryDocumentSnapshot doc : snapshots) {
-                            CashbookEntry entry = CashbookEntry.fromDocument(doc);
-                            
-                            // A. Create new instance
-                            CashbookEntry newEntry = cloneCashbookEntryForNextOccurrence(entry);
-                            if (newEntry != null) {
-                                String newId = doc.getReference().getParent().document().getId(); // same cashbook
-                                batch.set(doc.getReference().getParent().document(newId), newEntry.toFirestoreMap());
-                                
-                                // B. Update original entry to push its nextOccurrence forward
-                                long updatedNext = calculateNextOccurrence(entry.getNextOccurrence(), entry.getRecurringPattern());
-                                batch.update(doc.getReference(), "nextOccurrence", updatedNext);
+                        boolean hasUpdates = false;
+                        for (Object res : results) {
+                            com.google.firebase.firestore.QuerySnapshot entrySnap = (com.google.firebase.firestore.QuerySnapshot) res;
+                            for (QueryDocumentSnapshot doc : entrySnap) {
+                                CashbookEntry entry = CashbookEntry.fromDocument(doc);
+                                if (entry.isRecurring() && userId.equals(entry.getCreatedBy())) {
+                                    CashbookEntry newEntry = cloneCashbookEntryForNextOccurrence(entry);
+                                    if (newEntry != null) {
+                                        hasUpdates = true;
+                                        String newId = doc.getReference().getParent().document().getId();
+                                        batch.set(doc.getReference().getParent().document(newId), newEntry.toFirestoreMap());
+
+                                        long updatedNext = calculateNextOccurrence(entry.getNextOccurrence(), entry.getRecurringPattern());
+                                        batch.update(doc.getReference(), "nextOccurrence", updatedNext);
+                                    }
+                                }
                             }
                         }
-                        batch.commit().addOnSuccessListener(aVoid -> Log.d(TAG, "Recurring cashbook entries processed"));
-                    }
+                        if (hasUpdates) {
+                            batch.commit().addOnSuccessListener(aVoid -> Log.d(TAG, "Recurring cashbook entries processed"));
+                        }
+                    });
                 });
     }
 
