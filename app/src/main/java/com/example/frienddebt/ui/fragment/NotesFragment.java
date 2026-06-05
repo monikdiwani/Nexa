@@ -291,13 +291,17 @@ public class NotesFragment extends Fragment {
                 holder.txtLabel.setVisibility(View.GONE);
             }
 
-            holder.itemView.setOnClickListener(v -> {
+            android.view.View.OnClickListener clickListener = v -> {
                 Intent intent = new Intent(requireActivity(), AddEditNoteActivity.class);
                 intent.putExtra("NOTE_ID", note.getId());
                 startActivity(intent);
-            });
+            };
 
-            holder.itemView.setOnLongClickListener(v -> {
+            holder.itemView.setOnClickListener(clickListener);
+            holder.txtContent.setOnClickListener(clickListener);
+            holder.txtTitle.setOnClickListener(clickListener);
+
+            android.view.View.OnLongClickListener longClickListener = v -> {
                 android.widget.PopupMenu popup = new android.widget.PopupMenu(holder.itemView.getContext(), holder.itemView);
                 popup.getMenu().add("Edit");
                 if (activeFilter.equals("TRASH")) {
@@ -343,7 +347,11 @@ public class NotesFragment extends Fragment {
                 });
                 popup.show();
                 return true;
-            });
+            };
+
+            holder.itemView.setOnLongClickListener(longClickListener);
+            holder.txtContent.setOnLongClickListener(longClickListener);
+            holder.txtTitle.setOnLongClickListener(longClickListener);
         }
 
         @Override

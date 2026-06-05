@@ -178,6 +178,28 @@ public class CashbookFragment extends Fragment {
                 holder.txtNetBalance.setTextColor(getResources().getColor(R.color.text_primary));
             }
 
+            if (holder.btnLedgerOptions != null) {
+                if ("ADMIN".equalsIgnoreCase(role)) {
+                    holder.btnLedgerOptions.setVisibility(View.VISIBLE);
+                    holder.btnLedgerOptions.setOnClickListener(v -> {
+                        android.widget.PopupMenu popup = new android.widget.PopupMenu(v.getContext(), v);
+                        popup.getMenu().add("Rename Cashbook");
+                        popup.getMenu().add("Delete Cashbook");
+                        popup.setOnMenuItemClickListener(item -> {
+                            if ("Rename Cashbook".equals(item.getTitle())) {
+                                showRenameDialog(book);
+                            } else if ("Delete Cashbook".equals(item.getTitle())) {
+                                showDeleteDialog(book);
+                            }
+                            return true;
+                        });
+                        popup.show();
+                    });
+                } else {
+                    holder.btnLedgerOptions.setVisibility(View.GONE);
+                }
+            }
+
             holder.itemView.setOnClickListener(v -> {
                 Intent intent = new Intent(requireContext(), LedgerBookDetailActivity.class);
                 intent.putExtra("BOOK_ID", book.getId());
@@ -197,6 +219,7 @@ public class CashbookFragment extends Fragment {
 
         class ViewHolder extends RecyclerView.ViewHolder {
             TextView txtBookName, txtRole, txtTotalIn, txtTotalOut, txtNetBalance;
+            android.widget.ImageButton btnLedgerOptions;
 
             public ViewHolder(@NonNull View itemView) {
                 super(itemView);
@@ -205,7 +228,45 @@ public class CashbookFragment extends Fragment {
                 txtTotalIn = itemView.findViewById(R.id.txtTotalIn);
                 txtTotalOut = itemView.findViewById(R.id.txtTotalOut);
                 txtNetBalance = itemView.findViewById(R.id.txtNetBalance);
+                btnLedgerOptions = itemView.findViewById(R.id.btnLedgerOptions);
             }
         }
+    }
+
+    private void showRenameDialog(LedgerBook book) {
+        android.widget.EditText editText = new android.widget.EditText(requireContext());
+        editText.setText(book.getName());
+        editText.setSelection(editText.getText().length());
+
+        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                .setTitle("Rename Cashbook")
+                .setView(editText)
+                .setPositiveButton("Rename", (dialog, which) -> {
+                    String newName = editText.getText().toString().trim();
+                    if (!newName.isEmpty() && !newName.equals(book.getName())) {
+                        db.collection("cashbooks").document(book.getId())
+                                .update("name", newName, "updatedAt", System.currentTimeMillis())
+                                .addOnSuccessListener(aVoid -> {
+                                    android.widget.Toast.makeText(requireContext(), "Renamed successfully", android.widget.Toast.LENGTH_SHORT).show();
+                                });
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void showDeleteDialog(LedgerBook book) {
+        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                .setTitle("Delete Cashbook")
+                .setMessage("Are you sure you want to permanently delete '" + book.getName() + "' and all its entries? This cannot be undone.")
+                .setPositiveButton("Delete", (dialog, which) -> {
+                    db.collection("cashbooks").document(book.getId())
+                            .delete()
+                            .addOnSuccessListener(aVoid -> {
+                                android.widget.Toast.makeText(requireContext(), "Cashbook deleted", android.widget.Toast.LENGTH_SHORT).show();
+                            });
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 }

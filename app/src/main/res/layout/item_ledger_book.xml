@@ -54,6 +54,15 @@
                     android:textColor="@color/text_secondary" />
             </LinearLayout>
 
+            <ImageButton
+                android:id="@+id/btnLedgerOptions"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/ic_more_vert"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:tint="@color/text_secondary"
+                android:contentDescription="Options" />
+
         </LinearLayout>
 
         <View
