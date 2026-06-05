@@ -103,32 +103,49 @@ public class DataExportHelper {
                                             }
 
                                             // 4. Fetch Cashbook Entries
-                                            db.collectionGroup("entries")
-                                                    .whereEqualTo("createdBy", userId)
+                                            db.collection("cashbooks")
+                                                    .whereNotEqualTo("members." + userId, null)
                                                     .get()
-                                                    .addOnSuccessListener(entrySnapshots -> {
-                                                        for (DocumentSnapshot doc : entrySnapshots) {
-                                                            CashbookEntry entry = CashbookEntry.fromDocument(doc);
-                                                            String amt = String.format(Locale.getDefault(), "%.2f", entry.getAmount());
-                                                            if ("EXPENSE".equals(entry.getType()) || "CASH_OUT".equals(entry.getType())) {
-                                                                amt = "-" + amt;
-                                                            } else {
-                                                                amt = "+" + amt;
-                                                            }
-                                                            csvRows.add(new String[]{
-                                                                    "Cashbook",
-                                                                    sanitize(entry.getParticulars()),
-                                                                    sanitize(entry.getCategory()),
-                                                                    amt,
-                                                                    sdf.format(new Date(entry.getDate())),
-                                                                    "-"
-                                                            });
+                                                    .addOnSuccessListener(booksSnap -> {
+                                                        java.util.List<com.google.android.gms.tasks.Task<com.google.firebase.firestore.QuerySnapshot>> bookTasks = new java.util.ArrayList<>();
+                                                        for (DocumentSnapshot bookDoc : booksSnap.getDocuments()) {
+                                                            bookTasks.add(db.collection("cashbooks").document(bookDoc.getId()).collection("entries").get());
                                                         }
 
-                                                        // All Data Fetched!
-                                                        progressDialog.dismiss();
-                                                        generateAndShareCSV(context, csvRows);
+                                                        if (bookTasks.isEmpty()) {
+                                                            progressDialog.dismiss();
+                                                            generateAndShareCSV(context, csvRows);
+                                                            return;
+                                                        }
 
+                                                        com.google.android.gms.tasks.Tasks.whenAllSuccess(bookTasks)
+                                                                .addOnSuccessListener(results -> {
+                                                                    for (Object res : results) {
+                                                                        com.google.firebase.firestore.QuerySnapshot entrySnap = (com.google.firebase.firestore.QuerySnapshot) res;
+                                                                        for (DocumentSnapshot doc : entrySnap.getDocuments()) {
+                                                                            CashbookEntry entry = CashbookEntry.fromDocument(doc);
+                                                                            if (userId.equals(entry.getCreatedBy())) {
+                                                                                String amt = String.format(Locale.getDefault(), "%.2f", entry.getAmount());
+                                                                                if ("EXPENSE".equals(entry.getType()) || "CASH_OUT".equals(entry.getType())) {
+                                                                                    amt = "-" + amt;
+                                                                                } else {
+                                                                                    amt = "+" + amt;
+                                                                                }
+                                                                                csvRows.add(new String[]{
+                                                                                        "Cashbook",
+                                                                                        sanitize(entry.getParticulars()),
+                                                                                        sanitize(entry.getCategory()),
+                                                                                        amt,
+                                                                                        sdf.format(new Date(entry.getDate())),
+                                                                                        "-"
+                                                                                });
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                    progressDialog.dismiss();
+                                                                    generateAndShareCSV(context, csvRows);
+                                                                })
+                                                                .addOnFailureListener(e -> finishWithError(context, progressDialog, e));
                                                     })
                                                     .addOnFailureListener(e -> finishWithError(context, progressDialog, e));
                                         })

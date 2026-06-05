@@ -72,11 +72,9 @@ dependencies {
 
     // ✅ Biometric library for fingerprint and pattern lock
     implementation("androidx.biometric:biometric:1.1.0")
-
     // ✅ Markwon for Markdown Rendering
     implementation("io.noties.markwon:core:4.6.2")
     implementation("io.noties.markwon:ext-tasklist:4.6.2")
-
     implementation(libs.credentials)
     implementation(libs.credentials.play.services.auth)
     implementation(libs.googleid)
@@ -84,8 +82,10 @@ dependencies {
     // ✅ ML Kit Text Recognition for Receipt Scanner
     implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.0")
 
-    // ✅ Google Generative AI (Gemini) SDK
-    implementation("com.google.ai.client.generativeai:generativeai:0.7.0")
+    // ✅ Glide for image loading
+    implementation("com.github.bumptech.glide:glide:4.16.0")
+
+
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)

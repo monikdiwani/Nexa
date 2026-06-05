@@ -94,22 +94,45 @@ public class BudgetsActivity extends AppCompatActivity {
         cal.set(Calendar.SECOND, 0);
         long startOfMonth = cal.getTimeInMillis();
 
-        // Use a collectionGroup query to find all entries created by user in this month
-        db.collectionGroup("entries")
-                .whereEqualTo("createdBy", userId)
-                .whereEqualTo("type", "CASH_OUT")
-                .whereGreaterThanOrEqualTo("date", startOfMonth)
+        // 1. Fetch user's active cashbooks
+        db.collection("cashbooks")
+                .whereNotEqualTo("members." + userId, null)
                 .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    currentMonthEntries.clear();
-                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
-                        currentMonthEntries.add(CashbookEntry.fromDocument(doc));
+                .addOnSuccessListener(booksSnap -> {
+                    java.util.List<com.google.android.gms.tasks.Task<com.google.firebase.firestore.QuerySnapshot>> tasks = new java.util.ArrayList<>();
+                    for (DocumentSnapshot bookDoc : booksSnap.getDocuments()) {
+                        String bookId = bookDoc.getId();
+                        tasks.add(db.collection("cashbooks")
+                                .document(bookId)
+                                .collection("entries")
+                                .whereGreaterThanOrEqualTo("date", startOfMonth)
+                                .get());
                     }
-                    
-                    // 2. Fetch budgets
-                    fetchBudgets();
+
+                    if (tasks.isEmpty()) {
+                        currentMonthEntries.clear();
+                        fetchBudgets();
+                        return;
+                    }
+
+                    com.google.android.gms.tasks.Tasks.whenAllSuccess(tasks)
+                            .addOnSuccessListener(results -> {
+                                currentMonthEntries.clear();
+                                for (Object res : results) {
+                                    com.google.firebase.firestore.QuerySnapshot entrySnap = (com.google.firebase.firestore.QuerySnapshot) res;
+                                    for (DocumentSnapshot entryDoc : entrySnap.getDocuments()) {
+                                        String type = entryDoc.getString("type");
+                                        String createdBy = entryDoc.getString("createdBy");
+                                        if ("CASH_OUT".equals(type) && userId.equals(createdBy)) {
+                                            currentMonthEntries.add(CashbookEntry.fromDocument(entryDoc));
+                                        }
+                                    }
+                                }
+                                fetchBudgets();
+                            })
+                            .addOnFailureListener(e -> Toast.makeText(this, "Failed to load expenses: " + e.getMessage(), Toast.LENGTH_SHORT).show());
                 })
-                .addOnFailureListener(e -> Toast.makeText(this, "Failed to load expenses: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                .addOnFailureListener(e -> Toast.makeText(this, "Failed to load ledgers: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
 
     private void fetchBudgets() {

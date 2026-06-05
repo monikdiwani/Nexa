@@ -257,10 +257,8 @@ public class NotesFragment extends Fragment {
             String colorStr = note.getColorCode();
             if (colorStr == null || colorStr.isEmpty()) colorStr = "#FFFFFF";
             int colorVal = android.graphics.Color.parseColor(colorStr);
-            android.graphics.drawable.Drawable background = holder.itemView.getBackground();
-            if (background instanceof android.graphics.drawable.GradientDrawable) {
-                android.graphics.drawable.GradientDrawable gd = (android.graphics.drawable.GradientDrawable) background.mutate();
-                gd.setColor(colorVal);
+            if (holder.itemView instanceof androidx.cardview.widget.CardView) {
+                ((androidx.cardview.widget.CardView) holder.itemView).setCardBackgroundColor(colorVal);
             } else {
                 holder.itemView.setBackgroundColor(colorVal);
             }

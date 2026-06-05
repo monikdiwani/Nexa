@@ -4,85 +4,95 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@drawable/rounded_card"
-    android:padding="16dp"
-    android:layout_margin="6dp"
-    android:elevation="1dp">
+    app:cardBackgroundColor="@color/surface_card"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="2dp"
+    android:layout_marginHorizontal="6dp"
+    android:layout_marginVertical="8dp">
 
-    <ImageView
-        android:id="@+id/imgNoteAttachment"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="120dp"
-        android:scaleType="centerCrop"
-        android:layout_marginBottom="12dp"
-        android:background="#1A000000"
-        android:visibility="gone" />
-
-    <RelativeLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-        <TextView
-            android:id="@+id/txtNoteTitle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_toStartOf="@id/imgPinned"
-            android:text="Note Title"
-            android:textColor="@color/text_primary"
-            android:textSize="15sp"
-            android:textStyle="bold"
-            android:maxLines="2"
-            android:ellipsize="end" />
+        android:layout_height="wrap_content"
+        android:padding="16dp"
+        android:orientation="vertical">
 
         <ImageView
-            android:id="@+id/imgPinned"
-            android:layout_width="16dp"
-            android:layout_height="16dp"
-            android:layout_alignParentEnd="true"
-            android:layout_centerVertical="true"
-            android:src="@drawable/ic_pin"
-            app:tint="@color/primary"
+            android:id="@+id/imgNoteAttachment"
+            android:layout_width="match_parent"
+            android:layout_height="120dp"
+            android:scaleType="centerCrop"
+            android:layout_marginBottom="12dp"
+            android:background="#1A000000"
             android:visibility="gone" />
-    </RelativeLayout>
 
-    <TextView
-        android:id="@+id/txtNoteContent"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="This is a quick preview of the note content..."
-        android:textColor="@color/text_secondary"
-        android:textSize="13sp"
-        android:maxLines="4"
-        android:ellipsize="end"
-        android:layout_marginTop="6dp" />
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <TextView
+                android:id="@+id/txtNoteTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_toStartOf="@id/imgPinned"
+                android:text="Note Title"
+                android:textColor="@color/text_primary"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:maxLines="2"
+                android:ellipsize="end" />
 
-    <RelativeLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp">
+            <ImageView
+                android:id="@+id/imgPinned"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:src="@drawable/ic_pin"
+                app:tint="@color/primary"
+                android:visibility="gone" />
+        </RelativeLayout>
 
         <TextView
-            android:id="@+id/txtNoteLabel"
-            android:layout_width="wrap_content"
+            android:id="@+id/txtNoteContent"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Label"
+            android:text="This is a quick preview of the note content..."
             android:textColor="@color/text_secondary"
-            android:textSize="10sp"
-            android:background="@drawable/chip_background"
-            android:paddingHorizontal="6dp"
-            android:paddingVertical="2dp"
-            android:layout_alignParentStart="true"
-            android:layout_centerVertical="true"
-            android:visibility="gone" />
+            android:textSize="14sp"
+            android:lineSpacingExtra="2dp"
+            android:maxLines="4"
+            android:ellipsize="end"
+            android:layout_marginTop="8dp" />
 
-        <TextView
-            android:id="@+id/txtNoteDate"
-            android:layout_width="wrap_content"
+        <RelativeLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Oct 12, 2023"
-            android:textColor="@color/text_hint"
-            android:textSize="11sp"
-            android:layout_alignParentEnd="true"
-            android:layout_centerVertical="true" />
-    </RelativeLayout>
+            android:layout_marginTop="12dp">
+
+            <TextView
+                android:id="@+id/txtNoteLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Label"
+                android:textColor="@color/text_secondary"
+                android:textSize="10sp"
+                android:background="@drawable/chip_background"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="4dp"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/txtNoteDate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Oct 12, 2023"
+                android:textColor="@color/text_hint"
+                android:textSize="11sp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true" />
+        </RelativeLayout>
+
+    </LinearLayout>
 
 </androidx.cardview.widget.CardView>

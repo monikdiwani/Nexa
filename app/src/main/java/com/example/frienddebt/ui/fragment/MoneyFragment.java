@@ -258,6 +258,7 @@ public class MoneyFragment extends Fragment {
             holder.txtAmount.setTextColor(getResources().getColor(colorRes));
             holder.txtIcon.setText("CASH_IN".equalsIgnoreCase(entry.getType()) ? "💵" : "💸");
             holder.txtMedium.setText("CASH".equalsIgnoreCase(entry.getMedium()) ? "💵 Cash" : "🏦 Bank");
+            if (holder.btnOptions != null) holder.btnOptions.setVisibility(View.GONE);
             
             holder.itemView.setOnClickListener(v -> {
                  android.content.Intent intent = new android.content.Intent(requireContext(), com.example.frienddebt.ui.LedgerBookDetailActivity.class);
@@ -269,6 +270,7 @@ public class MoneyFragment extends Fragment {
         public int getItemCount() { return list.size(); }
         class ViewHolder extends androidx.recyclerview.widget.RecyclerView.ViewHolder {
             TextView txtIcon, txtParticulars, txtDate, txtCategory, txtAmount, txtMedium;
+            android.widget.ImageButton btnOptions;
             public ViewHolder(@NonNull View itemView) {
                 super(itemView);
                 txtIcon = itemView.findViewById(R.id.txtEntryIcon);
@@ -277,6 +279,7 @@ public class MoneyFragment extends Fragment {
                 txtCategory = itemView.findViewById(R.id.txtEntryCategory);
                 txtAmount = itemView.findViewById(R.id.txtEntryAmount);
                 txtMedium = itemView.findViewById(R.id.txtEntryMedium);
+                btnOptions = itemView.findViewById(R.id.btnEntryOptions);
             }
         }
     }
