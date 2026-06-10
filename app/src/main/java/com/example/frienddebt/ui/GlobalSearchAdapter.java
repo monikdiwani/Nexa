@@ -11,7 +11,14 @@ import com.example.frienddebt.model.GlobalSearchResult;
 import java.util.ArrayList;
 import java.util.List;
 
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.style.ForegroundColorSpan;
+import java.util.Locale;
+
 public class GlobalSearchAdapter extends RecyclerView.Adapter<GlobalSearchAdapter.ViewHolder> {
+
+    private String currentQuery = "";
 
     private List<GlobalSearchResult> results = new ArrayList<>();
     private final OnItemClickListener listener;
@@ -24,9 +31,23 @@ public class GlobalSearchAdapter extends RecyclerView.Adapter<GlobalSearchAdapte
         this.listener = listener;
     }
 
-    public void setResults(List<GlobalSearchResult> newResults) {
+    public void setResults(List<GlobalSearchResult> newResults, String query) {
         this.results = newResults;
+        this.currentQuery = query != null ? query.toLowerCase(Locale.getDefault()) : "";
         notifyDataSetChanged();
+    }
+
+    private CharSequence highlightText(String text, int color) {
+        if (text == null) return "";
+        if (currentQuery.isEmpty()) return text;
+        
+        String lowerText = text.toLowerCase(Locale.getDefault());
+        int start = lowerText.indexOf(currentQuery);
+        if (start < 0) return text;
+        
+        SpannableString spannable = new SpannableString(text);
+        spannable.setSpan(new ForegroundColorSpan(color), start, start + currentQuery.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        return spannable;
     }
 
     @NonNull
@@ -41,8 +62,11 @@ public class GlobalSearchAdapter extends RecyclerView.Adapter<GlobalSearchAdapte
         GlobalSearchResult result = results.get(position);
         
         holder.txtIcon.setText(result.getIcon() != null ? result.getIcon() : "🔍");
-        holder.txtTitle.setText(result.getTitle());
-        holder.txtSubtitle.setText(result.getSubtitle());
+        
+        int primaryColor = holder.itemView.getContext().getResources().getColor(R.color.primary);
+        holder.txtTitle.setText(highlightText(result.getTitle(), primaryColor));
+        holder.txtSubtitle.setText(highlightText(result.getSubtitle(), primaryColor));
+        
         holder.txtType.setText(result.getType());
 
         // Set type color based on type

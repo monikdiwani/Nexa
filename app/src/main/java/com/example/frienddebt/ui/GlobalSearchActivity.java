@@ -131,6 +131,36 @@ public class GlobalSearchActivity extends AppCompatActivity {
                 applySearch();
             }
         });
+        
+        etSearch.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH) {
+                saveRecentSearch(currentQuery);
+                android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
+                if (imm != null) imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+                return true;
+            }
+            return false;
+        });
+    }
+
+    private void saveRecentSearch(String query) {
+        if (query.trim().isEmpty()) return;
+        android.content.SharedPreferences prefs = getSharedPreferences("NexaPrefs", MODE_PRIVATE);
+        String recentStr = prefs.getString("recent_searches_" + currentUserId, "");
+        List<String> recentList = new ArrayList<>(java.util.Arrays.asList(recentStr.split(",")));
+        recentList.remove("");
+        recentList.remove(query);
+        recentList.add(0, query);
+        if (recentList.size() > 5) recentList = recentList.subList(0, 5);
+        prefs.edit().putString("recent_searches_" + currentUserId, android.text.TextUtils.join(",", recentList)).apply();
+    }
+    
+    private List<String> getRecentSearches() {
+        android.content.SharedPreferences prefs = getSharedPreferences("NexaPrefs", MODE_PRIVATE);
+        String recentStr = prefs.getString("recent_searches_" + currentUserId, "");
+        List<String> recentList = new ArrayList<>(java.util.Arrays.asList(recentStr.split(",")));
+        recentList.remove("");
+        return recentList;
     }
 
     private void fetchAllData() {
@@ -253,6 +283,22 @@ public class GlobalSearchActivity extends AppCompatActivity {
     private void applySearch() {
         filteredData.clear();
         
+        if (currentQuery.isEmpty() && activeFilter.equals("ALL")) {
+            List<String> recents = getRecentSearches();
+            for (String r : recents) {
+                filteredData.add(new GlobalSearchResult("recent_" + r, "Recent", r, "Recent Search", "🕒", System.currentTimeMillis()));
+            }
+            adapter.setResults(filteredData, currentQuery);
+            if (filteredData.isEmpty() && progressBar.getVisibility() == View.GONE) {
+                layoutEmptyState.setVisibility(View.VISIBLE);
+                rvSearchResults.setVisibility(View.GONE);
+            } else {
+                layoutEmptyState.setVisibility(View.GONE);
+                rvSearchResults.setVisibility(View.VISIBLE);
+            }
+            return;
+        }
+        
         for (GlobalSearchResult item : allData) {
             // Apply Type Filter
             if (!activeFilter.equals("ALL") && !item.getType().equals(activeFilter)) {
@@ -274,7 +320,7 @@ public class GlobalSearchActivity extends AppCompatActivity {
         // Sort by recency
         Collections.sort(filteredData, (a, b) -> Long.compare(b.getTimestamp(), a.getTimestamp()));
 
-        adapter.setResults(filteredData);
+        adapter.setResults(filteredData, currentQuery);
         
         if (filteredData.isEmpty() && progressBar.getVisibility() == View.GONE) {
             layoutEmptyState.setVisibility(View.VISIBLE);
@@ -286,6 +332,13 @@ public class GlobalSearchActivity extends AppCompatActivity {
     }
 
     private void onResultClicked(GlobalSearchResult result) {
+        if ("Recent".equals(result.getType())) {
+            etSearch.setText(result.getTitle());
+            etSearch.setSelection(result.getTitle().length());
+            return;
+        }
+        saveRecentSearch(currentQuery);
+        
         switch (result.getType()) {
             case GlobalSearchResult.TYPE_TASK:
                 // Route to Tasks Activity (assuming we don't have a specific task detail view yet, just the main list)
