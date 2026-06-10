@@ -610,6 +610,7 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
             boolean isUdhaar = entry.getContactName() != null && !entry.getContactName().isEmpty();
             List<String> options = new ArrayList<>();
             if (isUdhaar) options.add("Send WhatsApp Reminder");
+            options.add("Create App Reminder");
             options.add("Edit Transaction");
             options.add("Duplicate Transaction");
             options.add("Delete Transaction");
@@ -627,6 +628,14 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                                     entry.getAmount(),
                                     bookName
                             );
+                        } else if ("Create App Reminder".equals(selected)) {
+                            Intent intent = new Intent(LedgerBookDetailActivity.this, AddReminderActivity.class);
+                            intent.putExtra("LINKED_ID", entry.getId());
+                            intent.putExtra("LINKED_TYPE", "CASHBOOK");
+                            String prefix = "CASH_IN".equals(entry.getType()) ? "Collect" : "Pay";
+                            String name = (entry.getContactName() != null && !entry.getContactName().isEmpty()) ? entry.getContactName() : entry.getCategory();
+                            intent.putExtra("LINKED_TITLE", prefix + " ₹" + entry.getAmount() + " - " + name);
+                            startActivity(intent);
                         } else if ("Edit Transaction".equals(selected)) {
                             Intent intent = new Intent(LedgerBookDetailActivity.this, AddCashbookEntryActivity.class);
                             intent.putExtra("BOOK_ID", bookId);
