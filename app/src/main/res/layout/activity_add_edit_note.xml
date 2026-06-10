@@ -180,14 +180,15 @@
             android:orientation="vertical"
             android:padding="20dp">
 
-            <ImageView
-                android:id="@+id/imgPreview"
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvImages"
                 android:layout_width="match_parent"
-                android:layout_height="200dp"
-                android:scaleType="centerCrop"
+                android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:background="#1A000000"
-                android:visibility="gone" />
+                android:orientation="horizontal"
+                android:visibility="gone"
+                android:nestedScrollingEnabled="false"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
 
             <!-- Title Input -->
             <EditText
@@ -203,20 +204,37 @@
                 android:inputType="textCapSentences"
                 android:paddingVertical="8dp" />
 
-            <!-- Label Input -->
-            <EditText
-                android:id="@+id/etNoteLabel"
-                android:layout_width="wrap_content"
+            <!-- Organization Row -->
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Add label..."
-                android:textColor="@color/text_secondary"
-                android:textColorHint="@color/text_hint"
-                android:textSize="13sp"
-                android:background="@drawable/chip_background"
-                android:inputType="text"
-                android:paddingHorizontal="12dp"
-                android:paddingVertical="6dp"
-                android:layout_marginTop="4dp" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="4dp">
+                
+                <Spinner
+                    android:id="@+id/spinnerFolder"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/chip_background"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="6dp"
+                    android:layout_marginEnd="8dp"/>
+                
+                <EditText
+                    android:id="@+id/etNoteLabel"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:hint="Add tags (comma separated)..."
+                    android:textColor="@color/text_secondary"
+                    android:textColorHint="@color/text_hint"
+                    android:textSize="13sp"
+                    android:background="@drawable/chip_background"
+                    android:inputType="text"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="6dp" />
+            </LinearLayout>
 
             <View
                 android:layout_width="match_parent"
@@ -237,6 +255,31 @@
                 android:inputType="textMultiLine|textLongMessage"
                 android:gravity="top"
                 android:paddingBottom="100dp" />
+
+            <!-- Checklist UI Container -->
+            <LinearLayout
+                android:id="@+id/layoutChecklist"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone"
+                android:paddingBottom="100dp">
+                
+                <LinearLayout
+                    android:id="@+id/containerChecklistItems"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+                    
+                <Button
+                    android:id="@+id/btnAddChecklistItem"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="+ Add Item"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginTop="8dp"/>
+            </LinearLayout>
 
             <!-- Markdown Preview -->
             <TextView

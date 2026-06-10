@@ -39,13 +39,22 @@ public class AddEditNoteActivity extends AppCompatActivity {
     private boolean isPinned = false;
     
     private android.widget.EditText etNoteLabel;
+    private android.widget.Spinner spinnerFolder;
     private ImageButton btnPin, btnArchive, btnDelete;
     private android.widget.LinearLayout layoutColors;
-    private ImageView imgPreview;
+    private androidx.recyclerview.widget.RecyclerView rvImages;
 
+    private java.util.List<String> imageUrls = new java.util.ArrayList<>();
     private String selectedImageUrl = null;
     private boolean isArchived = false;
     private boolean isDeleted = false;
+    private String noteType = "TEXT";
+
+    private android.widget.LinearLayout layoutChecklist;
+    private android.widget.LinearLayout containerChecklistItems;
+    private android.widget.Button btnAddChecklistItem;
+
+    private ImageAdapter imageAdapter;
 
     private android.os.Handler autoSaveHandler = new android.os.Handler();
     private Runnable autoSaveRunnable;
@@ -64,8 +73,13 @@ public class AddEditNoteActivity extends AppCompatActivity {
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
-                        selectedImageUrl = imageUri.toString();
-                        displayImagePreview(selectedImageUrl);
+                        String newImageUrl = imageUri.toString();
+                        if (!imageUrls.contains(newImageUrl)) {
+                            imageUrls.add(newImageUrl);
+                            imageAdapter.notifyItemInserted(imageUrls.size() - 1);
+                            rvImages.setVisibility(android.view.View.VISIBLE);
+                            triggerAutoSave();
+                        }
                     }
                 }
             }
@@ -83,17 +97,26 @@ public class AddEditNoteActivity extends AppCompatActivity {
         etNoteTitle = findViewById(R.id.etNoteTitle);
         etNoteContent = findViewById(R.id.etNoteContent);
         etNoteLabel = findViewById(R.id.etNoteLabel);
+        spinnerFolder = findViewById(R.id.spinnerFolder);
         btnBack = findViewById(R.id.btnBack);
         btnSave = findViewById(R.id.btnSave);
         btnPin = findViewById(R.id.btnPin);
         btnArchive = findViewById(R.id.btnArchive);
         btnDelete = findViewById(R.id.btnDelete);
         layoutColors = findViewById(R.id.layoutColors);
-        imgPreview = findViewById(R.id.imgPreview);
+        rvImages = findViewById(R.id.rvImages);
+        
+        layoutChecklist = findViewById(R.id.layoutChecklist);
+        containerChecklistItems = findViewById(R.id.containerChecklistItems);
+        btnAddChecklistItem = findViewById(R.id.btnAddChecklistItem);
+        
+        imageAdapter = new ImageAdapter();
+        rvImages.setAdapter(imageAdapter);
 
         noteId = getIntent().getStringExtra("NOTE_ID");
 
         setupColorPicker();
+        setupFolderSpinner();
         updatePinIcon();
 
         btnPin.setOnClickListener(v -> {
@@ -143,6 +166,11 @@ public class AddEditNoteActivity extends AppCompatActivity {
         });
 
         setupMarkdownToolbar();
+
+        btnAddChecklistItem.setOnClickListener(v -> {
+            addChecklistItemUI("", false);
+            triggerAutoSave();
+        });
     }
 
     private void setupAutoSaveListeners() {
@@ -173,7 +201,9 @@ public class AddEditNoteActivity extends AppCompatActivity {
         findViewById(R.id.btnFormatItalic).setOnClickListener(v -> insertMarkdown("*", "*"));
         findViewById(R.id.btnFormatHeader).setOnClickListener(v -> insertMarkdownAtLineStart("### "));
         findViewById(R.id.btnFormatBullet).setOnClickListener(v -> insertMarkdownAtLineStart("- "));
-        findViewById(R.id.btnFormatTask).setOnClickListener(v -> insertMarkdownAtLineStart("- [ ] "));
+        findViewById(R.id.btnFormatTask).setOnClickListener(v -> {
+            toggleChecklistMode();
+        });
 
         findViewById(R.id.btnAddImage).setOnClickListener(v -> {
             Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
@@ -248,6 +278,103 @@ public class AddEditNoteActivity extends AppCompatActivity {
         etNoteContent.setSelection(start + prefix.length());
     }
 
+    private void toggleChecklistMode() {
+        if ("CHECKLIST".equals(noteType)) {
+            // Convert to TEXT mode
+            noteType = "TEXT";
+            etNoteContent.setText(getChecklistContentAsMarkdown());
+            layoutChecklist.setVisibility(android.view.View.GONE);
+            etNoteContent.setVisibility(android.view.View.VISIBLE);
+        } else {
+            // Convert to CHECKLIST mode
+            noteType = "CHECKLIST";
+            parseMarkdownToChecklist(etNoteContent.getText().toString());
+            etNoteContent.setVisibility(android.view.View.GONE);
+            layoutChecklist.setVisibility(android.view.View.VISIBLE);
+        }
+        triggerAutoSave();
+    }
+
+    private String getChecklistContentAsMarkdown() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < containerChecklistItems.getChildCount(); i++) {
+            android.view.View child = containerChecklistItems.getChildAt(i);
+            android.widget.CheckBox cb = child.findViewById(R.id.cbChecklistItem);
+            android.widget.EditText et = child.findViewById(R.id.etChecklistItem);
+            String text = et.getText().toString().trim();
+            if (!text.isEmpty() || cb.isChecked()) {
+                sb.append(cb.isChecked() ? "- [x] " : "- [ ] ").append(text).append("\n");
+            }
+        }
+        return sb.toString().trim();
+    }
+
+    private void parseMarkdownToChecklist(String content) {
+        containerChecklistItems.removeAllViews();
+        if (content == null || content.trim().isEmpty()) {
+            addChecklistItemUI("", false);
+            return;
+        }
+
+        String[] lines = content.split("\n");
+        boolean hasItems = false;
+        for (String line : lines) {
+            String trimmed = line.trim();
+            if (trimmed.startsWith("- [x] ") || trimmed.startsWith("- [X] ")) {
+                addChecklistItemUI(trimmed.substring(6), true);
+                hasItems = true;
+            } else if (trimmed.startsWith("- [ ] ")) {
+                addChecklistItemUI(trimmed.substring(6), false);
+                hasItems = true;
+            } else if (!trimmed.isEmpty()) {
+                addChecklistItemUI(trimmed, false);
+                hasItems = true;
+            }
+        }
+        if (!hasItems) {
+            addChecklistItemUI("", false);
+        }
+    }
+
+    private void addChecklistItemUI(String text, boolean isChecked) {
+        android.view.View view = android.view.LayoutInflater.from(this).inflate(R.layout.item_checklist, containerChecklistItems, false);
+        android.widget.CheckBox cb = view.findViewById(R.id.cbChecklistItem);
+        android.widget.EditText et = view.findViewById(R.id.etChecklistItem);
+        ImageButton btnRemove = view.findViewById(R.id.btnRemoveChecklistItem);
+
+        cb.setChecked(isChecked);
+        et.setText(text);
+        
+        if (isChecked) {
+            et.setPaintFlags(et.getPaintFlags() | android.graphics.Paint.STRIKE_THRU_TEXT_FLAG);
+        }
+
+        cb.setOnCheckedChangeListener((buttonView, isCbChecked) -> {
+            if (isCbChecked) {
+                et.setPaintFlags(et.getPaintFlags() | android.graphics.Paint.STRIKE_THRU_TEXT_FLAG);
+            } else {
+                et.setPaintFlags(et.getPaintFlags() & (~android.graphics.Paint.STRIKE_THRU_TEXT_FLAG));
+            }
+            triggerAutoSave();
+        });
+
+        et.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) { triggerAutoSave(); }
+            @Override
+            public void afterTextChanged(android.text.Editable s) {}
+        });
+
+        btnRemove.setOnClickListener(v -> {
+            containerChecklistItems.removeView(view);
+            triggerAutoSave();
+        });
+
+        containerChecklistItems.addView(view);
+    }
+
     private void loadNoteDetails() {
         if (auth.getCurrentUser() == null) return;
         String userId = auth.getCurrentUser().getUid();
@@ -267,21 +394,79 @@ public class AddEditNoteActivity extends AppCompatActivity {
                         isPinned = note.isPinned();
                         isArchived = note.isArchived();
                         isDeleted = note.isDeleted();
-                        String label = note.getLabel() != null ? note.getLabel() : "";
-                        selectedImageUrl = note.getImageUrl();
+                        noteType = note.getType() != null ? note.getType() : "TEXT";
+                        
+                        String label = "";
+                        if (note.getTags() != null && !note.getTags().isEmpty()) {
+                            label = android.text.TextUtils.join(", ", note.getTags());
+                        } else if (note.getLabel() != null) {
+                            label = note.getLabel(); // Fallback for old data
+                        }
+                        
+                        String folder = note.getFolder() != null ? note.getFolder() : "Personal";
+                        setSpinnerSelection(folder);
+                        
+                        if (note.getImageUrls() != null && !note.getImageUrls().isEmpty()) {
+                            imageUrls.clear();
+                            imageUrls.addAll(note.getImageUrls());
+                        } else if (note.getImageUrl() != null && !note.getImageUrl().isEmpty()) {
+                            imageUrls.clear();
+                            imageUrls.add(note.getImageUrl()); // Legacy support
+                        }
 
                         etNoteTitle.setText(originalTitle);
-                        etNoteContent.setText(originalContent);
                         etNoteLabel.setText(label);
                         
+                        if ("CHECKLIST".equals(noteType)) {
+                            parseMarkdownToChecklist(originalContent);
+                            etNoteContent.setVisibility(android.view.View.GONE);
+                            layoutChecklist.setVisibility(android.view.View.VISIBLE);
+                        } else {
+                            etNoteContent.setText(originalContent);
+                            etNoteContent.setVisibility(android.view.View.VISIBLE);
+                            layoutChecklist.setVisibility(android.view.View.GONE);
+                        }
+
                         applyColor(selectedColor);
                         updatePinIcon();
                         updateArchiveIcon();
-                        if (selectedImageUrl != null && !selectedImageUrl.isEmpty()) {
-                            displayImagePreview(selectedImageUrl);
+                        if (!imageUrls.isEmpty()) {
+                            rvImages.setVisibility(android.view.View.VISIBLE);
+                            imageAdapter.notifyDataSetChanged();
+                        } else {
+                            rvImages.setVisibility(android.view.View.GONE);
                         }
                     }
                 });
+    }
+
+    private void setupFolderSpinner() {
+        String[] folders = {"Personal", "Work", "Study", "Finance", "Ideas", "Shopping", "Travel"};
+        android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<>(
+            this, android.R.layout.simple_spinner_item, folders);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerFolder.setAdapter(adapter);
+        
+        spinnerFolder.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(android.widget.AdapterView<?> parent, android.view.View view, int position, long id) {
+                triggerAutoSave();
+            }
+            @Override
+            public void onNothingSelected(android.widget.AdapterView<?> parent) {}
+        });
+    }
+
+    private void setSpinnerSelection(String folder) {
+        android.widget.ArrayAdapter<String> adapter = (android.widget.ArrayAdapter<String>) spinnerFolder.getAdapter();
+        if (adapter != null) {
+            for (int i = 0; i < adapter.getCount(); i++) {
+                if (adapter.getItem(i).equalsIgnoreCase(folder)) {
+                    spinnerFolder.setSelection(i);
+                    break;
+                }
+            }
+        }
     }
 
     private void setupColorPicker() {
@@ -327,17 +512,46 @@ public class AddEditNoteActivity extends AppCompatActivity {
         }
     }
 
-    private void displayImagePreview(String uriString) {
-        if (uriString == null || uriString.isEmpty()) {
-            imgPreview.setVisibility(android.view.View.GONE);
-            return;
+    private class ImageAdapter extends androidx.recyclerview.widget.RecyclerView.Adapter<ImageAdapter.ViewHolder> {
+        @androidx.annotation.NonNull
+        @Override
+        public ViewHolder onCreateViewHolder(@androidx.annotation.NonNull android.view.ViewGroup parent, int viewType) {
+            android.view.View view = android.view.LayoutInflater.from(parent.getContext()).inflate(R.layout.item_note_image, parent, false);
+            return new ViewHolder(view);
         }
-        imgPreview.setVisibility(android.view.View.VISIBLE);
-        try {
-            imgPreview.setImageURI(Uri.parse(uriString));
-        } catch (Exception e) {
-            e.printStackTrace();
-            imgPreview.setVisibility(android.view.View.GONE);
+
+        @Override
+        public void onBindViewHolder(@androidx.annotation.NonNull ViewHolder holder, int position) {
+            String uriStr = imageUrls.get(position);
+            try {
+                holder.img.setImageURI(Uri.parse(uriStr));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            holder.btnRemove.setOnClickListener(v -> {
+                imageUrls.remove(position);
+                notifyItemRemoved(position);
+                notifyItemRangeChanged(position, imageUrls.size());
+                if (imageUrls.isEmpty()) {
+                    rvImages.setVisibility(android.view.View.GONE);
+                }
+                triggerAutoSave();
+            });
+        }
+
+        @Override
+        public int getItemCount() {
+            return imageUrls.size();
+        }
+
+        class ViewHolder extends androidx.recyclerview.widget.RecyclerView.ViewHolder {
+            ImageView img;
+            ImageButton btnRemove;
+            public ViewHolder(android.view.View itemView) {
+                super(itemView);
+                img = itemView.findViewById(R.id.imgAttachment);
+                btnRemove = itemView.findViewById(R.id.btnRemoveImage);
+            }
         }
     }
 
@@ -359,8 +573,27 @@ public class AddEditNoteActivity extends AppCompatActivity {
         if (hasSaved) return;
 
         final String title = etNoteTitle.getText().toString().trim();
-        final String content = etNoteContent.getText().toString().trim();
-        final String label = etNoteLabel.getText().toString().trim();
+        String contentRaw = "";
+        if ("CHECKLIST".equals(noteType)) {
+            contentRaw = getChecklistContentAsMarkdown();
+        } else {
+            contentRaw = etNoteContent.getText().toString().trim();
+        }
+        final String content = contentRaw;
+        
+        final String labelStr = etNoteLabel.getText().toString().trim();
+        final String folder = spinnerFolder.getSelectedItem() != null ? spinnerFolder.getSelectedItem().toString() : "Personal";
+        
+        java.util.List<String> tags = new java.util.ArrayList<>();
+        if (!labelStr.isEmpty()) {
+            String[] splitTags = labelStr.split(",");
+            for (String t : splitTags) {
+                String cleanT = t.trim();
+                if (!cleanT.isEmpty()) {
+                    tags.add(cleanT);
+                }
+            }
+        }
 
         if (noteId == null && title.isEmpty() && content.isEmpty()) {
             hasSaved = true;
@@ -378,12 +611,16 @@ public class AddEditNoteActivity extends AppCompatActivity {
         Map<String, Object> data = new HashMap<>();
         data.put("title", title);
         data.put("content", content);
+        data.put("type", noteType);
         data.put("colorCode", selectedColor);
-        data.put("label", label);
+        data.put("label", tags.isEmpty() ? "" : tags.get(0)); // Legacy support
+        data.put("tags", tags);
+        data.put("folder", folder);
         data.put("isPinned", isPinned);
         data.put("isArchived", isArchived);
         data.put("isDeleted", isDeleted);
-        data.put("imageUrl", selectedImageUrl);
+        data.put("imageUrl", imageUrls.isEmpty() ? null : imageUrls.get(0)); // Legacy support
+        data.put("imageUrls", imageUrls);
         data.put("updatedAt", System.currentTimeMillis());
 
         if (noteId == null) {
@@ -393,8 +630,7 @@ public class AddEditNoteActivity extends AppCompatActivity {
                     .document()
                     .getId();
             data.put("createdAt", System.currentTimeMillis());
-            data.put("type", "TEXT");
-            data.put("folder", "Personal");
+            // type and folder are already set above
         }
 
         originalTitle = title;
