@@ -38,6 +38,11 @@ public class CreateLedgerBookActivity extends AppCompatActivity {
         btnBack = findViewById(R.id.btnBack);
 
         btnBack.setOnClickListener(v -> finish());
+        
+        String incomingTitle = getIntent().getStringExtra("LINKED_TITLE");
+        if (incomingTitle != null && !incomingTitle.isEmpty()) {
+            etBookName.setText(incomingTitle + " Ledger");
+        }
 
         btnCreateBook.setOnClickListener(v -> createBook());
     }

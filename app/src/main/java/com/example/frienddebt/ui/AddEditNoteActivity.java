@@ -53,6 +53,7 @@ public class AddEditNoteActivity extends AppCompatActivity {
     private android.widget.LinearLayout layoutChecklist;
     private android.widget.LinearLayout containerChecklistItems;
     private android.widget.Button btnAddChecklistItem;
+    private android.widget.Button btnLinkReminder, btnLinkTask, btnLinkCashbook;
 
     private ImageAdapter imageAdapter;
 
@@ -109,6 +110,10 @@ public class AddEditNoteActivity extends AppCompatActivity {
         layoutChecklist = findViewById(R.id.layoutChecklist);
         containerChecklistItems = findViewById(R.id.containerChecklistItems);
         btnAddChecklistItem = findViewById(R.id.btnAddChecklistItem);
+        
+        btnLinkReminder = findViewById(R.id.btnLinkReminder);
+        btnLinkTask = findViewById(R.id.btnLinkTask);
+        btnLinkCashbook = findViewById(R.id.btnLinkCashbook);
         
         imageAdapter = new ImageAdapter();
         rvImages.setAdapter(imageAdapter);
@@ -170,6 +175,30 @@ public class AddEditNoteActivity extends AppCompatActivity {
         btnAddChecklistItem.setOnClickListener(v -> {
             addChecklistItemUI("", false);
             triggerAutoSave();
+        });
+        
+        btnLinkReminder.setOnClickListener(v -> {
+            Intent intent = new Intent(this, AddReminderActivity.class);
+            intent.putExtra("LINKED_TITLE", etNoteTitle.getText().toString());
+            intent.putExtra("LINKED_ID", noteId);
+            intent.putExtra("LINKED_TYPE", "NOTE");
+            startActivity(intent);
+        });
+        
+        btnLinkTask.setOnClickListener(v -> {
+            Intent intent = new Intent(this, AddTaskActivity.class);
+            intent.putExtra("LINKED_TITLE", etNoteTitle.getText().toString());
+            intent.putExtra("LINKED_ID", noteId);
+            intent.putExtra("LINKED_TYPE", "NOTE");
+            startActivity(intent);
+        });
+        
+        btnLinkCashbook.setOnClickListener(v -> {
+            Intent intent = new Intent(this, CreateLedgerBookActivity.class);
+            intent.putExtra("LINKED_TITLE", etNoteTitle.getText().toString());
+            intent.putExtra("LINKED_ID", noteId);
+            intent.putExtra("LINKED_TYPE", "NOTE");
+            startActivity(intent);
         });
     }
 

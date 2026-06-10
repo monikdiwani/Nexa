@@ -281,6 +281,49 @@
                     android:layout_marginTop="8dp"/>
             </LinearLayout>
 
+            <!-- Integrations Toolbar -->
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:scrollbars="none"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp">
+                
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+                    
+                    <Button
+                        android:id="@+id/btnLinkReminder"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Reminder"
+                        app:icon="@android:drawable/ic_popup_reminder"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_marginEnd="8dp"/>
+                        
+                    <Button
+                        android:id="@+id/btnLinkTask"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Create Task"
+                        app:icon="@android:drawable/ic_menu_agenda"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_marginEnd="8dp"/>
+                        
+                    <Button
+                        android:id="@+id/btnLinkCashbook"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Cashbook"
+                        app:icon="@android:drawable/ic_menu_manage"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_marginEnd="8dp"/>
+                </LinearLayout>
+            </HorizontalScrollView>
+
             <!-- Markdown Preview -->
             <TextView
                 android:id="@+id/txtMarkdownPreview"
