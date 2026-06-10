@@ -52,6 +52,7 @@ public class TasksActivity extends AppCompatActivity {
     private TasksAdapter adapter;
 
     private String activeFilter = "ALL"; // ALL, TODAY, WEEK, COMPLETED
+    private String sortMode = "PRIORITY"; // PRIORITY or DUE_DATE
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -98,7 +99,11 @@ public class TasksActivity extends AppCompatActivity {
             new AlertDialog.Builder(TasksActivity.this)
                 .setTitle("Sort Tasks")
                 .setItems(new String[]{"By Priority (High -> Low)", "By Date (Soonest first)"}, (dialog, which) -> {
-                    // Just visual sort toggle, in a full app we'd keep state.
+                    if (which == 0) {
+                        sortMode = "PRIORITY";
+                    } else {
+                        sortMode = "DUE_DATE";
+                    }
                     Toast.makeText(TasksActivity.this, "Sort applied", Toast.LENGTH_SHORT).show();
                     applyFilter();
                 })
@@ -241,8 +246,22 @@ public class TasksActivity extends AppCompatActivity {
             }
         }
 
-        // Sort incomplete tasks by Priority: High -> Medium -> Low
-        incomplete.sort((t1, t2) -> getPriorityValue(t2.getPriority()) - getPriorityValue(t1.getPriority()));
+        // Sort incomplete tasks based on sortMode
+        if ("DUE_DATE".equals(sortMode)) {
+            incomplete.sort((t1, t2) -> {
+                Long d1 = t1.getDueDate();
+                Long d2 = t2.getDueDate();
+                if (d1 == null && d2 == null) return 0;
+                if (d1 == null) return 1;
+                if (d2 == null) return -1;
+                long time1 = t1.getDueTime() != null && t1.getDueTime() > 0 ? t1.getDueTime() : t1.getDueDate();
+                long time2 = t2.getDueTime() != null && t2.getDueTime() > 0 ? t2.getDueTime() : t2.getDueDate();
+                return Long.compare(time1, time2);
+            });
+        } else {
+            // Sort by Priority: High -> Medium -> Low
+            incomplete.sort((t1, t2) -> getPriorityValue(t2.getPriority()) - getPriorityValue(t1.getPriority()));
+        }
 
         filteredTasks.addAll(incomplete);
         filteredTasks.addAll(completed);
