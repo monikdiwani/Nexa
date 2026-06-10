@@ -543,10 +543,31 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
             else if (category.contains("Salary")) emoji = "💰";
             holder.txtIcon.setText(emoji);
 
-            String prefix = "CASH_IN".equalsIgnoreCase(entry.getType()) ? "+" : "-";
-            holder.txtAmount.setText(String.format(Locale.getDefault(), "%s₹%.2f", prefix, entry.getAmount()));
+            String currentUserId = "";
+            if (FirebaseAuth.getInstance().getCurrentUser() != null) {
+                currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+            }
 
-            int colorRes = "CASH_IN".equalsIgnoreCase(entry.getType()) ? R.color.accent_positive : R.color.accent_negative;
+            String prefix = "-";
+            int colorRes = R.color.accent_negative;
+
+            if ("CASH_IN".equalsIgnoreCase(entry.getType())) {
+                prefix = "+";
+                colorRes = R.color.accent_positive;
+            } else if ("SETTLEMENT".equalsIgnoreCase(entry.getType())) {
+                if (entry.getParticipants() != null && entry.getParticipants().contains(currentUserId)) {
+                    prefix = "+";
+                    colorRes = R.color.accent_positive;
+                } else if (currentUserId.equals(entry.getPaidBy())) {
+                    prefix = "-";
+                    colorRes = R.color.accent_negative;
+                } else {
+                    prefix = ""; // Neutral if viewing another person's settlement
+                    colorRes = R.color.text_primary;
+                }
+            }
+
+            holder.txtAmount.setText(String.format(Locale.getDefault(), "%s₹%.2f", prefix, entry.getAmount()));
             holder.txtAmount.setTextColor(getResources().getColor(colorRes));
 
             String mediumText = "CASH".equalsIgnoreCase(entry.getMedium()) ? "💵 Cash" : "🏦 Bank";

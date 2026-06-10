@@ -141,7 +141,12 @@ public class ActivityLogActivity extends AppCompatActivity {
             Drawable circleDrawable = ContextCompat.getDrawable(context, R.drawable.circle_background_light);
             if (circleDrawable != null) {
                 circleDrawable = circleDrawable.mutate();
-                int colorRes = "CREATE".equalsIgnoreCase(log.getActionType()) ? R.color.accent_positive : R.color.accent_negative;
+                int colorRes = R.color.accent_negative; // Default for delete
+                if ("CREATE".equalsIgnoreCase(log.getActionType())) {
+                    colorRes = R.color.accent_positive;
+                } else if ("SETTLE".equalsIgnoreCase(log.getActionType())) {
+                    colorRes = R.color.accent_positive; // or a neutral blue if available, positive is fine
+                }
                 circleDrawable.setColorFilter(ContextCompat.getColor(context, colorRes), PorterDuff.Mode.SRC_IN);
                 holder.txtLogIcon.setBackground(circleDrawable);
             }
@@ -150,6 +155,8 @@ public class ActivityLogActivity extends AppCompatActivity {
                 holder.txtLogIcon.setText("➕");
             } else if ("DELETE".equalsIgnoreCase(log.getActionType())) {
                 holder.txtLogIcon.setText("🗑️");
+            } else if ("SETTLE".equalsIgnoreCase(log.getActionType())) {
+                holder.txtLogIcon.setText("🤝");
             } else {
                 holder.txtLogIcon.setText("📝");
             }

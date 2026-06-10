@@ -123,8 +123,22 @@ public class BudgetsActivity extends AppCompatActivity {
                                     for (DocumentSnapshot entryDoc : entrySnap.getDocuments()) {
                                         String type = entryDoc.getString("type");
                                         String createdBy = entryDoc.getString("createdBy");
+                                        
                                         if ("CASH_OUT".equals(type) && userId.equals(createdBy)) {
                                             currentMonthEntries.add(CashbookEntry.fromDocument(entryDoc));
+                                        } else if ("EXPENSE".equals(type)) {
+                                            // Handle shared expense
+                                            CashbookEntry entry = CashbookEntry.fromDocument(entryDoc);
+                                            if (entry.getSplits() != null && entry.getSplits().containsKey(userId)) {
+                                                double userShare = entry.getSplits().get(userId);
+                                                // Create a dummy entry with just the user's share to count against the budget
+                                                CashbookEntry budgetEntry = new CashbookEntry(
+                                                    entry.getId(), entry.getBookId(), entry.getDate(),
+                                                    entry.getParticulars(), "CASH_OUT", entry.getMedium(),
+                                                    userShare, entry.getCategory(), entry.getNote(), entry.getCreatedAt()
+                                                );
+                                                currentMonthEntries.add(budgetEntry);
+                                            }
                                         }
                                     }
                                 }

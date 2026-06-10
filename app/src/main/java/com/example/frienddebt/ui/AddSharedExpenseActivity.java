@@ -254,6 +254,10 @@ public class AddSharedExpenseActivity extends AppCompatActivity {
                 if (!val.isEmpty()) {
                     try {
                         double valDouble = Double.parseDouble(val);
+                        if (valDouble < 0) {
+                            Toast.makeText(this, "Negative values are not allowed", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
                         inputVals.put(entry.getKey(), valDouble);
                         sumInput += valDouble;
                     } catch (Exception ignored) {}
