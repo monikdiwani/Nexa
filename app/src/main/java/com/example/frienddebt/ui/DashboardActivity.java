@@ -208,4 +208,13 @@ public class DashboardActivity extends AppCompatActivity {
             navView.setSelectedItemId(R.id.nav_home);
         }
     }
+
+    
+
+    @Override
+    public void startActivity(android.content.Intent intent) {
+        super.startActivity(intent);
+        com.example.frienddebt.utils.AnimationHelper.applyStartTransition(this, intent);
+    }
+
 }

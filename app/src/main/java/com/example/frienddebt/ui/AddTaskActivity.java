@@ -110,6 +110,10 @@ public class AddTaskActivity extends AppCompatActivity {
 
         btnBack.setOnClickListener(v -> finish());
 
+    
+
+    
+
         // Toggle Due Date Selection Layout
         cbHasDueDate.setOnCheckedChangeListener((buttonView, isChecked) -> {
             layoutDueDate.setVisibility(isChecked ? View.VISIBLE : View.GONE);
@@ -358,4 +362,17 @@ public class AddTaskActivity extends AppCompatActivity {
                     });
         }
     }
+
+    @Override
+    public void startActivity(android.content.Intent intent) {
+        super.startActivity(intent);
+        com.example.frienddebt.utils.AnimationHelper.applyStartTransition(this, intent);
+    }
+
+    @Override
+    public void finish() {
+        super.finish();
+        com.example.frienddebt.utils.AnimationHelper.applyFinishTransition(this);
+    }
+
 }

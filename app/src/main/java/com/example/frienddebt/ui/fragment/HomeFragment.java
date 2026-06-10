@@ -209,45 +209,70 @@ public class HomeFragment extends Fragment {
                     double cashOutSum = 0;
                     int ledgerCount = snapshots.size();
 
+                    if (ledgerCount == 0) {
+                        totalCashOut = 0;
+                        txtTotalBalance.setText("₹0.00");
+                        txtHomeCashIn.setText("₹0.00");
+                        txtHomeCashOut.setText("₹0.00");
+                        txtLedgerCount.setText("0 ledgers");
+                        txtLedgerPreview.setText("Create or join a ledger to track expenses");
+                        updateInsight();
+                        return;
+                    }
+
+                    java.util.List<com.google.android.gms.tasks.Task<com.google.firebase.firestore.QuerySnapshot>> entryTasks = new java.util.ArrayList<>();
                     for (DocumentSnapshot doc : snapshots) {
                         Double in = doc.getDouble("totalCashIn");
                         Double out = doc.getDouble("totalCashOut");
                         if (in != null) cashInSum += in;
                         if (out != null) cashOutSum += out;
                         
-                        // Async fetch entries for settlement check
-                        db.collection("cashbooks").document(doc.getId()).collection("entries").get().addOnSuccessListener(es -> {
-                            if (!isAdded()) return;
-                            java.util.List<com.example.frienddebt.model.CashbookEntry> entries = new java.util.ArrayList<>();
-                            for (DocumentSnapshot edoc : es) {
-                                entries.add(com.example.frienddebt.model.CashbookEntry.fromDocument(edoc));
-                            }
-                            java.util.List<com.example.frienddebt.model.DebtEdge> edges = com.example.frienddebt.dsa.DebtSimplifier.simplifyDebts(entries);
-                            for (com.example.frienddebt.model.DebtEdge edge : edges) {
-                                if (edge.getFrom().equals(userId)) {
-                                    txtLedgerPreview.setText("⚠️ You owe ₹" + String.format(Locale.getDefault(), "%.2f", edge.getAmount()) + " in " + doc.getString("name"));
-                                    return;
-                                } else if (edge.getTo().equals(userId)) {
-                                    txtLedgerPreview.setText("✅ Owed ₹" + String.format(Locale.getDefault(), "%.2f", edge.getAmount()) + " in " + doc.getString("name"));
-                                    return;
-                                }
-                            }
-                        });
+                        entryTasks.add(db.collection("cashbooks").document(doc.getId()).collection("entries").get());
                     }
                     
                     totalCashOut = cashOutSum;
-                    
                     double total = cashInSum - cashOutSum;
                     txtTotalBalance.setText(String.format(Locale.getDefault(), "₹%.2f", total));
                     txtHomeCashIn.setText(String.format(Locale.getDefault(), "₹%.2f", cashInSum));
                     txtHomeCashOut.setText(String.format(Locale.getDefault(), "₹%.2f", cashOutSum));
-
                     txtLedgerCount.setText(ledgerCount + (ledgerCount == 1 ? " ledger" : " ledgers"));
-                    if (ledgerCount > 0) {
-                        txtLedgerPreview.setText("Keep tracking shared expenses"); // Default text until async finishes
-                    } else {
-                        txtLedgerPreview.setText("Create or join a ledger to track expenses");
-                    }
+                    txtLedgerPreview.setText("Calculating balances...");
+
+                    com.google.android.gms.tasks.Tasks.whenAllComplete(entryTasks).addOnCompleteListener(allTasks -> {
+                        if (!isAdded()) return;
+                        
+                        double totalIOwe = 0;
+                        double totalOwedToMe = 0;
+                        
+                        for (int i = 0; i < entryTasks.size(); i++) {
+                            com.google.android.gms.tasks.Task<com.google.firebase.firestore.QuerySnapshot> t = entryTasks.get(i);
+                            if (t.isSuccessful() && t.getResult() != null) {
+                                com.google.firebase.firestore.QuerySnapshot es = t.getResult();
+                                java.util.List<com.example.frienddebt.model.CashbookEntry> entries = new java.util.ArrayList<>();
+                                for (DocumentSnapshot edoc : es) {
+                                    entries.add(com.example.frienddebt.model.CashbookEntry.fromDocument(edoc));
+                                }
+                                java.util.List<com.example.frienddebt.model.DebtEdge> edges = com.example.frienddebt.dsa.DebtSimplifier.simplifyDebts(entries);
+                                for (com.example.frienddebt.model.DebtEdge edge : edges) {
+                                    if (edge.getFrom().equals(userId)) {
+                                        totalIOwe += edge.getAmount();
+                                    } else if (edge.getTo().equals(userId)) {
+                                        totalOwedToMe += edge.getAmount();
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if (totalIOwe > 0 && totalOwedToMe > 0) {
+                            txtLedgerPreview.setText(String.format(Locale.getDefault(), "⚠️ Owe: ₹%.2f | ✅ Owed: ₹%.2f", totalIOwe, totalOwedToMe));
+                        } else if (totalIOwe > 0) {
+                            txtLedgerPreview.setText(String.format(Locale.getDefault(), "⚠️ You owe ₹%.2f overall", totalIOwe));
+                        } else if (totalOwedToMe > 0) {
+                            txtLedgerPreview.setText(String.format(Locale.getDefault(), "✅ You are owed ₹%.2f overall", totalOwedToMe));
+                        } else {
+                            txtLedgerPreview.setText("All settled up! Keep tracking");
+                        }
+                    });
                     updateInsight();
                 });
 

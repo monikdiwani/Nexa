@@ -90,6 +90,10 @@ public class AddCashbookEntryActivity extends AppCompatActivity {
         // Setup Back Button
         btnBack.setOnClickListener(v -> finish());
 
+    
+
+    
+
         // Setup Category Dropdown
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, CATEGORIES);
         actvCategory.setAdapter(adapter);
@@ -361,4 +365,17 @@ public class AddCashbookEntryActivity extends AppCompatActivity {
                     Toast.makeText(AddCashbookEntryActivity.this, "Failed to save: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 });
     }
+
+    @Override
+    public void startActivity(android.content.Intent intent) {
+        super.startActivity(intent);
+        com.example.frienddebt.utils.AnimationHelper.applyStartTransition(this, intent);
+    }
+
+    @Override
+    public void finish() {
+        super.finish();
+        com.example.frienddebt.utils.AnimationHelper.applyFinishTransition(this);
+    }
+
 }

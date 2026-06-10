@@ -45,6 +45,10 @@ public class CashCounterActivity extends AppCompatActivity {
 
         btnBack.setOnClickListener(v -> finish());
 
+    
+
+    
+
         // Get app balance from intent
         appBalance = getIntent().getDoubleExtra("APP_BALANCE", 0.0);
         txtAppBalance.setText("₹" + appBalance);
@@ -112,4 +116,17 @@ public class CashCounterActivity extends AppCompatActivity {
             txtDifference.setTextColor(getResources().getColor(R.color.text_primary));
         }
     }
+
+    @Override
+    public void startActivity(android.content.Intent intent) {
+        super.startActivity(intent);
+        com.example.frienddebt.utils.AnimationHelper.applyStartTransition(this, intent);
+    }
+
+    @Override
+    public void finish() {
+        super.finish();
+        com.example.frienddebt.utils.AnimationHelper.applyFinishTransition(this);
+    }
+
 }

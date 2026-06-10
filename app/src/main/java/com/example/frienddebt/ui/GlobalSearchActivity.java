@@ -91,6 +91,10 @@ public class GlobalSearchActivity extends AppCompatActivity {
 
         btnBack.setOnClickListener(v -> finish());
 
+    
+
+    
+
         rvSearchResults.setLayoutManager(new LinearLayoutManager(this));
         adapter = new GlobalSearchAdapter(this::onResultClicked);
         rvSearchResults.setAdapter(adapter);
@@ -180,7 +184,7 @@ public class GlobalSearchActivity extends AppCompatActivity {
         };
 
         // 1. Fetch Tasks
-        db.collection("tasks").whereEqualTo("userId", currentUserId).get().addOnCompleteListener(task -> {
+        db.collection("users").document(currentUserId).collection("tasks").get().addOnCompleteListener(task -> {
             if (task.isSuccessful() && task.getResult() != null) {
                 for (DocumentSnapshot doc : task.getResult()) {
                     Task t = Task.fromDocument(doc);
@@ -196,7 +200,7 @@ public class GlobalSearchActivity extends AppCompatActivity {
         });
 
         // 2. Fetch Notes
-        db.collection("notes").whereEqualTo("userId", currentUserId).get().addOnCompleteListener(task -> {
+        db.collection("users").document(currentUserId).collection("notes").get().addOnCompleteListener(task -> {
             if (task.isSuccessful() && task.getResult() != null) {
                 for (DocumentSnapshot doc : task.getResult()) {
                     Note n = Note.fromDocument(doc);
@@ -216,7 +220,7 @@ public class GlobalSearchActivity extends AppCompatActivity {
         });
 
         // 3. Fetch Reminders
-        db.collection("reminders").whereEqualTo("userId", currentUserId).get().addOnCompleteListener(task -> {
+        db.collection("users").document(currentUserId).collection("reminders").get().addOnCompleteListener(task -> {
             if (task.isSuccessful() && task.getResult() != null) {
                 for (DocumentSnapshot doc : task.getResult()) {
                     Reminder r = Reminder.fromDocument(doc);
@@ -321,6 +325,7 @@ public class GlobalSearchActivity extends AppCompatActivity {
         Collections.sort(filteredData, (a, b) -> Long.compare(b.getTimestamp(), a.getTimestamp()));
 
         adapter.setResults(filteredData, currentQuery);
+        rvSearchResults.scheduleLayoutAnimation();
         
         if (filteredData.isEmpty() && progressBar.getVisibility() == View.GONE) {
             layoutEmptyState.setVisibility(View.VISIBLE);
@@ -371,4 +376,17 @@ public class GlobalSearchActivity extends AppCompatActivity {
                 break;
         }
     }
+
+    @Override
+    public void startActivity(android.content.Intent intent) {
+        super.startActivity(intent);
+        com.example.frienddebt.utils.AnimationHelper.applyStartTransition(this, intent);
+    }
+
+    @Override
+    public void finish() {
+        super.finish();
+        com.example.frienddebt.utils.AnimationHelper.applyFinishTransition(this);
+    }
+
 }

@@ -47,6 +47,10 @@ public class CreateLedgerBookActivity extends AppCompatActivity {
         btnCreateBook.setOnClickListener(v -> createBook());
     }
 
+    
+
+    
+
     private void createBook() {
         String bookName = etBookName.getText().toString().trim();
 
@@ -103,4 +107,17 @@ public class CreateLedgerBookActivity extends AppCompatActivity {
         }
         return sb.toString();
     }
+
+    @Override
+    public void startActivity(android.content.Intent intent) {
+        super.startActivity(intent);
+        com.example.frienddebt.utils.AnimationHelper.applyStartTransition(this, intent);
+    }
+
+    @Override
+    public void finish() {
+        super.finish();
+        com.example.frienddebt.utils.AnimationHelper.applyFinishTransition(this);
+    }
+
 }

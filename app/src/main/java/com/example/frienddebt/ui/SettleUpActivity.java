@@ -70,6 +70,10 @@ public class SettleUpActivity extends AppCompatActivity {
 
         btnBack.setOnClickListener(v -> finish());
 
+    
+
+    
+
         rvSettlements.setLayoutManager(new LinearLayoutManager(this));
         adapter = new SettlementAdapter();
         rvSettlements.setAdapter(adapter);
@@ -137,6 +141,7 @@ public class SettleUpActivity extends AppCompatActivity {
     private void runDebtSimplification(List<CashbookEntry> entries) {
         suggestedSettlements = DebtSimplifier.simplifyDebts(entries);
         adapter.notifyDataSetChanged();
+        rvSettlements.scheduleLayoutAnimation();
 
         if (suggestedSettlements.isEmpty()) {
             txtSettledUp.setVisibility(View.VISIBLE);
@@ -243,4 +248,17 @@ public class SettleUpActivity extends AppCompatActivity {
             }
         }
     }
+
+    @Override
+    public void startActivity(android.content.Intent intent) {
+        super.startActivity(intent);
+        com.example.frienddebt.utils.AnimationHelper.applyStartTransition(this, intent);
+    }
+
+    @Override
+    public void finish() {
+        super.finish();
+        com.example.frienddebt.utils.AnimationHelper.applyFinishTransition(this);
+    }
+
 }

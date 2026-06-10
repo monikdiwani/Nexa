@@ -131,6 +131,7 @@ public class CashbookFragment extends Fragment {
                     }
                     
                     adapter.notifyDataSetChanged();
+                    rvLedgerBooks.scheduleLayoutAnimation();
                     
                     if (ledgerBooks.isEmpty()) {
                         txtEmptyBooks.setVisibility(View.VISIBLE);

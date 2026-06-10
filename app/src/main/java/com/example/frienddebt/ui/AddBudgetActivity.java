@@ -49,6 +49,10 @@ public class AddBudgetActivity extends AppCompatActivity {
 
         btnBack.setOnClickListener(v -> finish());
 
+    
+
+    
+
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, CATEGORIES);
         actvCategory.setAdapter(adapter);
         actvCategory.setText(CATEGORIES[5], false); // Default to Food
@@ -124,4 +128,17 @@ public class AddBudgetActivity extends AppCompatActivity {
                     Toast.makeText(this, "Failed to save: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 });
     }
+
+    @Override
+    public void startActivity(android.content.Intent intent) {
+        super.startActivity(intent);
+        com.example.frienddebt.utils.AnimationHelper.applyStartTransition(this, intent);
+    }
+
+    @Override
+    public void finish() {
+        super.finish();
+        com.example.frienddebt.utils.AnimationHelper.applyFinishTransition(this);
+    }
+
 }

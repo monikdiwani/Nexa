@@ -79,6 +79,10 @@ public class AddReminderActivity extends AppCompatActivity {
 
         btnBack.setOnClickListener(v -> finish());
 
+    
+
+    
+
         // Category dropdown Setup
         ArrayAdapter<String> catAdapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, CATEGORIES);
         actvCategory.setAdapter(catAdapter);
@@ -299,4 +303,17 @@ public class AddReminderActivity extends AppCompatActivity {
                     Toast.makeText(AddReminderActivity.this, "Failed to schedule: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 });
     }
+
+    @Override
+    public void startActivity(android.content.Intent intent) {
+        super.startActivity(intent);
+        com.example.frienddebt.utils.AnimationHelper.applyStartTransition(this, intent);
+    }
+
+    @Override
+    public void finish() {
+        super.finish();
+        com.example.frienddebt.utils.AnimationHelper.applyFinishTransition(this);
+    }
+
 }

@@ -15,7 +15,7 @@ public class ReportCalculator {
     public static Map<String, Double> getCategoryBreakdown(List<CashbookEntry> entries, String userId) {
         Map<String, Double> breakdown = new LinkedHashMap<>();
         for (CashbookEntry entry : entries) {
-            if ("CASH_OUT".equalsIgnoreCase(entry.getType())) {
+            if ("CASH_OUT".equalsIgnoreCase(entry.getType()) || "EXPENSE".equalsIgnoreCase(entry.getType())) {
                 String cat = entry.getCategory();
                 if (cat == null || cat.isEmpty()) {
                     cat = "Other";
@@ -68,7 +68,7 @@ public class ReportCalculator {
         }
 
         for (CashbookEntry entry : entries) {
-            if ("CASH_OUT".equalsIgnoreCase(entry.getType())) {
+            if ("CASH_OUT".equalsIgnoreCase(entry.getType()) || "EXPENSE".equalsIgnoreCase(entry.getType())) {
                 long date = entry.getDate();
                 double amount = getPersonalAmount(entry, userId);
                 if (amount > 0) {
@@ -124,7 +124,7 @@ public class ReportCalculator {
         }
 
         for (CashbookEntry entry : entries) {
-            if ("CASH_OUT".equalsIgnoreCase(entry.getType())) {
+            if ("CASH_OUT".equalsIgnoreCase(entry.getType()) || "EXPENSE".equalsIgnoreCase(entry.getType())) {
                 long date = entry.getDate();
                 double amount = getPersonalAmount(entry, userId);
                 if (amount > 0) {
@@ -147,7 +147,7 @@ public class ReportCalculator {
     public static double getAverageDailySpending(List<CashbookEntry> entries, int days, String userId) {
         double total = 0;
         for (CashbookEntry entry : entries) {
-            if ("CASH_OUT".equalsIgnoreCase(entry.getType())) {
+            if ("CASH_OUT".equalsIgnoreCase(entry.getType()) || "EXPENSE".equalsIgnoreCase(entry.getType())) {
                 total += getPersonalAmount(entry, userId);
             }
         }
@@ -204,7 +204,7 @@ public class ReportCalculator {
     public static double getTotalCashOut(List<CashbookEntry> entries, String userId) {
         double total = 0;
         for (CashbookEntry entry : entries) {
-            if ("CASH_OUT".equalsIgnoreCase(entry.getType())) {
+            if ("CASH_OUT".equalsIgnoreCase(entry.getType()) || "EXPENSE".equalsIgnoreCase(entry.getType())) {
                 total += getPersonalAmount(entry, userId);
             }
         }

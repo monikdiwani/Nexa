@@ -111,6 +111,10 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
         setupFilters();
 
         btnBack.setOnClickListener(v -> finish());
+
+    
+
+    
         
         btnSearchTransactions.setOnClickListener(v -> {
             if (etSearchTransaction.getVisibility() == View.VISIBLE) {
@@ -256,7 +260,7 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                         
                         if ("CASH_IN".equals(entry.getType())) {
                             totalIn += entry.getAmount();
-                        } else if ("CASH_OUT".equals(entry.getType())) {
+                        } else if ("CASH_OUT".equals(entry.getType()) || "EXPENSE".equals(entry.getType())) {
                             totalOut += entry.getAmount();
                         }
                     }
@@ -269,7 +273,7 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                         CashbookEntry entryObj = allEntries.get(i);
                         if ("CASH_IN".equals(entryObj.getType())) {
                             rb += entryObj.getAmount();
-                        } else if ("CASH_OUT".equals(entryObj.getType())) {
+                        } else if ("CASH_OUT".equals(entryObj.getType()) || "EXPENSE".equals(entryObj.getType())) {
                             rb -= entryObj.getAmount();
                         }
                         runningBalances.put(entryObj.getId(), rb);
@@ -394,6 +398,7 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
         }
 
         adapter.notifyDataSetChanged();
+        rvCashbookEntries.scheduleLayoutAnimation();
 
         if (filteredEntries.isEmpty()) {
             txtEmptyCashbook.setVisibility(View.VISIBLE);
@@ -406,7 +411,13 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
 
     private List<CashbookEntry> filterByType(List<CashbookEntry> list, String type) {
         List<CashbookEntry> res = new ArrayList<>();
-        for (CashbookEntry e : list) if (type.equalsIgnoreCase(e.getType())) res.add(e);
+        for (CashbookEntry e : list) {
+            if (type.equalsIgnoreCase(e.getType())) {
+                res.add(e);
+            } else if ("CASH_OUT".equalsIgnoreCase(type) && "EXPENSE".equalsIgnoreCase(e.getType())) {
+                res.add(e);
+            }
+        }
         return res;
     }
 
@@ -744,4 +755,17 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
             }
         }
     }
+
+    @Override
+    public void startActivity(android.content.Intent intent) {
+        super.startActivity(intent);
+        com.example.frienddebt.utils.AnimationHelper.applyStartTransition(this, intent);
+    }
+
+    @Override
+    public void finish() {
+        super.finish();
+        com.example.frienddebt.utils.AnimationHelper.applyFinishTransition(this);
+    }
+
 }

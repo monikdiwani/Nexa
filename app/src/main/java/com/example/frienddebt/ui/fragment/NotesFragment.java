@@ -375,6 +375,7 @@ public class NotesFragment extends Fragment {
         });
         
         adapter.notifyDataSetChanged();
+        rvNotes.scheduleLayoutAnimation();
 
         if (filteredNotes.isEmpty()) {
             txtEmptyNotes.setVisibility(View.VISIBLE);

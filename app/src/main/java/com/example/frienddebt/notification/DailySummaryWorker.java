@@ -83,10 +83,20 @@ public class DailySummaryWorker extends Worker {
                 for (DocumentSnapshot entryDoc : entriesSnap.getDocuments()) {
                     String type = entryDoc.getString("type");
                     Double amountVal = entryDoc.getDouble("amount");
-                    String createdBy = entryDoc.getString("createdBy");
-                    if ("CASH_OUT".equalsIgnoreCase(type) && amountVal != null) {
-                        if (createdBy == null || userId.equals(createdBy)) {
-                            weeklySpent += amountVal;
+                    if (amountVal != null) {
+                        if ("CASH_OUT".equalsIgnoreCase(type)) {
+                            String createdBy = entryDoc.getString("createdBy");
+                            if (createdBy == null || userId.equals(createdBy)) {
+                                weeklySpent += amountVal;
+                            }
+                        } else if ("EXPENSE".equalsIgnoreCase(type)) {
+                            java.util.Map<String, Object> splits = (java.util.Map<String, Object>) entryDoc.get("splits");
+                            if (splits != null && splits.containsKey(userId)) {
+                                Object splitAmt = splits.get(userId);
+                                if (splitAmt instanceof Number) {
+                                    weeklySpent += ((Number) splitAmt).doubleValue();
+                                }
+                            }
                         }
                     }
                 }

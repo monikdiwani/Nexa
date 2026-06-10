@@ -81,6 +81,10 @@ public class AddSharedExpenseActivity extends AppCompatActivity {
 
         btnBack.setOnClickListener(v -> finish());
 
+    
+
+    
+
         rgSplitMethod.setOnCheckedChangeListener((group, checkedId) -> {
             if (checkedId == R.id.rbEqually) {
                 containerSplits.setVisibility(View.GONE);
@@ -345,4 +349,17 @@ public class AddSharedExpenseActivity extends AppCompatActivity {
                     }
                 });
     }
+
+    @Override
+    public void startActivity(android.content.Intent intent) {
+        super.startActivity(intent);
+        com.example.frienddebt.utils.AnimationHelper.applyStartTransition(this, intent);
+    }
+
+    @Override
+    public void finish() {
+        super.finish();
+        com.example.frienddebt.utils.AnimationHelper.applyFinishTransition(this);
+    }
+
 }

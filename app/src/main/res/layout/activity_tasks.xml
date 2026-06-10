@@ -169,6 +169,7 @@
         android:id="@+id/rvTasks"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:layoutAnimation="@anim/list_fall_down"
         android:clipToPadding="false"
         android:paddingHorizontal="20dp"
         android:paddingBottom="80dp"

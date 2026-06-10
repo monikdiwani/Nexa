@@ -50,8 +50,9 @@ public class DataExportHelper {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
 
         // 1. Fetch Tasks
-        db.collection("tasks")
-                .whereEqualTo("createdBy", userId)
+        db.collection("users")
+                .document(userId)
+                .collection("tasks")
                 .get()
                 .addOnSuccessListener(taskSnapshots -> {
                     for (DocumentSnapshot doc : taskSnapshots) {
@@ -68,8 +69,9 @@ public class DataExportHelper {
                     }
 
                     // 2. Fetch Reminders
-                    db.collection("reminders")
-                            .whereEqualTo("createdBy", userId)
+                    db.collection("users")
+                            .document(userId)
+                            .collection("reminders")
                             .get()
                             .addOnSuccessListener(reminderSnapshots -> {
                                 for (DocumentSnapshot doc : reminderSnapshots) {
@@ -86,8 +88,9 @@ public class DataExportHelper {
                                 }
 
                                 // 3. Fetch Notes
-                                db.collection("notes")
-                                        .whereEqualTo("createdBy", userId)
+                                db.collection("users")
+                                        .document(userId)
+                                        .collection("notes")
                                         .get()
                                         .addOnSuccessListener(noteSnapshots -> {
                                             for (DocumentSnapshot doc : noteSnapshots) {

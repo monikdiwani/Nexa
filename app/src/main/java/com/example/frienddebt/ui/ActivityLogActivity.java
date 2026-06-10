@@ -68,6 +68,10 @@ public class ActivityLogActivity extends AppCompatActivity {
         loadLogs();
     }
 
+    
+
+    
+
     private void loadLogs() {
         if (bookId == null) return;
 
@@ -86,6 +90,7 @@ public class ActivityLogActivity extends AppCompatActivity {
                             logsList.add(AuditLog.fromDocument(doc));
                         }
                         adapter.notifyDataSetChanged();
+                        rvLogs.scheduleLayoutAnimation();
                         txtEmptyLogs.setVisibility(logsList.isEmpty() ? View.VISIBLE : View.GONE);
                     }
                 });
@@ -179,4 +184,17 @@ public class ActivityLogActivity extends AppCompatActivity {
             }
         }
     }
+
+    @Override
+    public void startActivity(android.content.Intent intent) {
+        super.startActivity(intent);
+        com.example.frienddebt.utils.AnimationHelper.applyStartTransition(this, intent);
+    }
+
+    @Override
+    public void finish() {
+        super.finish();
+        com.example.frienddebt.utils.AnimationHelper.applyFinishTransition(this);
+    }
+
 }

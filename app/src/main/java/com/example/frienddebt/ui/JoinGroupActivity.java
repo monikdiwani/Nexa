@@ -39,6 +39,10 @@ public class JoinGroupActivity extends AppCompatActivity {
         }
         toolbar.setNavigationOnClickListener(v -> finish());
 
+    
+
+    
+
         // We reuse the XML but change the logic to Ledgers
         edtInviteCode = findViewById(R.id.edtInviteCode);
         btnJoin = findViewById(R.id.btnJoinGroup);
@@ -110,4 +114,17 @@ public class JoinGroupActivity extends AppCompatActivity {
         btnJoin.setEnabled(true);
         btnJoin.setText("JOIN LEDGER");
     }
+
+    @Override
+    public void startActivity(android.content.Intent intent) {
+        super.startActivity(intent);
+        com.example.frienddebt.utils.AnimationHelper.applyStartTransition(this, intent);
+    }
+
+    @Override
+    public void finish() {
+        super.finish();
+        com.example.frienddebt.utils.AnimationHelper.applyFinishTransition(this);
+    }
+
 }

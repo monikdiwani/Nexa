@@ -77,6 +77,10 @@ public class ReportsActivity extends AppCompatActivity {
 
         btnBack.setOnClickListener(v -> finish());
 
+    
+
+    
+
         chip7Days.setOnClickListener(v -> setDays(7, chip7Days, chip30Days));
         chip30Days.setOnClickListener(v -> setDays(30, chip30Days, chip7Days));
 
@@ -272,4 +276,17 @@ public class ReportsActivity extends AppCompatActivity {
             return String.format(Locale.getDefault(), "₹%.0f", amount);
         }
     }
+
+    @Override
+    public void startActivity(android.content.Intent intent) {
+        super.startActivity(intent);
+        com.example.frienddebt.utils.AnimationHelper.applyStartTransition(this, intent);
+    }
+
+    @Override
+    public void finish() {
+        super.finish();
+        com.example.frienddebt.utils.AnimationHelper.applyFinishTransition(this);
+    }
+
 }

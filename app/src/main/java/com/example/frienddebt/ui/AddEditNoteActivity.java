@@ -33,6 +33,7 @@ public class AddEditNoteActivity extends AppCompatActivity {
     private FirebaseAuth auth;
 
     private String noteId = null;
+    private boolean isNewNote = false;
     private String originalTitle = "";
     private String originalContent = "";
     private String selectedColor = "#FFFFFF";
@@ -121,6 +122,19 @@ public class AddEditNoteActivity extends AppCompatActivity {
         rvImages.setAdapter(imageAdapter);
 
         noteId = getIntent().getStringExtra("NOTE_ID");
+        if (noteId == null && auth.getCurrentUser() != null) {
+            String userId = auth.getCurrentUser().getUid();
+            noteId = db.collection("users")
+                    .document(userId)
+                    .collection("notes")
+                    .document()
+                    .getId();
+            isNewNote = true;
+        }
+
+    
+
+    
 
         setupColorPicker();
         setupFolderSpinner();
@@ -629,7 +643,7 @@ public class AddEditNoteActivity extends AppCompatActivity {
             }
         }
 
-        if (noteId == null && title.isEmpty() && content.isEmpty()) {
+        if (isNewNote && title.isEmpty() && content.isEmpty()) {
             hasSaved = true;
             return;
         }
@@ -657,13 +671,9 @@ public class AddEditNoteActivity extends AppCompatActivity {
         data.put("imageUrls", imageUrls);
         data.put("updatedAt", System.currentTimeMillis());
 
-        if (noteId == null) {
-            noteId = db.collection("users")
-                    .document(userId)
-                    .collection("notes")
-                    .document()
-                    .getId();
+        if (isNewNote) {
             data.put("createdAt", System.currentTimeMillis());
+            isNewNote = false; // Saved once, no longer new
             // type and folder are already set above
         } else {
             // Version History: If content or title changed, save old version to history
@@ -784,4 +794,17 @@ public class AddEditNoteActivity extends AppCompatActivity {
                     Toast.makeText(this, "Failed to load history", Toast.LENGTH_SHORT).show();
                 });
     }
+
+    @Override
+    public void startActivity(android.content.Intent intent) {
+        super.startActivity(intent);
+        com.example.frienddebt.utils.AnimationHelper.applyStartTransition(this, intent);
+    }
+
+    @Override
+    public void finish() {
+        super.finish();
+        com.example.frienddebt.utils.AnimationHelper.applyFinishTransition(this);
+    }
+
 }

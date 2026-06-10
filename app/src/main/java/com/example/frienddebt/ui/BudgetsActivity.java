@@ -63,6 +63,10 @@ public class BudgetsActivity extends AppCompatActivity {
         btnBack = findViewById(R.id.btnBack);
 
         btnBack.setOnClickListener(v -> finish());
+
+    
+
+    
         fabAddBudget.setOnClickListener(v -> startActivity(new Intent(this, AddBudgetActivity.class)));
 
         budgetList = new ArrayList<>();
@@ -169,6 +173,7 @@ public class BudgetsActivity extends AppCompatActivity {
                         budgetList.add(budget);
                     }
                     adapter.notifyDataSetChanged();
+                    rvBudgets.scheduleLayoutAnimation();
                     
                     if (budgetList.isEmpty()) {
                         layoutEmpty.setVisibility(View.VISIBLE);
@@ -190,4 +195,17 @@ public class BudgetsActivity extends AppCompatActivity {
                 })
                 .addOnFailureListener(e -> Toast.makeText(this, "Failed to delete: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
+
+    @Override
+    public void startActivity(android.content.Intent intent) {
+        super.startActivity(intent);
+        com.example.frienddebt.utils.AnimationHelper.applyStartTransition(this, intent);
+    }
+
+    @Override
+    public void finish() {
+        super.finish();
+        com.example.frienddebt.utils.AnimationHelper.applyFinishTransition(this);
+    }
+
 }

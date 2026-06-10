@@ -75,6 +75,7 @@
             android:id="@+id/rvSettlements"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:layoutAnimation="@anim/list_fall_down"
             android:clipToPadding="false"
             android:paddingTop="16dp"
             android:paddingBottom="24dp" />

@@ -248,6 +248,7 @@ public class TasksActivity extends AppCompatActivity {
         filteredTasks.addAll(completed);
 
         adapter.notifyDataSetChanged();
+        rvTasks.scheduleLayoutAnimation();
 
         if (filteredTasks.isEmpty()) {
             txtEmptyTasks.setVisibility(View.VISIBLE);
@@ -271,6 +272,10 @@ public class TasksActivity extends AppCompatActivity {
             tasksListener.remove();
         }
     }
+
+    
+
+    
 
     private void setupSwipeActions() {
         androidx.recyclerview.widget.ItemTouchHelper.SimpleCallback callback = 
@@ -531,4 +536,17 @@ public class TasksActivity extends AppCompatActivity {
             }
         }
     }
+
+    @Override
+    public void startActivity(android.content.Intent intent) {
+        super.startActivity(intent);
+        com.example.frienddebt.utils.AnimationHelper.applyStartTransition(this, intent);
+    }
+
+    @Override
+    public void finish() {
+        super.finish();
+        com.example.frienddebt.utils.AnimationHelper.applyFinishTransition(this);
+    }
+
 }

@@ -75,6 +75,7 @@
             android:id="@+id/rvBudgets"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:layoutAnimation="@anim/list_fall_down"
             android:clipToPadding="false"
             android:padding="16dp"
             app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
