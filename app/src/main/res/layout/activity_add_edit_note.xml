@@ -47,11 +47,35 @@
             android:contentDescription="Archive" />
 
         <ImageButton
-            android:id="@+id/btnPin"
+            android:id="@+id/btnHistory"
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:layout_centerVertical="true"
             android:layout_toStartOf="@id/btnArchive"
+            android:layout_marginEnd="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_recent_history"
+            app:tint="@color/text_secondary"
+            android:contentDescription="History" />
+
+        <ImageButton
+            android:id="@+id/btnShare"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_centerVertical="true"
+            android:layout_toStartOf="@id/btnHistory"
+            android:layout_marginEnd="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_share"
+            app:tint="@color/text_secondary"
+            android:contentDescription="Share Note" />
+
+        <ImageButton
+            android:id="@+id/btnPin"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_centerVertical="true"
+            android:layout_toStartOf="@id/btnShare"
             android:layout_marginEnd="4dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_pin"

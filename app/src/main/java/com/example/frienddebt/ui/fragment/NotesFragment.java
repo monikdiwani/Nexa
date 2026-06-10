@@ -35,6 +35,15 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+import java.io.OutputStream;
+import java.io.InputStream;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+
 public class NotesFragment extends Fragment {
 
     private TextView txtEmptyNotes;
@@ -67,9 +76,17 @@ public class NotesFragment extends Fragment {
         rvNotes = view.findViewById(R.id.rvNotes);
         fabAddNote = view.findViewById(R.id.fabAddNote);
 
-        android.widget.ImageButton btnSearchNotes = view.findViewById(R.id.btnSearchNotes);
-        if (btnSearchNotes != null) {
-            btnSearchNotes.setOnClickListener(v -> startActivity(new android.content.Intent(requireContext(), com.example.frienddebt.ui.GlobalSearchActivity.class)));
+        android.widget.ImageButton btnExport = view.findViewById(R.id.btnExport);
+        android.widget.ImageButton btnImport = view.findViewById(R.id.btnImport);
+        android.widget.ImageButton btnSearch = view.findViewById(R.id.btnSearch);
+        if (btnSearch != null) {
+            btnSearch.setOnClickListener(v -> startActivity(new android.content.Intent(requireContext(), com.example.frienddebt.ui.GlobalSearchActivity.class)));
+        }
+        if (btnExport != null) {
+            btnExport.setOnClickListener(v -> exportNotes());
+        }
+        if (btnImport != null) {
+            btnImport.setOnClickListener(v -> importNotes());
         }
 
         chipAll = view.findViewById(R.id.chipAll);
@@ -95,6 +112,141 @@ public class NotesFragment extends Fragment {
         });
 
         return view;
+    }
+
+    private void setChipActive(TextView active) {
+        chipAll.setBackgroundResource(R.drawable.chip_background);
+        chipArchive.setBackgroundResource(R.drawable.chip_background);
+        chipTrash.setBackgroundResource(R.drawable.chip_background);
+        chipPinned.setBackgroundResource(R.drawable.chip_background);
+        chipChecklist.setBackgroundResource(R.drawable.chip_background);
+        chipImages.setBackgroundResource(R.drawable.chip_background);
+
+        chipAll.setTextColor(getResources().getColor(R.color.text_secondary));
+        chipArchive.setTextColor(getResources().getColor(R.color.text_secondary));
+        chipTrash.setTextColor(getResources().getColor(R.color.text_secondary));
+        chipPinned.setTextColor(getResources().getColor(R.color.text_secondary));
+        chipChecklist.setTextColor(getResources().getColor(R.color.text_secondary));
+        chipImages.setTextColor(getResources().getColor(R.color.text_secondary));
+
+        active.setBackgroundResource(R.drawable.rounded_button);
+        active.setTextColor(getResources().getColor(android.R.color.white));
+    }
+    
+    // ====================== BACKUP & RESTORE (JSON) ======================
+
+    private final ActivityResultLauncher<String> createBackupLauncher = registerForActivityResult(
+            new ActivityResultContracts.CreateDocument("application/json"),
+            uri -> {
+                if (uri != null) {
+                    writeNotesToJsonFile(uri);
+                }
+            });
+
+    private final ActivityResultLauncher<String[]> openBackupLauncher = registerForActivityResult(
+            new ActivityResultContracts.OpenDocument(),
+            uri -> {
+                if (uri != null) {
+                    readNotesFromJsonFile(uri);
+                }
+            });
+
+    private void exportNotes() {
+        if (allNotes.isEmpty()) {
+            android.widget.Toast.makeText(requireContext(), "No notes to export", android.widget.Toast.LENGTH_SHORT).show();
+            return;
+        }
+        createBackupLauncher.launch("nexa_notes_backup.json");
+    }
+
+    private void importNotes() {
+        openBackupLauncher.launch(new String[]{"application/json"});
+    }
+
+    private void writeNotesToJsonFile(android.net.Uri uri) {
+        try {
+            JSONArray jsonArray = new JSONArray();
+            for (Note note : allNotes) {
+                JSONObject jsonNote = new JSONObject(note.toFirestoreMap());
+                jsonArray.put(jsonNote);
+            }
+
+            OutputStream os = requireContext().getContentResolver().openOutputStream(uri);
+            if (os != null) {
+                os.write(jsonArray.toString(4).getBytes());
+                os.close();
+                android.widget.Toast.makeText(requireContext(), "Backup Exported Successfully!", android.widget.Toast.LENGTH_SHORT).show();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            android.widget.Toast.makeText(requireContext(), "Export Failed: " + e.getMessage(), android.widget.Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void readNotesFromJsonFile(android.net.Uri uri) {
+        try {
+            InputStream is = requireContext().getContentResolver().openInputStream(uri);
+            if (is == null) return;
+            BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line);
+            }
+            is.close();
+
+            JSONArray jsonArray = new JSONArray(sb.toString());
+            if (jsonArray.length() == 0) return;
+
+            android.app.ProgressDialog pd = new android.app.ProgressDialog(requireContext());
+            pd.setMessage("Restoring Notes...");
+            pd.show();
+
+            com.google.firebase.firestore.WriteBatch batch = db.batch();
+            String userId = auth.getCurrentUser().getUid();
+
+            for (int i = 0; i < jsonArray.length(); i++) {
+                JSONObject jsonNote = jsonArray.getJSONObject(i);
+                String newId = db.collection("users").document(userId).collection("notes").document().getId();
+                
+                // Convert JSON to Map
+                java.util.Map<String, Object> map = new java.util.HashMap<>();
+                java.util.Iterator<String> keys = jsonNote.keys();
+                while(keys.hasNext()) {
+                    String key = keys.next();
+                    Object value = jsonNote.get(key);
+                    
+                    // Special handling for JSONArrays
+                    if (value instanceof JSONArray) {
+                        JSONArray array = (JSONArray) value;
+                        java.util.List<String> list = new java.util.ArrayList<>();
+                        for(int j=0; j<array.length(); j++) {
+                            list.add(array.getString(j));
+                        }
+                        map.put(key, list);
+                    } else {
+                        map.put(key, value);
+                    }
+                }
+                
+                com.google.firebase.firestore.DocumentReference docRef = db.collection("users").document(userId).collection("notes").document(newId);
+                batch.set(docRef, map);
+            }
+
+            batch.commit()
+                .addOnSuccessListener(aVoid -> {
+                    pd.dismiss();
+                    android.widget.Toast.makeText(requireContext(), "Backup Restored!", android.widget.Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(e -> {
+                    pd.dismiss();
+                    android.widget.Toast.makeText(requireContext(), "Restore Failed: " + e.getMessage(), android.widget.Toast.LENGTH_SHORT).show();
+                });
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            android.widget.Toast.makeText(requireContext(), "Import Failed: " + e.getMessage(), android.widget.Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void setupFilters() {

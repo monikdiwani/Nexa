@@ -40,7 +40,7 @@ public class AddEditNoteActivity extends AppCompatActivity {
     
     private android.widget.EditText etNoteLabel;
     private android.widget.Spinner spinnerFolder;
-    private ImageButton btnPin, btnArchive, btnDelete;
+    private ImageButton btnPin, btnArchive, btnDelete, btnShare, btnHistory;
     private android.widget.LinearLayout layoutColors;
     private androidx.recyclerview.widget.RecyclerView rvImages;
 
@@ -102,6 +102,8 @@ public class AddEditNoteActivity extends AppCompatActivity {
         btnBack = findViewById(R.id.btnBack);
         btnSave = findViewById(R.id.btnSave);
         btnPin = findViewById(R.id.btnPin);
+        btnShare = findViewById(R.id.btnShare);
+        btnHistory = findViewById(R.id.btnHistory);
         btnArchive = findViewById(R.id.btnArchive);
         btnDelete = findViewById(R.id.btnDelete);
         layoutColors = findViewById(R.id.layoutColors);
@@ -142,6 +144,9 @@ public class AddEditNoteActivity extends AppCompatActivity {
             saveNote(true);
             finish();
         });
+        
+        btnShare.setOnClickListener(v -> shareNote());
+        btnHistory.setOnClickListener(v -> showHistoryDialog());
 
         setupAutoSaveListeners();
 
@@ -660,6 +665,21 @@ public class AddEditNoteActivity extends AppCompatActivity {
                     .getId();
             data.put("createdAt", System.currentTimeMillis());
             // type and folder are already set above
+        } else {
+            // Version History: If content or title changed, save old version to history
+            if (!originalTitle.equals(title) || !originalContent.equals(content)) {
+                Map<String, Object> historyData = new HashMap<>();
+                historyData.put("title", originalTitle);
+                historyData.put("content", originalContent);
+                historyData.put("savedAt", System.currentTimeMillis());
+                
+                db.collection("users")
+                        .document(userId)
+                        .collection("notes")
+                        .document(noteId)
+                        .collection("history")
+                        .add(historyData);
+            }
         }
 
         originalTitle = title;
@@ -681,6 +701,87 @@ public class AddEditNoteActivity extends AppCompatActivity {
                     originalContent = "";
                     Toast.makeText(AddEditNoteActivity.this,
                             "Save failed, please try again", Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    private void shareNote() {
+        String title = etNoteTitle.getText().toString().trim();
+        String content = "CHECKLIST".equals(noteType) ? getChecklistContentAsMarkdown() : etNoteContent.getText().toString().trim();
+        
+        if (title.isEmpty() && content.isEmpty()) {
+            Toast.makeText(this, "Nothing to share", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String shareBody = title.isEmpty() ? content : title + "\n\n" + content;
+        Intent sharingIntent = new Intent(Intent.ACTION_SEND);
+        sharingIntent.setType("text/plain");
+        sharingIntent.putExtra(Intent.EXTRA_SUBJECT, title);
+        sharingIntent.putExtra(Intent.EXTRA_TEXT, shareBody);
+        startActivity(Intent.createChooser(sharingIntent, "Share Note via"));
+    }
+
+    private void showHistoryDialog() {
+        if (noteId == null || auth.getCurrentUser() == null) {
+            Toast.makeText(this, "Save note first to view history", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        android.app.ProgressDialog pd = new android.app.ProgressDialog(this);
+        pd.setMessage("Loading history...");
+        pd.show();
+        
+        db.collection("users")
+                .document(auth.getCurrentUser().getUid())
+                .collection("notes")
+                .document(noteId)
+                .collection("history")
+                .orderBy("savedAt", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    pd.dismiss();
+                    if (queryDocumentSnapshots.isEmpty()) {
+                        Toast.makeText(this, "No previous versions found", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    
+                    java.util.List<com.google.firebase.firestore.DocumentSnapshot> docs = queryDocumentSnapshots.getDocuments();
+                    String[] items = new String[docs.size()];
+                    java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("MMM dd, yyyy - hh:mm a", java.util.Locale.getDefault());
+                    
+                    for (int i = 0; i < docs.size(); i++) {
+                        Long savedAt = docs.get(i).getLong("savedAt");
+                        if (savedAt != null) {
+                            items[i] = sdf.format(new java.util.Date(savedAt));
+                        } else {
+                            items[i] = "Unknown Date";
+                        }
+                    }
+                    
+                    new android.app.AlertDialog.Builder(this)
+                            .setTitle("Version History")
+                            .setItems(items, (dialog, which) -> {
+                                com.google.firebase.firestore.DocumentSnapshot selected = docs.get(which);
+                                String oldTitle = selected.getString("title");
+                                String oldContent = selected.getString("content");
+                                
+                                if (oldTitle != null) etNoteTitle.setText(oldTitle);
+                                if (oldContent != null) {
+                                    if ("CHECKLIST".equals(noteType)) {
+                                        parseMarkdownToChecklist(oldContent);
+                                    } else {
+                                        etNoteContent.setText(oldContent);
+                                    }
+                                }
+                                triggerAutoSave();
+                                Toast.makeText(this, "Restored previous version", Toast.LENGTH_SHORT).show();
+                            })
+                            .setNegativeButton("Close", null)
+                            .show();
+                })
+                .addOnFailureListener(e -> {
+                    pd.dismiss();
+                    Toast.makeText(this, "Failed to load history", Toast.LENGTH_SHORT).show();
                 });
     }
 }

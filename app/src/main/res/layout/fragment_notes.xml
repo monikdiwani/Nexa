@@ -18,23 +18,40 @@
         app:layout_constraintStart_toStartOf="parent">
 
         <TextView
-            android:id="@+id/txtTitle"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="My Notes"
+            android:layout_height="wrap_content"
+            android:text="Nexa Notes"
             android:textSize="24sp"
             android:textStyle="bold"
             android:textColor="@color/text_primary" />
-
+            
         <ImageButton
-            android:id="@+id/btnSearchNotes"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:src="@android:drawable/ic_menu_search"
+            android:id="@+id/btnImport"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Search"
-            android:tint="@color/text_primary" />
+            android:src="@android:drawable/ic_menu_upload"
+            app:tint="@color/text_secondary"
+            android:contentDescription="Import Notes" />
+            
+        <ImageButton
+            android:id="@+id/btnExport"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_save"
+            app:tint="@color/text_secondary"
+            android:contentDescription="Export Notes Backup" />
+            
+        <ImageButton
+            android:id="@+id/btnSearch"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_search"
+            app:tint="@color/text_secondary"
+            android:contentDescription="Search Notes" />
     </LinearLayout>
 
     <TextView
