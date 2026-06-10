@@ -256,7 +256,7 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                         
                         if ("CASH_IN".equals(entry.getType())) {
                             totalIn += entry.getAmount();
-                        } else {
+                        } else if ("CASH_OUT".equals(entry.getType())) {
                             totalOut += entry.getAmount();
                         }
                     }
@@ -267,8 +267,11 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                     // Iterate backwards (from oldest to newest) to calculate running balance correctly
                     for (int i = allEntries.size() - 1; i >= 0; i--) {
                         CashbookEntry entryObj = allEntries.get(i);
-                        if ("CASH_IN".equals(entryObj.getType())) rb += entryObj.getAmount();
-                        else rb -= entryObj.getAmount();
+                        if ("CASH_IN".equals(entryObj.getType())) {
+                            rb += entryObj.getAmount();
+                        } else if ("CASH_OUT".equals(entryObj.getType())) {
+                            rb -= entryObj.getAmount();
+                        }
                         runningBalances.put(entryObj.getId(), rb);
                     }
                     
@@ -695,11 +698,24 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                 msg += "Running Balance after this: ₹" + String.format(Locale.getDefault(), "%.2f", rb) + "\n";
             }
             
-            new AlertDialog.Builder(LedgerBookDetailActivity.this)
+            androidx.appcompat.app.AlertDialog.Builder builder = new AlertDialog.Builder(LedgerBookDetailActivity.this)
                 .setTitle("Transaction Details")
                 .setMessage(msg)
-                .setPositiveButton("Close", null)
-                .show();
+                .setPositiveButton("Close", null);
+                
+            if (!"VIEWER".equalsIgnoreCase(userRole)) {
+                builder.setNeutralButton("Options", (dialog, which) -> {
+                    showActionDialog(entry);
+                });
+                builder.setNegativeButton("Edit", (dialog, which) -> {
+                    Intent intent = new Intent(LedgerBookDetailActivity.this, AddCashbookEntryActivity.class);
+                    intent.putExtra("BOOK_ID", bookId);
+                    intent.putExtra("ENTRY_ID", entry.getId());
+                    intent.putExtra("IS_EDIT_MODE", true);
+                    startActivity(intent);
+                });
+            }
+            builder.show();
         }
 
         class ViewHolder extends RecyclerView.ViewHolder {
