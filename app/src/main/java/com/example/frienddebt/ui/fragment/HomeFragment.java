@@ -214,6 +214,25 @@ public class HomeFragment extends Fragment {
                         Double out = doc.getDouble("totalCashOut");
                         if (in != null) cashInSum += in;
                         if (out != null) cashOutSum += out;
+                        
+                        // Async fetch entries for settlement check
+                        db.collection("cashbooks").document(doc.getId()).collection("entries").get().addOnSuccessListener(es -> {
+                            if (!isAdded()) return;
+                            java.util.List<com.example.frienddebt.model.CashbookEntry> entries = new java.util.ArrayList<>();
+                            for (DocumentSnapshot edoc : es) {
+                                entries.add(com.example.frienddebt.model.CashbookEntry.fromDocument(edoc));
+                            }
+                            java.util.List<com.example.frienddebt.model.DebtEdge> edges = com.example.frienddebt.dsa.DebtSimplifier.simplifyDebts(entries);
+                            for (com.example.frienddebt.model.DebtEdge edge : edges) {
+                                if (edge.getFrom().equals(userId)) {
+                                    txtLedgerPreview.setText("⚠️ You owe ₹" + String.format(Locale.getDefault(), "%.2f", edge.getAmount()) + " in " + doc.getString("name"));
+                                    return;
+                                } else if (edge.getTo().equals(userId)) {
+                                    txtLedgerPreview.setText("✅ Owed ₹" + String.format(Locale.getDefault(), "%.2f", edge.getAmount()) + " in " + doc.getString("name"));
+                                    return;
+                                }
+                            }
+                        });
                     }
                     
                     totalCashOut = cashOutSum;
@@ -225,7 +244,7 @@ public class HomeFragment extends Fragment {
 
                     txtLedgerCount.setText(ledgerCount + (ledgerCount == 1 ? " ledger" : " ledgers"));
                     if (ledgerCount > 0) {
-                        txtLedgerPreview.setText("Keep tracking shared expenses");
+                        txtLedgerPreview.setText("Keep tracking shared expenses"); // Default text until async finishes
                     } else {
                         txtLedgerPreview.setText("Create or join a ledger to track expenses");
                     }
@@ -305,7 +324,10 @@ public class HomeFragment extends Fragment {
         
         txtInsight.setVisibility(View.VISIBLE);
         
-        if (pendingTasksCount > 0) {
+        if (totalCashOut > 50000.0) {
+            txtInsight.setText("⚠️ BUDGET WARNING: You have spent " + String.format(Locale.getDefault(), "₹%.2f", totalCashOut) + ". Please slow down!");
+            txtInsight.setTextColor(getResources().getColor(R.color.accent_negative));
+        } else if (pendingTasksCount > 0) {
             txtInsight.setText("✨ You have " + pendingTasksCount + " tasks left to tackle. You can do it!");
             txtInsight.setTextColor(getResources().getColor(R.color.primary));
         } else if (upcomingRemindersCount > 0) {
