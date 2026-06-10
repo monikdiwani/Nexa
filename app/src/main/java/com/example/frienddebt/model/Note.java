@@ -18,6 +18,15 @@ public class Note {
     private boolean isArchived;
     private boolean isDeleted;
     private String imageUrl;
+    
+    // Nexa Notes Blueprint Extensions
+    private String type; // "TEXT", "CHECKLIST", "IMAGE"
+    private String folder;
+    private java.util.List<String> tags;
+    private long reminderAt;
+    private java.util.List<String> imageUrls;
+    private String linkedTaskId;
+    private String linkedCashbookId;
 
     public Note() {
         // Required for Firestore
@@ -35,6 +44,13 @@ public class Note {
         this.isArchived = false;
         this.isDeleted = false;
         this.imageUrl = null;
+        this.type = "TEXT";
+        this.folder = "Personal";
+        this.tags = new java.util.ArrayList<>();
+        this.reminderAt = 0L;
+        this.imageUrls = new java.util.ArrayList<>();
+        this.linkedTaskId = null;
+        this.linkedCashbookId = null;
     }
 
     public String getId() { return id; }
@@ -70,6 +86,27 @@ public class Note {
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 
+    public String getType() { return type; }
+    public void setType(String type) { this.type = type; }
+
+    public String getFolder() { return folder; }
+    public void setFolder(String folder) { this.folder = folder; }
+
+    public java.util.List<String> getTags() { return tags; }
+    public void setTags(java.util.List<String> tags) { this.tags = tags; }
+
+    public long getReminderAt() { return reminderAt; }
+    public void setReminderAt(long reminderAt) { this.reminderAt = reminderAt; }
+
+    public java.util.List<String> getImageUrls() { return imageUrls; }
+    public void setImageUrls(java.util.List<String> imageUrls) { this.imageUrls = imageUrls; }
+
+    public String getLinkedTaskId() { return linkedTaskId; }
+    public void setLinkedTaskId(String linkedTaskId) { this.linkedTaskId = linkedTaskId; }
+
+    public String getLinkedCashbookId() { return linkedCashbookId; }
+    public void setLinkedCashbookId(String linkedCashbookId) { this.linkedCashbookId = linkedCashbookId; }
+
     public static Note fromDocument(DocumentSnapshot doc) {
         Note n = new Note();
         n.setId(doc.getId());
@@ -84,6 +121,25 @@ public class Note {
         n.setArchived(doc.getBoolean("isArchived") != null ? doc.getBoolean("isArchived") : false);
         n.setDeleted(doc.getBoolean("isDeleted") != null ? doc.getBoolean("isDeleted") : false);
         n.setImageUrl(doc.getString("imageUrl"));
+        
+        n.setType(doc.getString("type") != null ? doc.getString("type") : "TEXT");
+        n.setFolder(doc.getString("folder") != null ? doc.getString("folder") : "Personal");
+        n.setReminderAt(doc.getLong("reminderAt") != null ? doc.getLong("reminderAt") : 0L);
+        n.setLinkedTaskId(doc.getString("linkedTaskId"));
+        n.setLinkedCashbookId(doc.getString("linkedCashbookId"));
+        
+        if (doc.get("tags") != null) {
+            n.setTags((java.util.List<String>) doc.get("tags"));
+        } else {
+            n.setTags(new java.util.ArrayList<>());
+        }
+        
+        if (doc.get("imageUrls") != null) {
+            n.setImageUrls((java.util.List<String>) doc.get("imageUrls"));
+        } else {
+            n.setImageUrls(new java.util.ArrayList<>());
+        }
+        
         return n;
     }
 
@@ -99,6 +155,15 @@ public class Note {
         map.put("isArchived", isArchived);
         map.put("isDeleted", isDeleted);
         map.put("imageUrl", imageUrl);
+        
+        map.put("type", type);
+        map.put("folder", folder);
+        map.put("tags", tags);
+        map.put("reminderAt", reminderAt);
+        map.put("imageUrls", imageUrls);
+        map.put("linkedTaskId", linkedTaskId);
+        map.put("linkedCashbookId", linkedCashbookId);
+        
         return map;
     }
 }

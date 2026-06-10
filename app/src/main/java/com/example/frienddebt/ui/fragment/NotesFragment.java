@@ -41,7 +41,7 @@ public class NotesFragment extends Fragment {
     private RecyclerView rvNotes;
     private FloatingActionButton fabAddNote;
 
-    private TextView chipAll, chipArchive, chipTrash;
+    private TextView chipAll, chipArchive, chipTrash, chipPinned, chipChecklist, chipImages;
     private EditText etSearchNotes;
 
     private FirebaseFirestore db;
@@ -75,6 +75,9 @@ public class NotesFragment extends Fragment {
         chipAll = view.findViewById(R.id.chipAll);
         chipArchive = view.findViewById(R.id.chipArchive);
         chipTrash = view.findViewById(R.id.chipTrash);
+        chipPinned = view.findViewById(R.id.chipPinned);
+        chipChecklist = view.findViewById(R.id.chipChecklist);
+        chipImages = view.findViewById(R.id.chipImages);
         etSearchNotes = view.findViewById(R.id.etSearchNotes);
 
         // Grid of 2 columns
@@ -96,6 +99,9 @@ public class NotesFragment extends Fragment {
 
     private void setupFilters() {
         chipAll.setOnClickListener(v -> setFilter("ALL", chipAll));
+        chipPinned.setOnClickListener(v -> setFilter("PINNED", chipPinned));
+        chipChecklist.setOnClickListener(v -> setFilter("CHECKLIST", chipChecklist));
+        chipImages.setOnClickListener(v -> setFilter("IMAGES", chipImages));
         chipArchive.setOnClickListener(v -> setFilter("ARCHIVE", chipArchive));
         chipTrash.setOnClickListener(v -> setFilter("TRASH", chipTrash));
     }
@@ -109,7 +115,7 @@ public class NotesFragment extends Fragment {
     }
 
     private void resetChipStyles() {
-        TextView[] chips = {chipAll, chipArchive, chipTrash};
+        TextView[] chips = {chipAll, chipPinned, chipChecklist, chipImages, chipArchive, chipTrash};
         for (TextView chip : chips) {
             chip.setBackgroundResource(R.drawable.chip_background);
             chip.setTextColor(getResources().getColor(R.color.text_secondary));
@@ -178,6 +184,15 @@ public class NotesFragment extends Fragment {
             switch (activeFilter) {
                 case "ALL":
                     matchesFilter = !n.isArchived() && !n.isDeleted();
+                    break;
+                case "PINNED":
+                    matchesFilter = n.isPinned() && !n.isArchived() && !n.isDeleted();
+                    break;
+                case "CHECKLIST":
+                    matchesFilter = "CHECKLIST".equals(n.getType()) && !n.isArchived() && !n.isDeleted();
+                    break;
+                case "IMAGES":
+                    matchesFilter = ("IMAGE".equals(n.getType()) || (n.getImageUrl() != null && !n.getImageUrl().isEmpty())) && !n.isArchived() && !n.isDeleted();
                     break;
                 case "ARCHIVE":
                     matchesFilter = n.isArchived() && !n.isDeleted();

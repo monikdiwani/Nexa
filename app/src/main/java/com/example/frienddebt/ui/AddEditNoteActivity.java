@@ -39,11 +39,16 @@ public class AddEditNoteActivity extends AppCompatActivity {
     private boolean isPinned = false;
     
     private android.widget.EditText etNoteLabel;
-    private ImageButton btnPin;
+    private ImageButton btnPin, btnArchive, btnDelete;
     private android.widget.LinearLayout layoutColors;
     private ImageView imgPreview;
 
     private String selectedImageUrl = null;
+    private boolean isArchived = false;
+    private boolean isDeleted = false;
+
+    private android.os.Handler autoSaveHandler = new android.os.Handler();
+    private Runnable autoSaveRunnable;
 
     // Guard flag to prevent double-finish
     private boolean isFinishing = false;
@@ -81,6 +86,8 @@ public class AddEditNoteActivity extends AppCompatActivity {
         btnBack = findViewById(R.id.btnBack);
         btnSave = findViewById(R.id.btnSave);
         btnPin = findViewById(R.id.btnPin);
+        btnArchive = findViewById(R.id.btnArchive);
+        btnDelete = findViewById(R.id.btnDelete);
         layoutColors = findViewById(R.id.layoutColors);
         imgPreview = findViewById(R.id.imgPreview);
 
@@ -92,7 +99,23 @@ public class AddEditNoteActivity extends AppCompatActivity {
         btnPin.setOnClickListener(v -> {
             isPinned = !isPinned;
             updatePinIcon();
+            triggerAutoSave();
         });
+        
+        btnArchive.setOnClickListener(v -> {
+            isArchived = !isArchived;
+            updateArchiveIcon();
+            saveNote(true);
+            finish();
+        });
+
+        btnDelete.setOnClickListener(v -> {
+            isDeleted = true;
+            saveNote(true);
+            finish();
+        });
+
+        setupAutoSaveListeners();
 
         if (noteId != null) {
             loadNoteDetails();
@@ -120,6 +143,29 @@ public class AddEditNoteActivity extends AppCompatActivity {
         });
 
         setupMarkdownToolbar();
+    }
+
+    private void setupAutoSaveListeners() {
+        android.text.TextWatcher textWatcher = new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) { triggerAutoSave(); }
+            @Override
+            public void afterTextChanged(android.text.Editable s) {}
+        };
+        etNoteTitle.addTextChangedListener(textWatcher);
+        etNoteContent.addTextChangedListener(textWatcher);
+        etNoteLabel.addTextChangedListener(textWatcher);
+    }
+
+    private void triggerAutoSave() {
+        hasSaved = false; // reset flag
+        if (autoSaveRunnable != null) {
+            autoSaveHandler.removeCallbacks(autoSaveRunnable);
+        }
+        autoSaveRunnable = () -> saveNote(false);
+        autoSaveHandler.postDelayed(autoSaveRunnable, 2000); // 2 seconds debounce
     }
 
     private void setupMarkdownToolbar() {
@@ -219,6 +265,8 @@ public class AddEditNoteActivity extends AppCompatActivity {
                         
                         selectedColor = note.getColorCode() != null ? note.getColorCode() : "#FFFFFF";
                         isPinned = note.isPinned();
+                        isArchived = note.isArchived();
+                        isDeleted = note.isDeleted();
                         String label = note.getLabel() != null ? note.getLabel() : "";
                         selectedImageUrl = note.getImageUrl();
 
@@ -228,6 +276,7 @@ public class AddEditNoteActivity extends AppCompatActivity {
                         
                         applyColor(selectedColor);
                         updatePinIcon();
+                        updateArchiveIcon();
                         if (selectedImageUrl != null && !selectedImageUrl.isEmpty()) {
                             displayImagePreview(selectedImageUrl);
                         }
@@ -259,6 +308,7 @@ public class AddEditNoteActivity extends AppCompatActivity {
     private void applyColor(String color) {
         selectedColor = color;
         findViewById(android.R.id.content).setBackgroundColor(android.graphics.Color.parseColor(color));
+        triggerAutoSave();
     }
 
     private void updatePinIcon() {
@@ -266,6 +316,14 @@ public class AddEditNoteActivity extends AppCompatActivity {
             btnPin.setColorFilter(getResources().getColor(R.color.primary));
         } else {
             btnPin.setColorFilter(getResources().getColor(R.color.text_secondary));
+        }
+    }
+
+    private void updateArchiveIcon() {
+        if (isArchived) {
+            btnArchive.setColorFilter(getResources().getColor(R.color.primary));
+        } else {
+            btnArchive.setColorFilter(getResources().getColor(R.color.text_secondary));
         }
     }
 
@@ -323,6 +381,8 @@ public class AddEditNoteActivity extends AppCompatActivity {
         data.put("colorCode", selectedColor);
         data.put("label", label);
         data.put("isPinned", isPinned);
+        data.put("isArchived", isArchived);
+        data.put("isDeleted", isDeleted);
         data.put("imageUrl", selectedImageUrl);
         data.put("updatedAt", System.currentTimeMillis());
 
@@ -333,8 +393,8 @@ public class AddEditNoteActivity extends AppCompatActivity {
                     .document()
                     .getId();
             data.put("createdAt", System.currentTimeMillis());
-            data.put("isArchived", false);
-            data.put("isDeleted", false);
+            data.put("type", "TEXT");
+            data.put("folder", "Personal");
         }
 
         originalTitle = title;
