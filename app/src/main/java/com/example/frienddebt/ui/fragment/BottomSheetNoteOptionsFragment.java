@@ -51,6 +51,24 @@ public class BottomSheetNoteOptionsFragment extends BottomSheetDialogFragment {
             }
         });
 
+        view.findViewById(R.id.btnConvertTask).setOnClickListener(v -> {
+            dismiss();
+            BottomSheetConvertTaskFragment convertTask = new BottomSheetConvertTaskFragment();
+            convertTask.show(getParentFragmentManager(), "ConvertTask");
+        });
+
+        view.findViewById(R.id.btnConvertReminder).setOnClickListener(v -> {
+            dismiss();
+            BottomSheetConvertReminderFragment convertReminder = new BottomSheetConvertReminderFragment();
+            convertReminder.show(getParentFragmentManager(), "ConvertReminder");
+        });
+
+        view.findViewById(R.id.btnConvertCashbook).setOnClickListener(v -> {
+            dismiss();
+            BottomSheetConvertCashbookFragment convertCashbook = new BottomSheetConvertCashbookFragment();
+            convertCashbook.show(getParentFragmentManager(), "ConvertCashbook");
+        });
+
         view.findViewById(R.id.btnTrash).setOnClickListener(v -> {
             if (getActivity() instanceof AddEditNoteActivity) {
                 AddEditNoteActivity activity = (AddEditNoteActivity) getActivity();

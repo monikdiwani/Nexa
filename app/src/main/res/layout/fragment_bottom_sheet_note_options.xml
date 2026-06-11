@@ -74,6 +74,54 @@
         android:drawablePadding="16dp"
         android:background="?attr/selectableItemBackground"/>
 
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#E0E0E0"
+        android:layout_marginVertical="8dp"/>
+
+    <TextView
+        android:id="@+id/btnConvertTask"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Convert to Task"
+        android:textSize="16sp"
+        android:textColor="@color/text_primary"
+        android:paddingVertical="16dp"
+        android:drawableStart="@android:drawable/ic_menu_agenda"
+        android:drawablePadding="16dp"
+        android:background="?attr/selectableItemBackground"/>
+
+    <TextView
+        android:id="@+id/btnConvertReminder"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Convert to Reminder"
+        android:textSize="16sp"
+        android:textColor="@color/text_primary"
+        android:paddingVertical="16dp"
+        android:drawableStart="@android:drawable/ic_popup_reminder"
+        android:drawablePadding="16dp"
+        android:background="?attr/selectableItemBackground"/>
+
+    <TextView
+        android:id="@+id/btnConvertCashbook"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Convert to Cashbook Entry"
+        android:textSize="16sp"
+        android:textColor="@color/text_primary"
+        android:paddingVertical="16dp"
+        android:drawableStart="@android:drawable/ic_menu_myplaces"
+        android:drawablePadding="16dp"
+        android:background="?attr/selectableItemBackground"/>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#E0E0E0"
+        android:layout_marginVertical="8dp"/>
+
     <TextView
         android:id="@+id/btnTrash"
         android:layout_width="match_parent"
