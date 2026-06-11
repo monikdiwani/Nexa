@@ -4,95 +4,116 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    app:cardBackgroundColor="@color/surface_card"
+    app:cardBackgroundColor="?attr/colorSurface"
     app:cardCornerRadius="16dp"
     app:cardElevation="2dp"
-    android:layout_marginHorizontal="6dp"
-    android:layout_marginVertical="8dp">
+    android:layout_marginHorizontal="8dp"
+    android:layout_marginVertical="6dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="16dp"
-        android:orientation="vertical">
+        android:orientation="horizontal">
 
-        <ImageView
-            android:id="@+id/imgNoteAttachment"
-            android:layout_width="match_parent"
-            android:layout_height="120dp"
-            android:scaleType="centerCrop"
-            android:layout_marginBottom="12dp"
-            android:background="#1A000000"
-            android:visibility="gone" />
+        <!-- 4dp Color Strip -->
+        <View
+            android:id="@+id/viewColorStrip"
+            android:layout_width="4dp"
+            android:layout_height="match_parent"
+            android:background="@android:color/transparent" />
 
-        <RelativeLayout
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <LinearLayout
+                    android:id="@+id/layoutTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_toStartOf="@id/imgPinned"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <ImageView
+                        android:id="@+id/imgChecklist"
+                        android:layout_width="14dp"
+                        android:layout_height="14dp"
+                        android:src="@android:drawable/checkbox_on_background"
+                        app:tint="@color/text_secondary"
+                        android:layout_marginEnd="6dp"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/txtNoteTitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Note Title"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:maxLines="2"
+                        android:ellipsize="end" />
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/imgPinned"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:src="@drawable/ic_pin"
+                    app:tint="@color/primary"
+                    android:visibility="gone" />
+            </RelativeLayout>
+
             <TextView
-                android:id="@+id/txtNoteTitle"
+                android:id="@+id/txtNoteContent"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_toStartOf="@id/imgPinned"
-                android:text="Note Title"
-                android:textColor="@color/text_primary"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:maxLines="2"
-                android:ellipsize="end" />
-
-            <ImageView
-                android:id="@+id/imgPinned"
-                android:layout_width="16dp"
-                android:layout_height="16dp"
-                android:layout_alignParentEnd="true"
-                android:layout_centerVertical="true"
-                android:src="@drawable/ic_pin"
-                app:tint="@color/primary"
-                android:visibility="gone" />
-        </RelativeLayout>
-
-        <TextView
-            android:id="@+id/txtNoteContent"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="This is a quick preview of the note content..."
-            android:textColor="@color/text_secondary"
-            android:textSize="14sp"
-            android:lineSpacingExtra="2dp"
-            android:maxLines="4"
-            android:ellipsize="end"
-            android:layout_marginTop="8dp" />
-
-        <RelativeLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp">
-
-            <TextView
-                android:id="@+id/txtNoteLabel"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Label"
+                android:text="Preview text..."
                 android:textColor="@color/text_secondary"
-                android:textSize="10sp"
-                android:background="@drawable/chip_background"
-                android:paddingHorizontal="8dp"
-                android:paddingVertical="4dp"
-                android:layout_alignParentStart="true"
-                android:layout_centerVertical="true"
-                android:visibility="gone" />
+                android:textSize="14sp"
+                android:lineSpacingExtra="2dp"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:layout_marginTop="6dp" />
 
-            <TextView
-                android:id="@+id/txtNoteDate"
-                android:layout_width="wrap_content"
+            <RelativeLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Oct 12, 2023"
-                android:textColor="@color/text_hint"
-                android:textSize="11sp"
-                android:layout_alignParentEnd="true"
-                android:layout_centerVertical="true" />
-        </RelativeLayout>
+                android:layout_marginTop="12dp">
 
+                <TextView
+                    android:id="@+id/txtNoteLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Label"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp"
+                    android:background="@drawable/chip_background"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="4dp"
+                    android:layout_alignParentStart="true"
+                    android:layout_centerVertical="true"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/txtNoteDate"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Oct 12, 2023"
+                    android:textColor="@color/text_hint"
+                    android:textSize="12sp"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true" />
+            </RelativeLayout>
+
+        </LinearLayout>
     </LinearLayout>
-
 </androidx.cardview.widget.CardView>

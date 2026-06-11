@@ -2,15 +2,21 @@ package com.example.frienddebt.ui.fragment;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.view.ActionMode;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.EditText;
 import android.widget.TextView;
-import android.text.Editable;
-import android.text.TextWatcher;
+import android.widget.Toast;
+import android.widget.LinearLayout;
+import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -22,12 +28,14 @@ import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 import com.example.frienddebt.R;
 import com.example.frienddebt.model.Note;
 import com.example.frienddebt.ui.AddEditNoteActivity;
+import com.example.frienddebt.ui.GlobalSearchActivity;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.WriteBatch;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -35,34 +43,30 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
-import java.io.OutputStream;
-import java.io.InputStream;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
-
 public class NotesFragment extends Fragment {
 
-    private TextView txtEmptyNotes;
+    private LinearLayout layoutEmptyState;
     private RecyclerView rvNotes;
     private FloatingActionButton fabAddNote;
 
     private TextView chipAll, chipArchive, chipTrash, chipPinned, chipChecklist, chipImages;
-    private EditText etSearchNotes;
 
     private FirebaseFirestore db;
     private FirebaseAuth auth;
     private ListenerRegistration notesListener;
 
     private List<Note> allNotes = new ArrayList<>();
-    private List<Note> filteredNotes = new ArrayList<>();
+    private List<Object> displayItems = new ArrayList<>();
     private NotesAdapter adapter;
 
-    private String activeFilter = "ALL"; // ALL, ARCHIVE, TRASH
+    private String activeFilter = "ALL";
     private String searchQuery = "";
+
+    private ActionMode actionMode;
+    private boolean isMultiSelectMode = false;
+    private List<Note> selectedNotes = new ArrayList<>();
+
+    private android.widget.ImageButton btnSearch, btnMenu;
 
     @Nullable
     @Override
@@ -72,21 +76,29 @@ public class NotesFragment extends Fragment {
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
 
-        txtEmptyNotes = view.findViewById(R.id.txtEmptyNotes);
+        layoutEmptyState = view.findViewById(R.id.layoutEmptyState);
         rvNotes = view.findViewById(R.id.rvNotes);
         fabAddNote = view.findViewById(R.id.fabAddNote);
 
-        android.widget.ImageButton btnExport = view.findViewById(R.id.btnExport);
-        android.widget.ImageButton btnImport = view.findViewById(R.id.btnImport);
-        android.widget.ImageButton btnSearch = view.findViewById(R.id.btnSearch);
+        btnSearch = view.findViewById(R.id.btnSearch);
+        btnMenu = view.findViewById(R.id.btnMenu);
+
         if (btnSearch != null) {
-            btnSearch.setOnClickListener(v -> startActivity(new android.content.Intent(requireContext(), com.example.frienddebt.ui.GlobalSearchActivity.class)));
+            btnSearch.setOnClickListener(v -> startActivity(new Intent(requireContext(), GlobalSearchActivity.class)));
         }
-        if (btnExport != null) {
-            btnExport.setOnClickListener(v -> exportNotes());
-        }
-        if (btnImport != null) {
-            btnImport.setOnClickListener(v -> importNotes());
+
+        if (btnMenu != null) {
+            btnMenu.setOnClickListener(v -> {
+                android.widget.PopupMenu popup = new android.widget.PopupMenu(requireContext(), btnMenu);
+                popup.getMenu().add("Select Notes");
+                popup.setOnMenuItemClickListener(item -> {
+                    if ("Select Notes".equals(item.getTitle().toString())) {
+                        startActionMode();
+                    }
+                    return true;
+                });
+                popup.show();
+            });
         }
 
         chipAll = view.findViewById(R.id.chipAll);
@@ -95,15 +107,12 @@ public class NotesFragment extends Fragment {
         chipPinned = view.findViewById(R.id.chipPinned);
         chipChecklist = view.findViewById(R.id.chipChecklist);
         chipImages = view.findViewById(R.id.chipImages);
-        etSearchNotes = view.findViewById(R.id.etSearchNotes);
 
-        // Grid of 2 columns
         rvNotes.setLayoutManager(new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL));
-        adapter = new NotesAdapter(filteredNotes);
+        adapter = new NotesAdapter();
         rvNotes.setAdapter(adapter);
         
         setupFilters();
-        setupSearch();
 
         fabAddNote.setOnClickListener(v -> {
             Animation pop = AnimationUtils.loadAnimation(requireContext(), R.anim.button_pop);
@@ -112,141 +121,6 @@ public class NotesFragment extends Fragment {
         });
 
         return view;
-    }
-
-    private void setChipActive(TextView active) {
-        chipAll.setBackgroundResource(R.drawable.chip_background);
-        chipArchive.setBackgroundResource(R.drawable.chip_background);
-        chipTrash.setBackgroundResource(R.drawable.chip_background);
-        chipPinned.setBackgroundResource(R.drawable.chip_background);
-        chipChecklist.setBackgroundResource(R.drawable.chip_background);
-        chipImages.setBackgroundResource(R.drawable.chip_background);
-
-        chipAll.setTextColor(getResources().getColor(R.color.text_secondary));
-        chipArchive.setTextColor(getResources().getColor(R.color.text_secondary));
-        chipTrash.setTextColor(getResources().getColor(R.color.text_secondary));
-        chipPinned.setTextColor(getResources().getColor(R.color.text_secondary));
-        chipChecklist.setTextColor(getResources().getColor(R.color.text_secondary));
-        chipImages.setTextColor(getResources().getColor(R.color.text_secondary));
-
-        active.setBackgroundResource(R.drawable.rounded_button);
-        active.setTextColor(getResources().getColor(android.R.color.white));
-    }
-    
-    // ====================== BACKUP & RESTORE (JSON) ======================
-
-    private final ActivityResultLauncher<String> createBackupLauncher = registerForActivityResult(
-            new ActivityResultContracts.CreateDocument("application/json"),
-            uri -> {
-                if (uri != null) {
-                    writeNotesToJsonFile(uri);
-                }
-            });
-
-    private final ActivityResultLauncher<String[]> openBackupLauncher = registerForActivityResult(
-            new ActivityResultContracts.OpenDocument(),
-            uri -> {
-                if (uri != null) {
-                    readNotesFromJsonFile(uri);
-                }
-            });
-
-    private void exportNotes() {
-        if (allNotes.isEmpty()) {
-            android.widget.Toast.makeText(requireContext(), "No notes to export", android.widget.Toast.LENGTH_SHORT).show();
-            return;
-        }
-        createBackupLauncher.launch("nexa_notes_backup.json");
-    }
-
-    private void importNotes() {
-        openBackupLauncher.launch(new String[]{"application/json"});
-    }
-
-    private void writeNotesToJsonFile(android.net.Uri uri) {
-        try {
-            JSONArray jsonArray = new JSONArray();
-            for (Note note : allNotes) {
-                JSONObject jsonNote = new JSONObject(note.toFirestoreMap());
-                jsonArray.put(jsonNote);
-            }
-
-            OutputStream os = requireContext().getContentResolver().openOutputStream(uri);
-            if (os != null) {
-                os.write(jsonArray.toString(4).getBytes());
-                os.close();
-                android.widget.Toast.makeText(requireContext(), "Backup Exported Successfully!", android.widget.Toast.LENGTH_SHORT).show();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            android.widget.Toast.makeText(requireContext(), "Export Failed: " + e.getMessage(), android.widget.Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    private void readNotesFromJsonFile(android.net.Uri uri) {
-        try {
-            InputStream is = requireContext().getContentResolver().openInputStream(uri);
-            if (is == null) return;
-            BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-            StringBuilder sb = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                sb.append(line);
-            }
-            is.close();
-
-            JSONArray jsonArray = new JSONArray(sb.toString());
-            if (jsonArray.length() == 0) return;
-
-            android.app.ProgressDialog pd = new android.app.ProgressDialog(requireContext());
-            pd.setMessage("Restoring Notes...");
-            pd.show();
-
-            com.google.firebase.firestore.WriteBatch batch = db.batch();
-            String userId = auth.getCurrentUser().getUid();
-
-            for (int i = 0; i < jsonArray.length(); i++) {
-                JSONObject jsonNote = jsonArray.getJSONObject(i);
-                String newId = db.collection("users").document(userId).collection("notes").document().getId();
-                
-                // Convert JSON to Map
-                java.util.Map<String, Object> map = new java.util.HashMap<>();
-                java.util.Iterator<String> keys = jsonNote.keys();
-                while(keys.hasNext()) {
-                    String key = keys.next();
-                    Object value = jsonNote.get(key);
-                    
-                    // Special handling for JSONArrays
-                    if (value instanceof JSONArray) {
-                        JSONArray array = (JSONArray) value;
-                        java.util.List<String> list = new java.util.ArrayList<>();
-                        for(int j=0; j<array.length(); j++) {
-                            list.add(array.getString(j));
-                        }
-                        map.put(key, list);
-                    } else {
-                        map.put(key, value);
-                    }
-                }
-                
-                com.google.firebase.firestore.DocumentReference docRef = db.collection("users").document(userId).collection("notes").document(newId);
-                batch.set(docRef, map);
-            }
-
-            batch.commit()
-                .addOnSuccessListener(aVoid -> {
-                    pd.dismiss();
-                    android.widget.Toast.makeText(requireContext(), "Backup Restored!", android.widget.Toast.LENGTH_SHORT).show();
-                })
-                .addOnFailureListener(e -> {
-                    pd.dismiss();
-                    android.widget.Toast.makeText(requireContext(), "Restore Failed: " + e.getMessage(), android.widget.Toast.LENGTH_SHORT).show();
-                });
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            android.widget.Toast.makeText(requireContext(), "Import Failed: " + e.getMessage(), android.widget.Toast.LENGTH_SHORT).show();
-        }
     }
 
     private void setupFilters() {
@@ -272,22 +146,6 @@ public class NotesFragment extends Fragment {
             chip.setBackgroundResource(R.drawable.chip_background);
             chip.setTextColor(getResources().getColor(R.color.text_secondary));
         }
-    }
-
-    private void setupSearch() {
-        etSearchNotes.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                searchQuery = s.toString().toLowerCase().trim();
-                applyFilter();
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {}
-        });
     }
 
     @Override
@@ -329,7 +187,7 @@ public class NotesFragment extends Fragment {
     }
 
     private void applyFilter() {
-        filteredNotes.clear();
+        List<Note> filteredNotes = new ArrayList<>();
 
         for (Note n : allNotes) {
             boolean matchesFilter = false;
@@ -344,7 +202,7 @@ public class NotesFragment extends Fragment {
                     matchesFilter = "CHECKLIST".equals(n.getType()) && !n.isArchived() && !n.isDeleted();
                     break;
                 case "IMAGES":
-                    matchesFilter = ("IMAGE".equals(n.getType()) || (n.getImageUrl() != null && !n.getImageUrl().isEmpty())) && !n.isArchived() && !n.isDeleted();
+                    matchesFilter = ("IMAGE".equals(n.getType()) || (n.getImageUrl() != null && !n.getImageUrl().isEmpty()) || (n.getImageUrls() != null && !n.getImageUrls().isEmpty())) && !n.isArchived() && !n.isDeleted();
                     break;
                 case "ARCHIVE":
                     matchesFilter = n.isArchived() && !n.isDeleted();
@@ -354,218 +212,295 @@ public class NotesFragment extends Fragment {
                     break;
             }
 
-            if (!matchesFilter) continue;
-
-            if (!searchQuery.isEmpty()) {
-                boolean matchesSearch = false;
-                if (n.getTitle() != null && n.getTitle().toLowerCase().contains(searchQuery)) matchesSearch = true;
-                if (n.getContent() != null && n.getContent().toLowerCase().contains(searchQuery)) matchesSearch = true;
-                if (n.getLabel() != null && n.getLabel().toLowerCase().contains(searchQuery)) matchesSearch = true;
-                if (!matchesSearch) continue;
+            if (matchesFilter) {
+                filteredNotes.add(n);
             }
-
-            filteredNotes.add(n);
         }
 
-        // Sort locally: Pinned notes first, then by updatedAt
-        filteredNotes.sort((n1, n2) -> {
-            if (n1.isPinned() && !n2.isPinned()) return -1;
-            if (!n1.isPinned() && n2.isPinned()) return 1;
-            return Long.compare(n2.getUpdatedAt(), n1.getUpdatedAt());
-        });
+        // Prepare display items (inject headers if needed)
+        displayItems.clear();
         
+        List<Note> pinned = new ArrayList<>();
+        List<Note> unpinned = new ArrayList<>();
+        
+        for (Note n : filteredNotes) {
+            if (n.isPinned()) pinned.add(n);
+            else unpinned.add(n);
+        }
+
+        if (!pinned.isEmpty() && !unpinned.isEmpty() && activeFilter.equals("ALL")) {
+            displayItems.add("PINNED");
+            displayItems.addAll(pinned);
+            displayItems.add("ALL NOTES");
+            displayItems.addAll(unpinned);
+        } else {
+            // Sort by date descending
+            filteredNotes.sort((n1, n2) -> Long.compare(n2.getUpdatedAt(), n1.getUpdatedAt()));
+            displayItems.addAll(filteredNotes);
+        }
+
         adapter.notifyDataSetChanged();
         rvNotes.scheduleLayoutAnimation();
 
-        if (filteredNotes.isEmpty()) {
-            txtEmptyNotes.setVisibility(View.VISIBLE);
+        if (displayItems.isEmpty()) {
+            layoutEmptyState.setVisibility(View.VISIBLE);
             rvNotes.setVisibility(View.GONE);
         } else {
-            txtEmptyNotes.setVisibility(View.GONE);
+            layoutEmptyState.setVisibility(View.GONE);
             rvNotes.setVisibility(View.VISIBLE);
         }
     }
 
-    // Grid Adapter
-    private class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.ViewHolder> {
-        private final List<Note> list;
+    // ======================== ACTION MODE ========================
 
-        public NotesAdapter(List<Note> list) {
-            this.list = list;
+    private void startActionMode() {
+        if (actionMode == null) {
+            actionMode = requireActivity().startActionMode(actionModeCallback);
+        }
+    }
+
+    private ActionMode.Callback actionModeCallback = new ActionMode.Callback() {
+        @Override
+        public boolean onCreateActionMode(ActionMode mode, Menu menu) {
+            isMultiSelectMode = true;
+            mode.getMenuInflater().inflate(R.menu.menu_note_selection, menu);
+            
+            // Adjust menu based on active filter
+            if (activeFilter.equals("TRASH")) {
+                menu.findItem(R.id.action_pin).setVisible(false);
+                menu.findItem(R.id.action_archive).setVisible(false);
+                menu.findItem(R.id.action_trash).setVisible(false);
+                menu.findItem(R.id.action_restore).setVisible(true);
+            } else if (activeFilter.equals("ARCHIVE")) {
+                menu.findItem(R.id.action_archive).setTitle("Unarchive");
+            }
+            return true;
+        }
+
+        @Override
+        public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
+            return false;
+        }
+
+        @Override
+        public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
+            if (selectedNotes.isEmpty()) return false;
+
+            WriteBatch batch = db.batch();
+            String userId = auth.getCurrentUser().getUid();
+            
+            if (item.getItemId() == R.id.action_trash) {
+                for (Note n : selectedNotes) {
+                    batch.update(db.collection("users").document(userId).collection("notes").document(n.getId()), "isDeleted", true);
+                }
+                batch.commit().addOnSuccessListener(a -> Toast.makeText(requireContext(), "Moved to trash", Toast.LENGTH_SHORT).show());
+                mode.finish();
+                return true;
+            } else if (item.getItemId() == R.id.action_archive) {
+                boolean isUnarchiving = activeFilter.equals("ARCHIVE");
+                for (Note n : selectedNotes) {
+                    batch.update(db.collection("users").document(userId).collection("notes").document(n.getId()), "isArchived", !isUnarchiving);
+                }
+                batch.commit().addOnSuccessListener(a -> Toast.makeText(requireContext(), isUnarchiving ? "Unarchived" : "Archived", Toast.LENGTH_SHORT).show());
+                mode.finish();
+                return true;
+            } else if (item.getItemId() == R.id.action_pin) {
+                for (Note n : selectedNotes) {
+                    batch.update(db.collection("users").document(userId).collection("notes").document(n.getId()), "isPinned", true);
+                }
+                batch.commit().addOnSuccessListener(a -> Toast.makeText(requireContext(), "Pinned", Toast.LENGTH_SHORT).show());
+                mode.finish();
+                return true;
+            } else if (item.getItemId() == R.id.action_restore) {
+                for (Note n : selectedNotes) {
+                    batch.update(db.collection("users").document(userId).collection("notes").document(n.getId()), "isDeleted", false);
+                }
+                batch.commit().addOnSuccessListener(a -> Toast.makeText(requireContext(), "Restored", Toast.LENGTH_SHORT).show());
+                mode.finish();
+                return true;
+            } else if (item.getItemId() == R.id.action_delete_forever) {
+                for (Note n : selectedNotes) {
+                    batch.delete(db.collection("users").document(userId).collection("notes").document(n.getId()));
+                }
+                batch.commit().addOnSuccessListener(a -> Toast.makeText(requireContext(), "Deleted permanently", Toast.LENGTH_SHORT).show());
+                mode.finish();
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        public void onDestroyActionMode(ActionMode mode) {
+            isMultiSelectMode = false;
+            selectedNotes.clear();
+            actionMode = null;
+            adapter.notifyDataSetChanged();
+        }
+    };
+
+    // ======================== ADAPTER ========================
+
+    private static final int TYPE_HEADER = 0;
+    private static final int TYPE_NOTE = 1;
+
+    private class NotesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+
+        @Override
+        public int getItemViewType(int position) {
+            if (displayItems.get(position) instanceof String) {
+                return TYPE_HEADER;
+            }
+            return TYPE_NOTE;
         }
 
         @NonNull
         @Override
-        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_note, parent, false);
-            return new ViewHolder(view);
+        public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            if (viewType == TYPE_HEADER) {
+                TextView header = new TextView(parent.getContext());
+                header.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+                header.setPadding(24, 32, 24, 8);
+                header.setTextSize(11);
+                header.setLetterSpacing(0.1f);
+                header.setAllCaps(true);
+                header.setTextColor(getResources().getColor(R.color.text_hint));
+                return new HeaderViewHolder(header);
+            } else {
+                View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_note, parent, false);
+                return new NoteViewHolder(view);
+            }
         }
 
         @Override
-        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            Note note = list.get(position);
-
-            String title = note.getTitle();
-            if (title == null || title.trim().isEmpty()) {
-                title = getString(R.string.untitled_note);
-            }
-            holder.txtTitle.setText(title);
-
-            String content = note.getContent();
-            if (content == null) content = "";
-            io.noties.markwon.Markwon markwon = io.noties.markwon.Markwon.builder(holder.itemView.getContext())
-                .usePlugin(io.noties.markwon.ext.tasklist.TaskListPlugin.create(holder.itemView.getContext()))
-                .build();
-            markwon.setMarkdown(holder.txtContent, content);
-
-            SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
-            holder.txtDate.setText(sdf.format(new Date(note.getUpdatedAt())));
-
-            // Custom color background
-            String colorStr = note.getColorCode();
-            if (colorStr == null || colorStr.isEmpty()) colorStr = "#FFFFFF";
-            int colorVal = android.graphics.Color.parseColor(colorStr);
-            if (holder.itemView instanceof androidx.cardview.widget.CardView) {
-                ((androidx.cardview.widget.CardView) holder.itemView).setCardBackgroundColor(colorVal);
+        public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+            if (holder.getItemViewType() == TYPE_HEADER) {
+                StaggeredGridLayoutManager.LayoutParams layoutParams = new StaggeredGridLayoutManager.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                layoutParams.setFullSpan(true);
+                holder.itemView.setLayoutParams(layoutParams);
+                
+                ((HeaderViewHolder) holder).txtHeader.setText((String) displayItems.get(position));
             } else {
-                holder.itemView.setBackgroundColor(colorVal);
-            }
-            
-            // Pin Icon
-            if (note.isPinned()) {
-                holder.imgPinned.setVisibility(View.VISIBLE);
-            } else {
-                holder.imgPinned.setVisibility(View.GONE);
-            }
-            
-            // Image Preview
-            if (note.getImageUrl() != null && !note.getImageUrl().isEmpty()) {
-                holder.imgNoteAttachment.setVisibility(View.VISIBLE);
-                try {
-                    holder.imgNoteAttachment.setImageURI(android.net.Uri.parse(note.getImageUrl()));
-                } catch (Exception e) {
-                    holder.imgNoteAttachment.setVisibility(View.GONE);
+                NoteViewHolder noteHolder = (NoteViewHolder) holder;
+                Note note = (Note) displayItems.get(position);
+
+                String title = note.getTitle();
+                if (title == null || title.trim().isEmpty()) {
+                    title = "Untitled Note";
                 }
-            } else {
-                holder.imgNoteAttachment.setVisibility(View.GONE);
-            }
-            
-            // Label
-            String label = note.getLabel();
-            if (label != null && !label.trim().isEmpty()) {
-                holder.txtLabel.setText(label);
-                holder.txtLabel.setVisibility(View.VISIBLE);
-            } else {
-                holder.txtLabel.setVisibility(View.GONE);
-            }
+                noteHolder.txtTitle.setText(title);
 
-            android.view.View.OnClickListener clickListener = v -> {
-                Intent intent = new Intent(requireActivity(), AddEditNoteActivity.class);
-                intent.putExtra("NOTE_ID", note.getId());
-                startActivity(intent);
-            };
+                String content = note.getContent();
+                if (content == null) content = "";
+                noteHolder.txtContent.setText(content);
 
-            holder.itemView.setOnClickListener(clickListener);
-            holder.txtContent.setOnClickListener(clickListener);
-            holder.txtTitle.setOnClickListener(clickListener);
+                SimpleDateFormat sdf = new SimpleDateFormat("MMM dd", Locale.getDefault());
+                noteHolder.txtDate.setText(sdf.format(new Date(note.getUpdatedAt())));
 
-            android.view.View.OnLongClickListener longClickListener = v -> {
-                android.widget.PopupMenu popup = new android.widget.PopupMenu(holder.itemView.getContext(), holder.itemView);
-                popup.getMenu().add("Edit");
-                if (activeFilter.equals("TRASH")) {
-                    popup.getMenu().add("Restore");
-                    popup.getMenu().add("Delete Permanently");
+                // Color Strip mapping
+                String colorStr = note.getColorCode();
+                if (colorStr != null && !colorStr.isEmpty() && !colorStr.equals("#surface_primary")) {
+                    int colorVal = android.graphics.Color.parseColor(colorStr);
+                    noteHolder.viewColorStrip.setBackgroundColor(colorVal);
                 } else {
-                    popup.getMenu().add("Create Task");
-                    popup.getMenu().add(note.isArchived() ? "Unarchive" : "Archive");
-                    popup.getMenu().add("Move to Recycle Bin");
-                    popup.getMenu().add("Share");
+                    noteHolder.viewColorStrip.setBackgroundColor(android.graphics.Color.TRANSPARENT);
                 }
                 
-                popup.setOnMenuItemClickListener(item -> {
-                    String titleSelected = item.getTitle().toString();
-                    if ("Edit".equals(titleSelected)) {
+                // Selection styling
+                if (isMultiSelectMode && selectedNotes.contains(note)) {
+                    if (noteHolder.itemView instanceof androidx.cardview.widget.CardView) {
+                        ((androidx.cardview.widget.CardView) noteHolder.itemView).setCardBackgroundColor(android.graphics.Color.LTGRAY);
+                        noteHolder.itemView.setAlpha(0.7f);
+                    }
+                } else {
+                    if (noteHolder.itemView instanceof androidx.cardview.widget.CardView) {
+                        int colorSurface = com.google.android.material.color.MaterialColors.getColor(requireContext(), com.google.android.material.R.attr.colorSurface, android.graphics.Color.WHITE);
+                        ((androidx.cardview.widget.CardView) noteHolder.itemView).setCardBackgroundColor(colorSurface);
+                        noteHolder.itemView.setAlpha(1.0f);
+                    }
+                }
+
+                if (note.isPinned()) {
+                    noteHolder.imgPinned.setVisibility(View.VISIBLE);
+                } else {
+                    noteHolder.imgPinned.setVisibility(View.GONE);
+                }
+
+                if ("CHECKLIST".equals(note.getType())) {
+                    noteHolder.imgChecklist.setVisibility(View.VISIBLE);
+                } else {
+                    noteHolder.imgChecklist.setVisibility(View.GONE);
+                }
+
+                if (note.getTags() != null && !note.getTags().isEmpty()) {
+                    noteHolder.txtLabel.setText(note.getTags().get(0));
+                    noteHolder.txtLabel.setVisibility(View.VISIBLE);
+                } else {
+                    noteHolder.txtLabel.setVisibility(View.GONE);
+                }
+
+                noteHolder.itemView.setOnClickListener(v -> {
+                    if (isMultiSelectMode) {
+                        toggleSelection(note);
+                    } else {
                         Intent intent = new Intent(requireActivity(), AddEditNoteActivity.class);
                         intent.putExtra("NOTE_ID", note.getId());
                         startActivity(intent);
-                    } else if ("Create Task".equals(titleSelected)) {
-                        Intent intent = new Intent(requireActivity(), com.example.frienddebt.ui.AddTaskActivity.class);
-                        intent.putExtra("LINKED_TITLE", note.getTitle() != null && !note.getTitle().isEmpty() ? note.getTitle() : "Note");
-                        intent.putExtra("LINKED_ID", note.getId());
-                        intent.putExtra("LINKED_TYPE", "NOTE");
-                        startActivity(intent);
-                    } else if ("Move to Recycle Bin".equals(titleSelected)) {
-                        updateNoteStatus(note.getId(), "isDeleted", true);
-                    } else if ("Archive".equals(titleSelected)) {
-                        updateNoteStatus(note.getId(), "isArchived", true);
-                    } else if ("Unarchive".equals(titleSelected)) {
-                        updateNoteStatus(note.getId(), "isArchived", false);
-                    } else if ("Restore".equals(titleSelected)) {
-                        updateNoteStatus(note.getId(), "isDeleted", false);
-                    } else if ("Delete Permanently".equals(titleSelected)) {
-                        showDeleteDialog(note);
-                    } else if ("Share".equals(titleSelected)) {
-                        Intent shareIntent = new Intent(Intent.ACTION_SEND);
-                        shareIntent.setType("text/plain");
-                        shareIntent.putExtra(Intent.EXTRA_SUBJECT, note.getTitle());
-                        shareIntent.putExtra(Intent.EXTRA_TEXT, note.getContent());
-                        startActivity(Intent.createChooser(shareIntent, "Share Note"));
                     }
+                });
+
+                noteHolder.itemView.setOnLongClickListener(v -> {
+                    if (!isMultiSelectMode) {
+                        startActionMode();
+                    }
+                    toggleSelection(note);
                     return true;
                 });
-                popup.show();
-                return true;
-            };
+            }
+        }
 
-            holder.itemView.setOnLongClickListener(longClickListener);
-            holder.txtContent.setOnLongClickListener(longClickListener);
-            holder.txtTitle.setOnLongClickListener(longClickListener);
+        private void toggleSelection(Note note) {
+            if (selectedNotes.contains(note)) {
+                selectedNotes.remove(note);
+                if (selectedNotes.isEmpty() && actionMode != null) {
+                    actionMode.finish();
+                }
+            } else {
+                selectedNotes.add(note);
+            }
+            
+            if (actionMode != null) {
+                actionMode.setTitle(selectedNotes.size() + " selected");
+            }
+            notifyDataSetChanged();
         }
 
         @Override
         public int getItemCount() {
-            return list.size();
+            return displayItems.size();
         }
 
-        private void updateNoteStatus(String noteId, String field, boolean value) {
-            if (auth.getCurrentUser() != null) {
-                db.collection("users")
-                        .document(auth.getCurrentUser().getUid())
-                        .collection("notes")
-                        .document(noteId)
-                        .update(field, value);
-            }
-        }
-
-        private void showDeleteDialog(Note note) {
-            new AlertDialog.Builder(requireContext())
-                    .setTitle("Delete Permanently")
-                    .setMessage("Are you sure you want to permanently delete this note?")
-                    .setPositiveButton("Delete", (dialog, which) -> {
-                        if (auth.getCurrentUser() != null) {
-                            db.collection("users")
-                                    .document(auth.getCurrentUser().getUid())
-                                    .collection("notes")
-                                    .document(note.getId())
-                                    .delete();
-                        }
-                    })
-                    .setNegativeButton("Cancel", null)
-                    .show();
-        }
-
-        class ViewHolder extends RecyclerView.ViewHolder {
+        class NoteViewHolder extends RecyclerView.ViewHolder {
             TextView txtTitle, txtContent, txtDate, txtLabel;
-            android.widget.ImageView imgPinned, imgNoteAttachment;
+            ImageView imgPinned, imgChecklist;
+            View viewColorStrip;
 
-            public ViewHolder(@NonNull View itemView) {
+            public NoteViewHolder(@NonNull View itemView) {
                 super(itemView);
                 txtTitle = itemView.findViewById(R.id.txtNoteTitle);
                 txtContent = itemView.findViewById(R.id.txtNoteContent);
                 txtDate = itemView.findViewById(R.id.txtNoteDate);
                 txtLabel = itemView.findViewById(R.id.txtNoteLabel);
                 imgPinned = itemView.findViewById(R.id.imgPinned);
-                imgNoteAttachment = itemView.findViewById(R.id.imgNoteAttachment);
+                imgChecklist = itemView.findViewById(R.id.imgChecklist);
+                viewColorStrip = itemView.findViewById(R.id.viewColorStrip);
+            }
+        }
+
+        class HeaderViewHolder extends RecyclerView.ViewHolder {
+            TextView txtHeader;
+            public HeaderViewHolder(@NonNull TextView itemView) {
+                super(itemView);
+                txtHeader = itemView;
             }
         }
     }

@@ -13,6 +13,7 @@
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:layout_marginTop="28dp"
+        android:layout_marginBottom="16dp"
         android:paddingHorizontal="20dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent">
@@ -21,28 +22,10 @@
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:text="Nexa Notes"
-            android:textSize="24sp"
+            android:text="Notes"
+            android:textSize="28sp"
             android:textStyle="bold"
             android:textColor="@color/text_primary" />
-            
-        <ImageButton
-            android:id="@+id/btnImport"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_menu_upload"
-            app:tint="@color/text_secondary"
-            android:contentDescription="Import Notes" />
-            
-        <ImageButton
-            android:id="@+id/btnExport"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_menu_save"
-            app:tint="@color/text_secondary"
-            android:contentDescription="Export Notes Backup" />
             
         <ImageButton
             android:id="@+id/btnSearch"
@@ -52,37 +35,16 @@
             android:src="@android:drawable/ic_menu_search"
             app:tint="@color/text_secondary"
             android:contentDescription="Search Notes" />
+
+        <ImageButton
+            android:id="@+id/btnMenu"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_more"
+            app:tint="@color/text_secondary"
+            android:contentDescription="More Options" />
     </LinearLayout>
-
-    <TextView
-        android:id="@+id/txtSubTitle"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Capture your thoughts and ideas"
-        android:textSize="14sp"
-        android:textColor="@color/text_secondary"
-        android:paddingHorizontal="20dp"
-        android:paddingBottom="12dp"
-        app:layout_constraintTop_toBottomOf="@id/txtTitle"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <!-- Search Bar -->
-    <EditText
-        android:id="@+id/etSearchNotes"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="20dp"
-        android:layout_marginBottom="12dp"
-        android:background="@drawable/rounded_card"
-        android:hint="Search notes by title, content or label..."
-        android:textColor="@color/text_primary"
-        android:textColorHint="@color/text_hint"
-        android:padding="12dp"
-        android:drawableStart="@android:drawable/ic_menu_search"
-        android:drawablePadding="8dp"
-        android:singleLine="true"
-        android:imeOptions="actionSearch"
-        app:layout_constraintTop_toBottomOf="@id/txtSubTitle" />
 
     <!-- Filters Scroll -->
     <HorizontalScrollView
@@ -92,7 +54,7 @@
         android:scrollbars="none"
         android:paddingHorizontal="20dp"
         android:paddingBottom="12dp"
-        app:layout_constraintTop_toBottomOf="@id/etSearchNotes">
+        app:layout_constraintTop_toBottomOf="@id/headerLayout">
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -173,18 +135,41 @@
     </HorizontalScrollView>
 
     <!-- Empty State -->
-    <TextView
-        android:id="@+id/txtEmptyNotes"
+    <LinearLayout
+        android:id="@+id/layoutEmptyState"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="No notes yet. Tap + to write your first note!"
-        android:textSize="14sp"
-        android:textColor="@color/text_hint"
-        android:textAlignment="center"
-        android:padding="32dp"
+        android:orientation="vertical"
+        android:gravity="center"
         android:visibility="visible"
         app:layout_constraintTop_toBottomOf="@id/filtersScroll"
-        app:layout_constraintBottom_toBottomOf="parent" />
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <ImageView
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:src="@android:drawable/ic_menu_edit"
+            app:tint="@color/text_hint"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="No notes yet"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_secondary"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Tap + to write your first note"
+            android:textSize="14sp"
+            android:textColor="@color/text_hint" />
+    </LinearLayout>
 
     <!-- RecyclerView Grid -->
     <androidx.recyclerview.widget.RecyclerView
