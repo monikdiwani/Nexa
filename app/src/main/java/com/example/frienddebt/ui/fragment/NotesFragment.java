@@ -391,7 +391,12 @@ public class NotesFragment extends Fragment {
 
                 String content = note.getContent();
                 if (content == null) content = "";
-                noteHolder.txtContent.setText(content);
+                
+                if (content.contains("<") && content.contains(">")) {
+                    noteHolder.txtContent.setText(android.text.Html.fromHtml(content, android.text.Html.FROM_HTML_MODE_LEGACY).toString().trim());
+                } else {
+                    noteHolder.txtContent.setText(content.trim());
+                }
 
                 SimpleDateFormat sdf = new SimpleDateFormat("MMM dd", Locale.getDefault());
                 noteHolder.txtDate.setText(sdf.format(new Date(note.getUpdatedAt())));

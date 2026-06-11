@@ -1,22 +1,27 @@
 package com.example.frienddebt.ui;
 
 import android.content.Intent;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.Editable;
-import android.text.TextUtils;
+import android.text.Html;
+import android.text.Spannable;
+import android.text.Spanned;
 import android.text.TextWatcher;
+import android.text.style.BulletSpan;
+import android.text.style.RelativeSizeSpan;
+import android.text.style.StrikethroughSpan;
+import android.text.style.StyleSpan;
+import android.text.style.UnderlineSpan;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
@@ -24,15 +29,14 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.frienddebt.R;
 import com.example.frienddebt.model.Note;
 import com.example.frienddebt.utils.StatusBarUtil;
+import com.example.frienddebt.utils.UndoRedoManager;
 import com.example.frienddebt.ui.fragment.BottomSheetNoteOptionsFragment;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
 
@@ -41,28 +45,23 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.noties.markwon.Markwon;
-import io.noties.markwon.ext.tasklist.TaskListPlugin;
-
 public class AddEditNoteActivity extends AppCompatActivity {
 
     private EditText etNoteTitle, etNoteContent;
-    private ImageButton btnBack, btnMenu, btnPin;
+    private ImageButton btnBack, btnMenu, btnPin, btnUndo, btnRedo;
     private RecyclerView rvImages;
-    private LinearLayout layoutChecklist, containerChecklistItems;
-    private Button btnAddChecklistItem;
-    private TextView txtMarkdownPreview;
 
     private FirebaseFirestore db;
     private FirebaseAuth auth;
+    private UndoRedoManager undoRedoManager;
 
     public String noteId = null;
     private boolean isNewNote = false;
     private String originalTitle = "";
-    private String originalContent = "";
+    private String originalContent = ""; // Stores HTML
     
     // Properties managed by bottom sheets
-    public String selectedColor = "#surface_primary"; // default maps to theme surface
+    public String selectedColor = "#surface_primary"; 
     public String selectedFolder = "Personal";
     public List<String> tags = new ArrayList<>();
     public boolean isPinned = false;
@@ -114,14 +113,14 @@ public class AddEditNoteActivity extends AppCompatActivity {
         btnBack = findViewById(R.id.btnBack);
         btnPin = findViewById(R.id.btnPin);
         btnMenu = findViewById(R.id.btnMenu);
+        btnUndo = findViewById(R.id.btnUndo);
+        btnRedo = findViewById(R.id.btnRedo);
         rvImages = findViewById(R.id.rvImages);
-        layoutChecklist = findViewById(R.id.layoutChecklist);
-        containerChecklistItems = findViewById(R.id.containerChecklistItems);
-        btnAddChecklistItem = findViewById(R.id.btnAddChecklistItem);
-        txtMarkdownPreview = findViewById(R.id.txtMarkdownPreview);
 
         imageAdapter = new ImageAdapter();
         rvImages.setAdapter(imageAdapter);
+
+        undoRedoManager = new UndoRedoManager(etNoteContent);
 
         noteId = getIntent().getStringExtra("NOTE_ID");
         if (noteId == null && auth.getCurrentUser() != null) {
@@ -166,12 +165,7 @@ public class AddEditNoteActivity extends AppCompatActivity {
             }
         });
 
-        setupMarkdownToolbar();
-
-        btnAddChecklistItem.setOnClickListener(v -> {
-            addChecklistItemUI("", false);
-            triggerAutoSave();
-        });
+        setupFormattingToolbar();
     }
 
     private void setupAutoSaveListeners() {
@@ -188,20 +182,24 @@ public class AddEditNoteActivity extends AppCompatActivity {
     }
 
     private void triggerAutoSave() {
-        hasSaved = false; // Reset flag to allow saving
+        hasSaved = false;
         if (autoSaveRunnable != null) {
             autoSaveHandler.removeCallbacks(autoSaveRunnable);
         }
         autoSaveRunnable = () -> saveNote(false);
-        autoSaveHandler.postDelayed(autoSaveRunnable, 2000); // 2-second debounce
+        autoSaveHandler.postDelayed(autoSaveRunnable, 2000);
     }
 
-    private void setupMarkdownToolbar() {
-        findViewById(R.id.btnFormatBold).setOnClickListener(v -> insertMarkdown("**", "**"));
-        findViewById(R.id.btnFormatItalic).setOnClickListener(v -> insertMarkdown("*", "*"));
-        findViewById(R.id.btnFormatHeader).setOnClickListener(v -> insertMarkdownAtLineStart("### "));
-        findViewById(R.id.btnFormatBullet).setOnClickListener(v -> insertMarkdownAtLineStart("- "));
-        findViewById(R.id.btnFormatTask).setOnClickListener(v -> toggleChecklistMode());
+    private void setupFormattingToolbar() {
+        btnUndo.setOnClickListener(v -> undoRedoManager.undo());
+        btnRedo.setOnClickListener(v -> undoRedoManager.redo());
+
+        findViewById(R.id.btnFormatBold).setOnClickListener(v -> toggleStyleSpan(Typeface.BOLD));
+        findViewById(R.id.btnFormatItalic).setOnClickListener(v -> toggleStyleSpan(Typeface.ITALIC));
+        findViewById(R.id.btnFormatUnderline).setOnClickListener(v -> toggleUnderlineSpan());
+        findViewById(R.id.btnFormatHeader).setOnClickListener(v -> toggleHeaderSpan());
+        findViewById(R.id.btnFormatBullet).setOnClickListener(v -> toggleBulletSpan());
+        findViewById(R.id.btnFormatTask).setOnClickListener(v -> insertCheckbox());
 
         findViewById(R.id.btnAddImage).setOnClickListener(v -> {
             Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
@@ -209,162 +207,93 @@ public class AddEditNoteActivity extends AppCompatActivity {
             intent.setType("image/*");
             imagePickerLauncher.launch(intent);
         });
-
-        Button btnTogglePreview = findViewById(R.id.btnTogglePreview);
-
-        btnTogglePreview.setOnClickListener(v -> {
-            if (etNoteContent.getVisibility() == View.VISIBLE) {
-                // Switch to Preview
-                etNoteContent.setVisibility(View.GONE);
-                txtMarkdownPreview.setVisibility(View.VISIBLE);
-                btnTogglePreview.setText("Edit");
-                
-                // Render Markdown
-                Markwon markwon = Markwon.builder(this)
-                    .usePlugin(TaskListPlugin.create(this))
-                    .build();
-                markwon.setMarkdown(txtMarkdownPreview, etNoteContent.getText().toString());
-            } else {
-                // Switch to Edit
-                etNoteContent.setVisibility(View.VISIBLE);
-                txtMarkdownPreview.setVisibility(View.GONE);
-                btnTogglePreview.setText("Preview");
-            }
-        });
     }
 
-    private void insertMarkdown(String prefix, String suffix) {
+    private void toggleStyleSpan(int style) {
+        undoRedoManager.saveState();
         int start = etNoteContent.getSelectionStart();
         int end = etNoteContent.getSelectionEnd();
-        
+        if (start < 0 || end < 0 || start == end) return; // Only apply if text selected
+
         Editable editable = etNoteContent.getText();
-        if (editable == null) return;
-
-        if (start < 0 || end < 0) {
-            start = editable.length();
-            end = editable.length();
+        StyleSpan[] spans = editable.getSpans(start, end, StyleSpan.class);
+        boolean exists = false;
+        for (StyleSpan span : spans) {
+            if (span.getStyle() == style) {
+                editable.removeSpan(span);
+                exists = true;
+            }
         }
-
-        if (start == end) {
-            editable.insert(start, prefix + suffix);
-            etNoteContent.setSelection(start + prefix.length());
-        } else {
-            editable.insert(start, prefix);
-            editable.insert(end + prefix.length(), suffix);
-            etNoteContent.setSelection(end + prefix.length() + suffix.length());
-        }
-    }
-
-    private void insertMarkdownAtLineStart(String prefix) {
-        int start = etNoteContent.getSelectionStart();
-        Editable editable = etNoteContent.getText();
-        if (editable == null) return;
-
-        if (start < 0) start = editable.length();
-
-        String text = editable.toString();
-        int lineStart = start;
-        while (lineStart > 0 && text.charAt(lineStart - 1) != '\n') {
-            lineStart--;
-        }
-
-        editable.insert(lineStart, prefix);
-        etNoteContent.setSelection(start + prefix.length());
-    }
-
-    private void toggleChecklistMode() {
-        if ("CHECKLIST".equals(noteType)) {
-            noteType = "TEXT";
-            etNoteContent.setText(getChecklistContentAsMarkdown());
-            layoutChecklist.setVisibility(View.GONE);
-            etNoteContent.setVisibility(View.VISIBLE);
-        } else {
-            noteType = "CHECKLIST";
-            parseMarkdownToChecklist(etNoteContent.getText().toString());
-            etNoteContent.setVisibility(View.GONE);
-            layoutChecklist.setVisibility(View.VISIBLE);
+        if (!exists) {
+            editable.setSpan(new StyleSpan(style), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
         triggerAutoSave();
     }
 
-    public String getChecklistContentAsMarkdown() {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < containerChecklistItems.getChildCount(); i++) {
-            View child = containerChecklistItems.getChildAt(i);
-            CheckBox cb = child.findViewById(R.id.cbChecklistItem);
-            EditText et = child.findViewById(R.id.etChecklistItem);
-            String text = et.getText().toString().trim();
-            if (!text.isEmpty() || cb.isChecked()) {
-                sb.append(cb.isChecked() ? "- [x] " : "- [ ] ").append(text).append("\n");
-            }
+    private void toggleUnderlineSpan() {
+        undoRedoManager.saveState();
+        int start = etNoteContent.getSelectionStart();
+        int end = etNoteContent.getSelectionEnd();
+        if (start < 0 || end < 0 || start == end) return;
+
+        Editable editable = etNoteContent.getText();
+        UnderlineSpan[] spans = editable.getSpans(start, end, UnderlineSpan.class);
+        if (spans.length > 0) {
+            for (UnderlineSpan span : spans) editable.removeSpan(span);
+        } else {
+            editable.setSpan(new UnderlineSpan(), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
-        return sb.toString().trim();
+        triggerAutoSave();
     }
 
-    private void parseMarkdownToChecklist(String content) {
-        containerChecklistItems.removeAllViews();
-        if (content == null || content.trim().isEmpty()) {
-            addChecklistItemUI("", false);
-            return;
-        }
+    private void toggleHeaderSpan() {
+        undoRedoManager.saveState();
+        int start = etNoteContent.getSelectionStart();
+        int end = etNoteContent.getSelectionEnd();
+        if (start < 0 || end < 0) return;
 
-        String[] lines = content.split("\n");
-        boolean hasItems = false;
-        for (String line : lines) {
-            String trimmed = line.trim();
-            if (trimmed.startsWith("- [x] ") || trimmed.startsWith("- [X] ")) {
-                addChecklistItemUI(trimmed.substring(6), true);
-                hasItems = true;
-            } else if (trimmed.startsWith("- [ ] ")) {
-                addChecklistItemUI(trimmed.substring(6), false);
-                hasItems = true;
-            } else if (!trimmed.isEmpty()) {
-                addChecklistItemUI(trimmed, false);
-                hasItems = true;
-            }
+        Editable editable = etNoteContent.getText();
+        RelativeSizeSpan[] spans = editable.getSpans(start, end, RelativeSizeSpan.class);
+        if (spans.length > 0) {
+            for (RelativeSizeSpan span : spans) editable.removeSpan(span);
+        } else {
+            editable.setSpan(new RelativeSizeSpan(1.5f), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            editable.setSpan(new StyleSpan(Typeface.BOLD), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
-        if (!hasItems) {
-            addChecklistItemUI("", false);
-        }
+        triggerAutoSave();
     }
 
-    private void addChecklistItemUI(String text, boolean isChecked) {
-        View view = LayoutInflater.from(this).inflate(R.layout.item_checklist, containerChecklistItems, false);
-        CheckBox cb = view.findViewById(R.id.cbChecklistItem);
-        EditText et = view.findViewById(R.id.etChecklistItem);
-        ImageButton btnRemove = view.findViewById(R.id.btnRemoveChecklistItem);
+    private void toggleBulletSpan() {
+        undoRedoManager.saveState();
+        int start = etNoteContent.getSelectionStart();
+        Editable editable = etNoteContent.getText();
+        if (start < 0) return;
 
-        cb.setChecked(isChecked);
-        et.setText(text);
-        
-        if (isChecked) {
-            et.setPaintFlags(et.getPaintFlags() | android.graphics.Paint.STRIKE_THRU_TEXT_FLAG);
+        // Find paragraph start and end
+        String text = editable.toString();
+        int lineStart = start;
+        while (lineStart > 0 && text.charAt(lineStart - 1) != '\n') lineStart--;
+        int lineEnd = start;
+        while (lineEnd < text.length() && text.charAt(lineEnd) != '\n') lineEnd++;
+
+        BulletSpan[] spans = editable.getSpans(lineStart, lineEnd, BulletSpan.class);
+        if (spans.length > 0) {
+            for (BulletSpan span : spans) editable.removeSpan(span);
+        } else {
+            editable.setSpan(new BulletSpan(40), lineStart, lineEnd, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
+        triggerAutoSave();
+    }
 
-        cb.setOnCheckedChangeListener((buttonView, isCbChecked) -> {
-            if (isCbChecked) {
-                et.setPaintFlags(et.getPaintFlags() | android.graphics.Paint.STRIKE_THRU_TEXT_FLAG);
-            } else {
-                et.setPaintFlags(et.getPaintFlags() & (~android.graphics.Paint.STRIKE_THRU_TEXT_FLAG));
-            }
-            triggerAutoSave();
-        });
+    private void insertCheckbox() {
+        undoRedoManager.saveState();
+        int start = etNoteContent.getSelectionStart();
+        Editable editable = etNoteContent.getText();
+        if (start < 0) start = editable.length();
 
-        et.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) { triggerAutoSave(); }
-            @Override
-            public void afterTextChanged(Editable s) {}
-        });
-
-        btnRemove.setOnClickListener(v -> {
-            containerChecklistItems.removeView(view);
-            triggerAutoSave();
-        });
-
-        containerChecklistItems.addView(view);
+        // Insert a Unicode checkbox
+        editable.insert(start, "\u2610 "); // Empty checkbox U+2610
+        triggerAutoSave();
     }
 
     private void loadNoteDetails() {
@@ -393,7 +322,7 @@ public class AddEditNoteActivity extends AppCompatActivity {
                         if (note.getTags() != null && !note.getTags().isEmpty()) {
                             tags.addAll(note.getTags());
                         } else if (note.getLabel() != null && !note.getLabel().isEmpty()) {
-                            tags.add(note.getLabel()); // Legacy support
+                            tags.add(note.getLabel()); 
                         }
                         
                         if (note.getImageUrls() != null && !note.getImageUrls().isEmpty()) {
@@ -401,19 +330,17 @@ public class AddEditNoteActivity extends AppCompatActivity {
                             imageUrls.addAll(note.getImageUrls());
                         } else if (note.getImageUrl() != null && !note.getImageUrl().isEmpty()) {
                             imageUrls.clear();
-                            imageUrls.add(note.getImageUrl()); // Legacy support
+                            imageUrls.add(note.getImageUrl()); 
                         }
 
                         etNoteTitle.setText(originalTitle);
                         
-                        if ("CHECKLIST".equals(noteType)) {
-                            parseMarkdownToChecklist(originalContent);
-                            etNoteContent.setVisibility(View.GONE);
-                            layoutChecklist.setVisibility(View.VISIBLE);
+                        // Parse HTML into Spannable
+                        if (originalContent.contains("<") && originalContent.contains(">")) {
+                            etNoteContent.setText(Html.fromHtml(originalContent, Html.FROM_HTML_MODE_LEGACY));
                         } else {
+                            // Legacy plain text or markdown
                             etNoteContent.setText(originalContent);
-                            etNoteContent.setVisibility(View.VISIBLE);
-                            layoutChecklist.setVisibility(View.GONE);
                         }
 
                         applyColor(selectedColor);
@@ -432,7 +359,6 @@ public class AddEditNoteActivity extends AppCompatActivity {
     public void applyColor(String colorHex) {
         selectedColor = colorHex;
         if (colorHex == null || colorHex.equals("#surface_primary")) {
-            // Revert to theme default
             int colorSurface = com.google.android.material.color.MaterialColors.getColor(this, com.google.android.material.R.attr.colorSurface, android.graphics.Color.WHITE);
             findViewById(android.R.id.content).setBackgroundColor(colorSurface);
         } else {
@@ -495,23 +421,18 @@ public class AddEditNoteActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        // Safety save on pause
         saveNote(false);
     }
 
     public void saveNote(boolean force) {
-        if (hasSaved && !force) return; // Prevent redundant saves
+        if (hasSaved && !force) return; 
 
         final String title = etNoteTitle.getText().toString().trim();
-        String contentRaw = "";
-        if ("CHECKLIST".equals(noteType)) {
-            contentRaw = getChecklistContentAsMarkdown();
-        } else {
-            contentRaw = etNoteContent.getText().toString().trim();
-        }
-        final String content = contentRaw;
         
-        if (isNewNote && title.isEmpty() && content.isEmpty()) {
+        // Convert Spannable to HTML for storage
+        final String contentHtml = Html.toHtml(etNoteContent.getText(), Html.TO_HTML_PARAGRAPH_LINES_CONSECUTIVE);
+        
+        if (isNewNote && title.isEmpty() && etNoteContent.getText().toString().trim().isEmpty()) {
             hasSaved = true;
             return;
         }
@@ -521,21 +442,21 @@ public class AddEditNoteActivity extends AppCompatActivity {
             return;
         }
 
-        hasSaved = true; // Mark as saved so concurrent triggers don't duplicate work
+        hasSaved = true; 
         String userId = auth.getCurrentUser().getUid();
 
         Map<String, Object> data = new HashMap<>();
         data.put("title", title);
-        data.put("content", content);
+        data.put("content", contentHtml);
         data.put("type", noteType);
         data.put("colorCode", selectedColor);
-        data.put("label", tags.isEmpty() ? "" : tags.get(0)); // Legacy support
+        data.put("label", tags.isEmpty() ? "" : tags.get(0)); 
         data.put("tags", tags);
         data.put("folder", selectedFolder);
         data.put("isPinned", isPinned);
         data.put("isArchived", isArchived);
         data.put("isDeleted", isDeleted);
-        data.put("imageUrl", imageUrls.isEmpty() ? null : imageUrls.get(0)); // Legacy support
+        data.put("imageUrl", imageUrls.isEmpty() ? null : imageUrls.get(0)); 
         data.put("imageUrls", imageUrls);
         data.put("updatedAt", System.currentTimeMillis());
 
@@ -543,8 +464,7 @@ public class AddEditNoteActivity extends AppCompatActivity {
             data.put("createdAt", System.currentTimeMillis());
             isNewNote = false; 
         } else {
-            // Version History
-            if (!originalTitle.equals(title) || !originalContent.equals(content)) {
+            if (!originalTitle.equals(title) || !originalContent.equals(contentHtml)) {
                 Map<String, Object> historyData = new HashMap<>();
                 historyData.put("title", originalTitle);
                 historyData.put("content", originalContent);
@@ -560,7 +480,7 @@ public class AddEditNoteActivity extends AppCompatActivity {
         }
 
         originalTitle = title;
-        originalContent = content;
+        originalContent = contentHtml;
 
         db.collection("users")
                 .document(userId)
@@ -568,19 +488,17 @@ public class AddEditNoteActivity extends AppCompatActivity {
                 .document(noteId)
                 .set(data, SetOptions.merge())
                 .addOnSuccessListener(aVoid -> {
-                    // Saved silently
                 })
                 .addOnFailureListener(e -> {
-                    hasSaved = false; // Allow retry
-                    Toast.makeText(this, "Save failed silently", Toast.LENGTH_SHORT).show();
+                    hasSaved = false; 
                 });
     }
 
     public void updateContentFromHistory(String oldTitle, String oldContent) {
         if (oldTitle != null) etNoteTitle.setText(oldTitle);
         if (oldContent != null) {
-            if ("CHECKLIST".equals(noteType)) {
-                parseMarkdownToChecklist(oldContent);
+            if (oldContent.contains("<") && oldContent.contains(">")) {
+                etNoteContent.setText(Html.fromHtml(oldContent, Html.FROM_HTML_MODE_LEGACY));
             } else {
                 etNoteContent.setText(oldContent);
             }
@@ -589,11 +507,7 @@ public class AddEditNoteActivity extends AppCompatActivity {
     }
 
     public String getRawContent() {
-        if ("CHECKLIST".equals(noteType)) {
-            return getChecklistContentAsMarkdown();
-        } else {
-            return etNoteContent.getText().toString().trim();
-        }
+        return etNoteContent.getText().toString().trim();
     }
 
     public String getNoteTitle() {

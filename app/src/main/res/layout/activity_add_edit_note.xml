@@ -64,6 +64,30 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal">
             
+            <ImageButton
+                android:id="@+id/btnUndo"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_revert"
+                android:contentDescription="Undo" />
+
+            <ImageButton
+                android:id="@+id/btnRedo"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_revert"
+                android:rotationY="180"
+                android:contentDescription="Redo" />
+
+            <View
+                android:layout_width="1dp"
+                android:layout_height="24dp"
+                android:background="@color/divider"
+                android:layout_gravity="center_vertical"
+                android:layout_marginHorizontal="4dp"/>
+
             <Button
                 android:id="@+id/btnFormatBold"
                 android:layout_width="wrap_content"
@@ -77,6 +101,14 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Italic"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:textColor="@color/text_primary" />
+
+            <Button
+                android:id="@+id/btnFormatUnderline"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Underline"
                 style="@style/Widget.MaterialComponents.Button.TextButton"
                 android:textColor="@color/text_primary" />
 
@@ -111,22 +143,6 @@
                 android:text="Image"
                 style="@style/Widget.MaterialComponents.Button.TextButton"
                 android:textColor="@color/text_primary" />
-                
-            <View
-                android:layout_width="1dp"
-                android:layout_height="24dp"
-                android:background="@color/divider"
-                android:layout_gravity="center_vertical"
-                android:layout_marginHorizontal="8dp"/>
-                
-            <Button
-                android:id="@+id/btnTogglePreview"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Preview"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
-                android:textColor="@color/primary"
-                android:textStyle="bold" />
         </LinearLayout>
     </HorizontalScrollView>
 
@@ -209,17 +225,6 @@
                     android:textColor="@color/text_secondary"
                     android:layout_marginTop="8dp"/>
             </LinearLayout>
-
-            <!-- Markdown Preview -->
-            <TextView
-                android:id="@+id/txtMarkdownPreview"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:textColor="@color/text_primary"
-                android:textSize="18sp"
-                android:lineSpacingExtra="4dp"
-                android:visibility="gone"
-                android:layout_marginTop="8dp" />
 
         </LinearLayout>
     </ScrollView>
