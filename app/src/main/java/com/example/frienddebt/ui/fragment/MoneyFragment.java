@@ -138,6 +138,16 @@ public class MoneyFragment extends Fragment {
                         case 2: tab.setText("All"); break;
                     }
                 }).attach();
+
+        // Update header totals when tab changes
+        tabLayoutMoney.addOnTabSelectedListener(new com.google.android.material.tabs.TabLayout.OnTabSelectedListener() {
+            @Override
+            public void onTabSelected(com.google.android.material.tabs.TabLayout.Tab tab) {
+                loadBalanceData();
+            }
+            @Override public void onTabUnselected(com.google.android.material.tabs.TabLayout.Tab tab) {}
+            @Override public void onTabReselected(com.google.android.material.tabs.TabLayout.Tab tab) {}
+        });
     }
 
     @Override
@@ -153,7 +163,10 @@ public class MoneyFragment extends Fragment {
         if (auth == null || auth.getCurrentUser() == null || db == null) return;
         String userId = auth.getCurrentUser().getUid();
 
-        // Cashbook data for net balance
+        // Determine filter based on selected tab
+        int selectedTab = tabLayoutMoney != null ? tabLayoutMoney.getSelectedTabPosition() : 2;
+        // 0=Personal, 1=Shared, 2=All
+
         db.collection("cashbooks")
                 .whereNotEqualTo("members." + userId, null)
                 .addSnapshotListener((snapshots, e) -> {
@@ -161,6 +174,15 @@ public class MoneyFragment extends Fragment {
 
                     double cashIn = 0, cashOut = 0;
                     for (com.google.firebase.firestore.DocumentSnapshot doc : snapshots) {
+                        boolean isShared = false;
+                        java.util.Map<String, Object> members = (java.util.Map<String, Object>) doc.get("members");
+                        if (members != null && members.size() > 1) isShared = true;
+
+                        // Filter by tab
+                        if (selectedTab == 0 && isShared) continue;   // Personal only
+                        if (selectedTab == 1 && !isShared) continue;  // Shared only
+                        // selectedTab == 2 = All, no filter
+
                         Double in = doc.getDouble("totalCashIn");
                         Double out = doc.getDouble("totalCashOut");
                         if (in != null) cashIn += in;
@@ -171,7 +193,7 @@ public class MoneyFragment extends Fragment {
                     txtNetBalance.setText(String.format(Locale.getDefault(), "₹%.2f", net));
                     txtMoneyIn.setText(String.format(Locale.getDefault(), "₹%.0f", cashIn));
                     txtMoneyOut.setText(String.format(Locale.getDefault(), "₹%.0f", cashOut));
-                    
+
                     loadDeepInsights(snapshots.getDocuments());
                 });
     }
