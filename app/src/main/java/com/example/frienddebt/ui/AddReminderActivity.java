@@ -49,6 +49,7 @@ public class AddReminderActivity extends AppCompatActivity {
     private FirebaseFirestore db;
     private String linkedItemId;
     private String linkedItemType;
+    private String editingReminderId = null; // non-null = edit mode
 
     private static final String[] CATEGORIES = {"BILL", "MEETING", "TASK", "MEDICINE", "SHOPPING", "CUSTOM"};
     private static final String[] REPEAT_OPTIONS = {"NONE", "DAILY", "WEEKLY", "MONTHLY", "YEARLY"};
@@ -79,9 +80,21 @@ public class AddReminderActivity extends AppCompatActivity {
 
         btnBack.setOnClickListener(v -> finish());
 
-    
-
-    
+        // Detect edit mode
+        editingReminderId = getIntent().getStringExtra("REMINDER_ID");
+        if (editingReminderId != null) {
+            // Change UI for edit mode
+            TextView toolbarTitle = null;
+            android.view.ViewGroup root = (android.view.ViewGroup) getWindow().getDecorView().getRootView();
+            // Set toolbar title safely
+            try {
+                ((android.widget.TextView) ((android.view.ViewGroup)
+                    ((android.view.ViewGroup) root.getChildAt(0)).getChildAt(0)).getChildAt(1))
+                    .setText("Edit Reminder");
+            } catch (Exception ignored) {}
+            btnSaveReminder.setText("Update Reminder");
+            loadReminderForEdit(editingReminderId);
+        }
 
         // Category dropdown Setup
         ArrayAdapter<String> catAdapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, CATEGORIES);
@@ -137,7 +150,67 @@ public class AddReminderActivity extends AppCompatActivity {
         
         loadTasksForSpinner();
     }
-    
+
+    /** Load existing reminder fields for edit mode */
+    private void loadReminderForEdit(String reminderId) {
+        if (auth.getCurrentUser() == null) return;
+        db.collection("users")
+                .document(auth.getCurrentUser().getUid())
+                .collection("reminders")
+                .document(reminderId)
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (!doc.exists()) return;
+                    Reminder r = Reminder.fromDocument(doc);
+
+                    etReminderTitle.setText(r.getTitle());
+                    etReminderMsg.setText(r.getMessage());
+
+                    // Category
+                    String cat = r.getCategory();
+                    if (cat != null) {
+                        boolean isPreset = false;
+                        for (String c : CATEGORIES) { if (c.equals(cat)) { isPreset = true; break; } }
+                        if (isPreset) {
+                            actvCategory.setText(cat, false);
+                            tilCustomCategory.setVisibility("CUSTOM".equals(cat) ? View.VISIBLE : View.GONE);
+                        } else {
+                            actvCategory.setText("CUSTOM", false);
+                            tilCustomCategory.setVisibility(View.VISIBLE);
+                            etCustomCategory.setText(cat);
+                        }
+                    }
+
+                    // Date/time
+                    if (r.getTriggerTime() > 0) {
+                        calendar.setTimeInMillis(r.getTriggerTime());
+                        updateDateText();
+                        updateTimeText();
+                    }
+
+                    // Priority
+                    if ("HIGH".equals(r.getPriority())) {
+                        rgPriority.check(R.id.rbHigh);
+                    } else if ("LOW".equals(r.getPriority())) {
+                        rgPriority.check(R.id.rbLow);
+                    } else {
+                        rgPriority.check(R.id.rbMedium);
+                    }
+
+                    // Recurring
+                    String pattern = r.getRecurringPattern();
+                    if (pattern != null && !"NONE".equals(pattern)) {
+                        switchRecurring.setChecked(true);
+                        layoutRecurringFrequency.setVisibility(View.VISIBLE);
+                        actvRecurringFrequency.setText(pattern, false);
+                    }
+
+                    // Linked item
+                    linkedItemId = r.getLinkedItemId();
+                    linkedItemType = r.getLinkedItemType();
+                });
+    }
+
     private void loadTasksForSpinner() {
         if (auth.getCurrentUser() == null) return;
         
@@ -257,17 +330,16 @@ public class AddReminderActivity extends AppCompatActivity {
         boolean isRecurring = switchRecurring.isChecked();
         String repeat = isRecurring ? actvRecurringFrequency.getText().toString() : "NONE";
 
-        Reminder reminder = new Reminder(null, title, msg, triggerTime, repeat, priority, category, false, false, null, createdAt, null);
-        
+        Reminder reminder = new Reminder(editingReminderId, title, msg, triggerTime, repeat, priority, category, false, false, null, System.currentTimeMillis(), null);
+
         if (linkedItemId != null && linkedItemType != null) {
             reminder.setLinkedItemId(linkedItemId);
             reminder.setLinkedItemType(linkedItemType);
         } else if (linkedTaskId != null) {
-            // Fallback for old manual task linking
             reminder.setLinkedItemId(linkedTaskId);
             reminder.setLinkedItemType("TASK");
         }
-        
+
         if (isRecurring) {
             reminder.setRecurring(true);
             reminder.setRecurringId(java.util.UUID.randomUUID().toString());
@@ -283,25 +355,42 @@ public class AddReminderActivity extends AppCompatActivity {
         }
 
         btnSaveReminder.setEnabled(false);
-        btnSaveReminder.setText("Scheduling...");
+        btnSaveReminder.setText(editingReminderId != null ? "Updating..." : "Scheduling...");
 
-        db.collection("users")
-                .document(userId)
-                .collection("reminders")
-                .add(reminder.toFirestoreMap())
-                .addOnSuccessListener(ref -> {
-                    String id = ref.getId();
-                    reminder.setId(id);
-                    ReminderScheduler.scheduleReminder(AddReminderActivity.this, reminder);
-
-                    Toast.makeText(AddReminderActivity.this, "Reminder scheduled!", Toast.LENGTH_SHORT).show();
-                    finish();
-                })
-                .addOnFailureListener(e -> {
-                    btnSaveReminder.setEnabled(true);
-                    btnSaveReminder.setText("Schedule Reminder");
-                    Toast.makeText(AddReminderActivity.this, "Failed to schedule: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                });
+        if (editingReminderId != null) {
+            // EDIT MODE: cancel old alarm, update Firestore, schedule new alarm
+            ReminderScheduler.cancelReminder(this, editingReminderId);
+            reminder.setId(editingReminderId);
+            db.collection("users").document(userId).collection("reminders")
+                    .document(editingReminderId)
+                    .set(reminder.toFirestoreMap())
+                    .addOnSuccessListener(aVoid -> {
+                        ReminderScheduler.scheduleReminder(AddReminderActivity.this, reminder);
+                        Toast.makeText(AddReminderActivity.this, "Reminder updated!", Toast.LENGTH_SHORT).show();
+                        finish();
+                    })
+                    .addOnFailureListener(e -> {
+                        btnSaveReminder.setEnabled(true);
+                        btnSaveReminder.setText("Update Reminder");
+                        Toast.makeText(AddReminderActivity.this, "Failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    });
+        } else {
+            // CREATE MODE
+            db.collection("users").document(userId).collection("reminders")
+                    .add(reminder.toFirestoreMap())
+                    .addOnSuccessListener(ref -> {
+                        String id = ref.getId();
+                        reminder.setId(id);
+                        ReminderScheduler.scheduleReminder(AddReminderActivity.this, reminder);
+                        Toast.makeText(AddReminderActivity.this, "Reminder scheduled!", Toast.LENGTH_SHORT).show();
+                        finish();
+                    })
+                    .addOnFailureListener(e -> {
+                        btnSaveReminder.setEnabled(true);
+                        btnSaveReminder.setText("Schedule Reminder");
+                        Toast.makeText(AddReminderActivity.this, "Failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    });
+        }
     }
 
     @Override

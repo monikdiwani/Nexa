@@ -257,23 +257,17 @@ public class RemindersActivity extends AppCompatActivity {
                 holder.txtRepeat.setVisibility(View.GONE);
             }
 
-            // Linked Task badge
-            if (r.getLinkedItemId() != null && !r.getLinkedItemId().isEmpty()) {
-                holder.txtLinkedTask.setVisibility(View.VISIBLE);
-                holder.itemView.setOnClickListener(v -> {
-                    Intent intent = new Intent(RemindersActivity.this, TasksActivity.class);
-                    // In a more advanced implementation, we would pass the linkedItemId to highlight it
-                    startActivity(intent);
-                });
-            } else {
-                holder.txtLinkedTask.setVisibility(View.GONE);
-                // Normal click option: Complete it
-                holder.itemView.setOnClickListener(v -> {
-                    if (!r.isCompleted()) {
-                        showCompleteDialog(r);
-                    }
-                });
-            }
+            // Tap: open edit if pending, otherwise show complete dialog
+            holder.itemView.setOnClickListener(v -> {
+                if (r.isCompleted()) {
+                    Toast.makeText(RemindersActivity.this, "Already completed", Toast.LENGTH_SHORT).show();
+                } else {
+                    Intent editIntent = new Intent(RemindersActivity.this, AddReminderActivity.class);
+                    editIntent.putExtra("REMINDER_ID", r.getId());
+                    startActivity(editIntent);
+                }
+            });
+
 
             // Long click option: Delete it
             holder.itemView.setOnLongClickListener(v -> {
