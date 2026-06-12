@@ -1,201 +1,147 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout 
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background_primary">
+    android:background="@android:color/black">
 
-    <!-- Header -->
-    <LinearLayout
-        android:id="@+id/headerLayout"
+    <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:layout_marginTop="28dp"
-        android:layout_marginBottom="16dp"
-        android:paddingHorizontal="20dp"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent">
+        android:background="@android:color/transparent"
+        app:elevation="0dp">
 
-        <TextView
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:text="Notes"
-            android:textSize="28sp"
-            android:textStyle="bold"
-            android:textColor="@color/text_primary" />
+        <com.google.android.material.appbar.CollapsingToolbarLayout
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            app:layout_scrollFlags="scroll|exitUntilCollapsed">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:paddingTop="24dp">
+                
+                <TextView
+                    android:id="@+id/txtHeaderTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="All notes"
+                    android:textColor="@android:color/white"
+                    android:textSize="28sp"
+                    android:textStyle="bold"/>
+                    
+                <TextView
+                    android:id="@+id/txtHeaderSubtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0 notes"
+                    android:textColor="#AAAAAA"
+                    android:textSize="14sp"
+                    android:layout_marginTop="4dp"/>
+            </LinearLayout>
+
+        </com.google.android.material.appbar.CollapsingToolbarLayout>
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:paddingHorizontal="16dp">
             
-        <ImageButton
-            android:id="@+id/btnSearch"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_menu_search"
-            app:tint="@color/text_secondary"
-            android:contentDescription="Search Notes" />
+            <ImageButton
+                android:id="@+id/btnMenu"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_sort_by_size"
+                android:rotation="180"
+                app:tint="@android:color/white"
+                android:contentDescription="Menu" />
+                
+            <!-- Mock notification dot -->
+            <View
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:background="@drawable/circle_orange"
+                android:layout_alignTop="@id/btnMenu"
+                android:layout_alignEnd="@id/btnMenu"
+                android:layout_marginTop="12dp"
+                android:layout_marginEnd="12dp" />
 
-        <ImageButton
-            android:id="@+id/btnMenu"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_menu_more"
-            app:tint="@color/text_secondary"
-            android:contentDescription="More Options" />
-    </LinearLayout>
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_alignParentEnd="true"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+                
+                <ImageButton
+                    android:id="@+id/btnSearch"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_search"
+                    app:tint="@android:color/white"
+                    android:contentDescription="Search" />
 
-    <!-- Filters Scroll -->
-    <HorizontalScrollView
-        android:id="@+id/filtersScroll"
+                <ImageButton
+                    android:id="@+id/btnMore"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_more_vert"
+                    app:tint="@android:color/white"
+                    android:contentDescription="More" />
+            </LinearLayout>
+        </RelativeLayout>
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvNotes"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:scrollbars="none"
-        android:paddingHorizontal="20dp"
-        android:paddingBottom="12dp"
-        app:layout_constraintTop_toBottomOf="@id/headerLayout">
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:paddingBottom="88dp"
+        android:paddingHorizontal="16dp"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"/>
 
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <TextView
-                android:id="@+id/chipAll"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="All"
-                android:textSize="13sp"
-                android:textColor="@color/on_primary"
-                android:background="@drawable/rounded_button"
-                android:paddingHorizontal="16dp"
-                android:paddingVertical="8dp"
-                android:layout_marginEnd="8dp" />
-
-            <TextView
-                android:id="@+id/chipPinned"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Pinned"
-                android:textSize="13sp"
-                android:textColor="@color/text_secondary"
-                android:background="@drawable/chip_background"
-                android:paddingHorizontal="16dp"
-                android:paddingVertical="8dp"
-                android:layout_marginEnd="8dp" />
-
-            <TextView
-                android:id="@+id/chipChecklist"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Checklist"
-                android:textSize="13sp"
-                android:textColor="@color/text_secondary"
-                android:background="@drawable/chip_background"
-                android:paddingHorizontal="16dp"
-                android:paddingVertical="8dp"
-                android:layout_marginEnd="8dp" />
-
-            <TextView
-                android:id="@+id/chipImages"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Images"
-                android:textSize="13sp"
-                android:textColor="@color/text_secondary"
-                android:background="@drawable/chip_background"
-                android:paddingHorizontal="16dp"
-                android:paddingVertical="8dp"
-                android:layout_marginEnd="8dp" />
-
-            <TextView
-                android:id="@+id/chipArchive"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Archive"
-                android:textSize="13sp"
-                android:textColor="@color/text_secondary"
-                android:background="@drawable/chip_background"
-                android:paddingHorizontal="16dp"
-                android:paddingVertical="8dp"
-                android:layout_marginEnd="8dp" />
-
-            <TextView
-                android:id="@+id/chipTrash"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Trash"
-                android:textSize="13sp"
-                android:textColor="@color/text_secondary"
-                android:background="@drawable/chip_background"
-                android:paddingHorizontal="16dp"
-                android:paddingVertical="8dp" />
-        </LinearLayout>
-    </HorizontalScrollView>
-
-    <!-- Empty State -->
     <LinearLayout
         android:id="@+id/layoutEmptyState"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_gravity="center"
         android:orientation="vertical"
         android:gravity="center"
-        android:visibility="visible"
-        app:layout_constraintTop_toBottomOf="@id/filtersScroll"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-
+        android:visibility="gone">
         <ImageView
             android:layout_width="120dp"
             android:layout_height="120dp"
-            android:src="@android:drawable/ic_menu_edit"
-            app:tint="@color/text_hint"
-            android:layout_marginBottom="16dp" />
-
+            android:src="@android:drawable/ic_menu_agenda"
+            app:tint="#555555" />
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="No notes yet"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:textColor="@color/text_secondary"
-            android:layout_marginBottom="8dp" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Tap + to write your first note"
-            android:textSize="14sp"
-            android:textColor="@color/text_hint" />
+            android:text="No notes"
+            android:layout_marginTop="16dp"
+            android:textSize="16sp"
+            android:textColor="#888888" />
     </LinearLayout>
 
-    <!-- RecyclerView Grid -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvNotes"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layoutAnimation="@anim/list_fall_down"
-        android:clipToPadding="false"
-        android:paddingHorizontal="12dp"
-        android:paddingBottom="80dp"
-        app:layout_constraintTop_toBottomOf="@id/filtersScroll"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <!-- FAB -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabAddNote"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="20dp"
-        android:src="@android:drawable/ic_input_add"
-        android:contentDescription="Add note"
-        app:backgroundTint="@color/primary"
-        app:tint="@color/white"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        android:layout_gravity="bottom|end"
+        android:layout_margin="24dp"
+        app:backgroundTint="#333333"
+        app:tint="@android:color/white"
+        app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Medium"
+        android:src="@android:drawable/ic_menu_edit"
+        android:contentDescription="New Note" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
