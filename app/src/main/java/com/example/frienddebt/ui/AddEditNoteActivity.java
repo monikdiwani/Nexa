@@ -227,11 +227,48 @@ public class AddEditNoteActivity extends AppCompatActivity {
     private void setupAutoSave() {
         TextWatcher tw = new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int st, int c, int af) {}
-            @Override public void onTextChanged(CharSequence s, int st, int b, int c) { triggerAutoSave(); }
+            @Override public void onTextChanged(CharSequence s, int st, int b, int c) {
+                triggerAutoSave();
+                // Scroll the ScrollView so the cursor line is always visible
+                etNoteContent.post(() -> scrollToCursor());
+            }
             @Override public void afterTextChanged(Editable s) {}
         };
         etNoteTitle.addTextChangedListener(tw);
         etNoteContent.addTextChangedListener(tw);
+    }
+
+    /** Scrolls the parent ScrollView so the cursor position inside etNoteContent is visible. */
+    private void scrollToCursor() {
+        try {
+            int cursorLine = getCursorLine();
+            if (cursorLine < 0) return;
+            android.widget.ScrollView sv = findParentScrollView(etNoteContent);
+            if (sv == null) return;
+            // Line height in px
+            int lineHeight = etNoteContent.getLineHeight();
+            int topOfLine  = cursorLine * lineHeight;
+            int botOfLine  = topOfLine + lineHeight;
+            // Add EditText's top offset inside the ScrollView
+            int etTop = etNoteContent.getTop();
+            sv.scrollTo(0, Math.max(0, etTop + topOfLine - lineHeight));
+        } catch (Exception ignored) {}
+    }
+
+    private int getCursorLine() {
+        int selStart = etNoteContent.getSelectionStart();
+        if (selStart < 0 || etNoteContent.getLayout() == null) return -1;
+        return etNoteContent.getLayout().getLineForOffset(selStart);
+    }
+
+    private android.widget.ScrollView findParentScrollView(View child) {
+        if (child == null) return null;
+        android.view.ViewParent parent = child.getParent();
+        while (parent != null) {
+            if (parent instanceof android.widget.ScrollView) return (android.widget.ScrollView) parent;
+            parent = parent.getParent();
+        }
+        return null;
     }
 
     private void setupFormattingToolbar() {

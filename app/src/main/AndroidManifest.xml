@@ -99,7 +99,7 @@
         <activity
             android:name=".ui.AddEditNoteActivity"
             android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
+            android:windowSoftInputMode="adjustNothing" />
         <activity
             android:name=".ui.RemindersActivity"
             android:exported="false" />
