@@ -151,11 +151,20 @@
             android:id="@+id/menuConvert"
             android:layout_width="52dp"
             android:layout_height="52dp"
-            android:src="@android:drawable/ic_menu_share"
+            android:src="@android:drawable/ic_menu_agenda"
             android:background="?attr/selectableItemBackgroundBorderless"
             app:tint="@color/text_secondary"
-            android:contentDescription="Convert" />
+            android:contentDescription="Convert to Task or Reminder" />
 
     </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Pin  ·  Lock  ·  Convert to Task"
+        android:textSize="10sp"
+        android:textColor="@color/text_hint"
+        android:gravity="center"
+        android:paddingBottom="8dp" />
 
 </LinearLayout>

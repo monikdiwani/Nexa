@@ -76,13 +76,6 @@
                         android:src="@android:drawable/ic_menu_sort_by_size"
                         app:tint="@color/text_primary"
                         android:contentDescription="Menu" />
-
-                    <View
-                        android:layout_width="8dp"
-                        android:layout_height="8dp"
-                        android:layout_gravity="top|end"
-                        android:layout_margin="10dp"
-                        android:background="@drawable/circle_orange" />
                 </FrameLayout>
 
                 <!-- Right: Search + More -->

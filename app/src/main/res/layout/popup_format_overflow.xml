@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="160dp"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_popup_rounded"
+    android:paddingVertical="8dp"
+    android:elevation="12dp">
+
+    <TextView
+        android:id="@+id/overflowStrikethrough"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="Strikethrough"
+        android:textSize="14sp"
+        android:textColor="@color/text_primary"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp"
+        android:background="?attr/selectableItemBackground" />
+
+    <TextView
+        android:id="@+id/overflowBullet"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="• Bullet list"
+        android:textSize="14sp"
+        android:textColor="@color/text_primary"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp"
+        android:background="?attr/selectableItemBackground" />
+
+    <TextView
+        android:id="@+id/overflowNumbered"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="1. Numbered list"
+        android:textSize="14sp"
+        android:textColor="@color/text_primary"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp"
+        android:background="?attr/selectableItemBackground" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider"
+        android:layout_marginHorizontal="12dp"
+        android:layout_marginVertical="4dp" />
+
+    <TextView
+        android:id="@+id/overflowAlignLeft"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="≡ Align left"
+        android:textSize="14sp"
+        android:textColor="@color/text_primary"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp"
+        android:background="?attr/selectableItemBackground" />
+
+    <TextView
+        android:id="@+id/overflowAlignCenter"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="≡ Align center"
+        android:textSize="14sp"
+        android:textColor="@color/text_primary"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp"
+        android:background="?attr/selectableItemBackground" />
+
+    <TextView
+        android:id="@+id/overflowAlignRight"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="≡ Align right"
+        android:textSize="14sp"
+        android:textColor="@color/text_primary"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp"
+        android:background="?attr/selectableItemBackground" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider"
+        android:layout_marginHorizontal="12dp"
+        android:layout_marginVertical="4dp" />
+
+    <TextView
+        android:id="@+id/overflowAddImage"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="🖼 Add image"
+        android:textSize="14sp"
+        android:textColor="@color/primary"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp"
+        android:background="?attr/selectableItemBackground" />
+
+</LinearLayout>
