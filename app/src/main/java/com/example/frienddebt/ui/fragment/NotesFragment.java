@@ -2,7 +2,8 @@ package com.example.frienddebt.ui.fragment;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.text.Html;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.ActionMode;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -11,17 +12,18 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
-import android.widget.ImageButton;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.LinearLayout;
+import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 
 import com.example.frienddebt.R;
 import com.example.frienddebt.model.Note;
@@ -37,7 +39,6 @@ import com.google.firebase.firestore.WriteBatch;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -47,9 +48,8 @@ public class NotesFragment extends Fragment {
     private LinearLayout layoutEmptyState;
     private RecyclerView rvNotes;
     private FloatingActionButton fabAddNote;
-    
-    private TextView txtHeaderSubtitle;
-    private ImageButton btnSearch, btnMenu, btnMore;
+
+    private TextView chipAll, chipArchive, chipTrash, chipPinned, chipChecklist, chipImages;
 
     private FirebaseFirestore db;
     private FirebaseAuth auth;
@@ -59,9 +59,14 @@ public class NotesFragment extends Fragment {
     private List<Object> displayItems = new ArrayList<>();
     private NotesAdapter adapter;
 
+    private String activeFilter = "ALL";
+    private String searchQuery = "";
+
     private ActionMode actionMode;
     private boolean isMultiSelectMode = false;
     private List<Note> selectedNotes = new ArrayList<>();
+
+    private android.widget.ImageButton btnSearch, btnMenu;
 
     @Nullable
     @Override
@@ -74,19 +79,17 @@ public class NotesFragment extends Fragment {
         layoutEmptyState = view.findViewById(R.id.layoutEmptyState);
         rvNotes = view.findViewById(R.id.rvNotes);
         fabAddNote = view.findViewById(R.id.fabAddNote);
-        
-        txtHeaderSubtitle = view.findViewById(R.id.txtHeaderSubtitle);
+
         btnSearch = view.findViewById(R.id.btnSearch);
         btnMenu = view.findViewById(R.id.btnMenu);
-        btnMore = view.findViewById(R.id.btnMore);
 
         if (btnSearch != null) {
             btnSearch.setOnClickListener(v -> startActivity(new Intent(requireContext(), GlobalSearchActivity.class)));
         }
 
-        if (btnMore != null) {
-            btnMore.setOnClickListener(v -> {
-                android.widget.PopupMenu popup = new android.widget.PopupMenu(requireContext(), btnMore);
+        if (btnMenu != null) {
+            btnMenu.setOnClickListener(v -> {
+                android.widget.PopupMenu popup = new android.widget.PopupMenu(requireContext(), btnMenu);
                 popup.getMenu().add("Select Notes");
                 popup.setOnMenuItemClickListener(item -> {
                     if ("Select Notes".equals(item.getTitle().toString())) {
@@ -98,9 +101,18 @@ public class NotesFragment extends Fragment {
             });
         }
 
-        rvNotes.setLayoutManager(new LinearLayoutManager(requireContext()));
+        chipAll = view.findViewById(R.id.chipAll);
+        chipArchive = view.findViewById(R.id.chipArchive);
+        chipTrash = view.findViewById(R.id.chipTrash);
+        chipPinned = view.findViewById(R.id.chipPinned);
+        chipChecklist = view.findViewById(R.id.chipChecklist);
+        chipImages = view.findViewById(R.id.chipImages);
+
+        rvNotes.setLayoutManager(new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL));
         adapter = new NotesAdapter();
         rvNotes.setAdapter(adapter);
+        
+        setupFilters();
 
         fabAddNote.setOnClickListener(v -> {
             Animation pop = AnimationUtils.loadAnimation(requireContext(), R.anim.button_pop);
@@ -109,6 +121,31 @@ public class NotesFragment extends Fragment {
         });
 
         return view;
+    }
+
+    private void setupFilters() {
+        chipAll.setOnClickListener(v -> setFilter("ALL", chipAll));
+        chipPinned.setOnClickListener(v -> setFilter("PINNED", chipPinned));
+        chipChecklist.setOnClickListener(v -> setFilter("CHECKLIST", chipChecklist));
+        chipImages.setOnClickListener(v -> setFilter("IMAGES", chipImages));
+        chipArchive.setOnClickListener(v -> setFilter("ARCHIVE", chipArchive));
+        chipTrash.setOnClickListener(v -> setFilter("TRASH", chipTrash));
+    }
+
+    private void setFilter(String filter, TextView activeChip) {
+        activeFilter = filter;
+        resetChipStyles();
+        activeChip.setBackgroundResource(R.drawable.rounded_button);
+        activeChip.setTextColor(getResources().getColor(R.color.on_primary));
+        applyFilter();
+    }
+
+    private void resetChipStyles() {
+        TextView[] chips = {chipAll, chipPinned, chipChecklist, chipImages, chipArchive, chipTrash};
+        for (TextView chip : chips) {
+            chip.setBackgroundResource(R.drawable.chip_background);
+            chip.setTextColor(getResources().getColor(R.color.text_secondary));
+        }
     }
 
     @Override
@@ -145,70 +182,73 @@ public class NotesFragment extends Fragment {
                     for (DocumentSnapshot doc : snapshots) {
                         allNotes.add(Note.fromDocument(doc));
                     }
-                    applyGrouping();
+                    applyFilter();
                 });
     }
 
-    private void applyGrouping() {
-        displayItems.clear();
-        
-        List<Note> validNotes = new ArrayList<>();
+    private void applyFilter() {
+        List<Note> filteredNotes = new ArrayList<>();
+
         for (Note n : allNotes) {
-            if (!n.isDeleted()) {
-                validNotes.add(n);
+            boolean matchesFilter = false;
+            switch (activeFilter) {
+                case "ALL":
+                    matchesFilter = !n.isArchived() && !n.isDeleted();
+                    break;
+                case "PINNED":
+                    matchesFilter = n.isPinned() && !n.isArchived() && !n.isDeleted();
+                    break;
+                case "CHECKLIST":
+                    matchesFilter = "CHECKLIST".equals(n.getType()) && !n.isArchived() && !n.isDeleted();
+                    break;
+                case "IMAGES":
+                    matchesFilter = ("IMAGE".equals(n.getType()) || (n.getImageUrl() != null && !n.getImageUrl().isEmpty()) || (n.getImageUrls() != null && !n.getImageUrls().isEmpty())) && !n.isArchived() && !n.isDeleted();
+                    break;
+                case "ARCHIVE":
+                    matchesFilter = n.isArchived() && !n.isDeleted();
+                    break;
+                case "TRASH":
+                    matchesFilter = n.isDeleted();
+                    break;
+            }
+
+            if (matchesFilter) {
+                filteredNotes.add(n);
             }
         }
-        
-        txtHeaderSubtitle.setText(validNotes.size() + " notes");
 
-        validNotes.sort((n1, n2) -> Long.compare(n2.getUpdatedAt(), n1.getUpdatedAt()));
+        // Prepare display items (inject headers if needed)
+        displayItems.clear();
+        
+        List<Note> pinned = new ArrayList<>();
+        List<Note> unpinned = new ArrayList<>();
+        
+        for (Note n : filteredNotes) {
+            if (n.isPinned()) pinned.add(n);
+            else unpinned.add(n);
+        }
 
-        Calendar todayCal = Calendar.getInstance();
-        Calendar yesterdayCal = Calendar.getInstance();
-        yesterdayCal.add(Calendar.DAY_OF_YEAR, -1);
-        
-        String currentHeader = "";
-        
-        for (Note note : validNotes) {
-            Calendar noteCal = Calendar.getInstance();
-            noteCal.setTimeInMillis(note.getUpdatedAt());
-            
-            String headerTitle;
-            
-            if (isSameDay(noteCal, todayCal)) {
-                headerTitle = "Today";
-            } else if (isSameDay(noteCal, yesterdayCal)) {
-                headerTitle = "Yesterday";
-            } else if (noteCal.get(Calendar.YEAR) == todayCal.get(Calendar.YEAR)) {
-                SimpleDateFormat monthFormat = new SimpleDateFormat("MMM", Locale.getDefault());
-                headerTitle = monthFormat.format(noteCal.getTime());
-            } else {
-                SimpleDateFormat yearFormat = new SimpleDateFormat("yyyy", Locale.getDefault());
-                headerTitle = yearFormat.format(noteCal.getTime());
-            }
-            
-            if (!headerTitle.equals(currentHeader)) {
-                displayItems.add(headerTitle);
-                currentHeader = headerTitle;
-            }
-            displayItems.add(note);
+        if (!pinned.isEmpty() && !unpinned.isEmpty() && activeFilter.equals("ALL")) {
+            displayItems.add("PINNED");
+            displayItems.addAll(pinned);
+            displayItems.add("ALL NOTES");
+            displayItems.addAll(unpinned);
+        } else {
+            // Sort by date descending
+            filteredNotes.sort((n1, n2) -> Long.compare(n2.getUpdatedAt(), n1.getUpdatedAt()));
+            displayItems.addAll(filteredNotes);
         }
 
         adapter.notifyDataSetChanged();
         rvNotes.scheduleLayoutAnimation();
 
-        if (validNotes.isEmpty()) {
+        if (displayItems.isEmpty()) {
             layoutEmptyState.setVisibility(View.VISIBLE);
             rvNotes.setVisibility(View.GONE);
         } else {
             layoutEmptyState.setVisibility(View.GONE);
             rvNotes.setVisibility(View.VISIBLE);
         }
-    }
-    
-    private boolean isSameDay(Calendar cal1, Calendar cal2) {
-        return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
-               cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR);
     }
 
     // ======================== ACTION MODE ========================
@@ -224,15 +264,28 @@ public class NotesFragment extends Fragment {
         public boolean onCreateActionMode(ActionMode mode, Menu menu) {
             isMultiSelectMode = true;
             mode.getMenuInflater().inflate(R.menu.menu_note_selection, menu);
+            
+            // Adjust menu based on active filter
+            if (activeFilter.equals("TRASH")) {
+                menu.findItem(R.id.action_pin).setVisible(false);
+                menu.findItem(R.id.action_archive).setVisible(false);
+                menu.findItem(R.id.action_trash).setVisible(false);
+                menu.findItem(R.id.action_restore).setVisible(true);
+            } else if (activeFilter.equals("ARCHIVE")) {
+                menu.findItem(R.id.action_archive).setTitle("Unarchive");
+            }
             return true;
         }
 
         @Override
-        public boolean onPrepareActionMode(ActionMode mode, Menu menu) { return false; }
+        public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
+            return false;
+        }
 
         @Override
         public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
             if (selectedNotes.isEmpty()) return false;
+
             WriteBatch batch = db.batch();
             String userId = auth.getCurrentUser().getUid();
             
@@ -244,10 +297,11 @@ public class NotesFragment extends Fragment {
                 mode.finish();
                 return true;
             } else if (item.getItemId() == R.id.action_archive) {
+                boolean isUnarchiving = activeFilter.equals("ARCHIVE");
                 for (Note n : selectedNotes) {
-                    batch.update(db.collection("users").document(userId).collection("notes").document(n.getId()), "isArchived", true);
+                    batch.update(db.collection("users").document(userId).collection("notes").document(n.getId()), "isArchived", !isUnarchiving);
                 }
-                batch.commit().addOnSuccessListener(a -> Toast.makeText(requireContext(), "Archived", Toast.LENGTH_SHORT).show());
+                batch.commit().addOnSuccessListener(a -> Toast.makeText(requireContext(), isUnarchiving ? "Unarchived" : "Archived", Toast.LENGTH_SHORT).show());
                 mode.finish();
                 return true;
             } else if (item.getItemId() == R.id.action_pin) {
@@ -255,6 +309,20 @@ public class NotesFragment extends Fragment {
                     batch.update(db.collection("users").document(userId).collection("notes").document(n.getId()), "isPinned", true);
                 }
                 batch.commit().addOnSuccessListener(a -> Toast.makeText(requireContext(), "Pinned", Toast.LENGTH_SHORT).show());
+                mode.finish();
+                return true;
+            } else if (item.getItemId() == R.id.action_restore) {
+                for (Note n : selectedNotes) {
+                    batch.update(db.collection("users").document(userId).collection("notes").document(n.getId()), "isDeleted", false);
+                }
+                batch.commit().addOnSuccessListener(a -> Toast.makeText(requireContext(), "Restored", Toast.LENGTH_SHORT).show());
+                mode.finish();
+                return true;
+            } else if (item.getItemId() == R.id.action_delete_forever) {
+                for (Note n : selectedNotes) {
+                    batch.delete(db.collection("users").document(userId).collection("notes").document(n.getId()));
+                }
+                batch.commit().addOnSuccessListener(a -> Toast.makeText(requireContext(), "Deleted permanently", Toast.LENGTH_SHORT).show());
                 mode.finish();
                 return true;
             }
@@ -279,7 +347,9 @@ public class NotesFragment extends Fragment {
 
         @Override
         public int getItemViewType(int position) {
-            if (displayItems.get(position) instanceof String) return TYPE_HEADER;
+            if (displayItems.get(position) instanceof String) {
+                return TYPE_HEADER;
+            }
             return TYPE_NOTE;
         }
 
@@ -290,14 +360,13 @@ public class NotesFragment extends Fragment {
                 TextView header = new TextView(parent.getContext());
                 header.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
                 header.setPadding(24, 32, 24, 8);
-                header.setTextSize(14);
-                header.setLetterSpacing(0.05f);
-                header.setAllCaps(false);
-                header.setTypeface(null, android.graphics.Typeface.BOLD);
-                header.setTextColor(android.graphics.Color.WHITE);
+                header.setTextSize(11);
+                header.setLetterSpacing(0.1f);
+                header.setAllCaps(true);
+                header.setTextColor(getResources().getColor(R.color.text_hint));
                 return new HeaderViewHolder(header);
             } else {
-                View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_note_samsung, parent, false);
+                View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_note, parent, false);
                 return new NoteViewHolder(view);
             }
         }
@@ -305,6 +374,10 @@ public class NotesFragment extends Fragment {
         @Override
         public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
             if (holder.getItemViewType() == TYPE_HEADER) {
+                StaggeredGridLayoutManager.LayoutParams layoutParams = new StaggeredGridLayoutManager.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                layoutParams.setFullSpan(true);
+                holder.itemView.setLayoutParams(layoutParams);
+                
                 ((HeaderViewHolder) holder).txtHeader.setText((String) displayItems.get(position));
             } else {
                 NoteViewHolder noteHolder = (NoteViewHolder) holder;
@@ -312,43 +385,62 @@ public class NotesFragment extends Fragment {
 
                 String title = note.getTitle();
                 if (title == null || title.trim().isEmpty()) {
-                    title = "Untitled";
+                    title = "Untitled Note";
                 }
                 noteHolder.txtTitle.setText(title);
 
                 String content = note.getContent();
                 if (content == null) content = "";
                 
-                String plainContent;
                 if (content.contains("<") && content.contains(">")) {
-                    plainContent = Html.fromHtml(content, Html.FROM_HTML_MODE_LEGACY).toString().trim();
+                    noteHolder.txtContent.setText(android.text.Html.fromHtml(content, android.text.Html.FROM_HTML_MODE_LEGACY).toString().trim());
                 } else {
-                    plainContent = content.trim();
+                    noteHolder.txtContent.setText(content.trim());
                 }
-                noteHolder.txtPreview.setText(plainContent);
 
-                Calendar noteCal = Calendar.getInstance();
-                noteCal.setTimeInMillis(note.getUpdatedAt());
-                Calendar todayCal = Calendar.getInstance();
+                SimpleDateFormat sdf = new SimpleDateFormat("MMM dd", Locale.getDefault());
+                noteHolder.txtDate.setText(sdf.format(new Date(note.getUpdatedAt())));
+
+                // Color Strip mapping
+                String colorStr = note.getColorCode();
+                if (colorStr != null && !colorStr.isEmpty() && !colorStr.equals("#surface_primary")) {
+                    int colorVal = android.graphics.Color.parseColor(colorStr);
+                    noteHolder.viewColorStrip.setBackgroundColor(colorVal);
+                } else {
+                    noteHolder.viewColorStrip.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+                }
                 
-                if (isSameDay(noteCal, todayCal)) {
-                    SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
-                    noteHolder.txtDate.setText(timeFormat.format(noteCal.getTime()));
-                } else {
-                    SimpleDateFormat dateFormat = new SimpleDateFormat("dd MMM", Locale.getDefault());
-                    noteHolder.txtDate.setText(dateFormat.format(noteCal.getTime()));
-                }
-
+                // Selection styling
                 if (isMultiSelectMode && selectedNotes.contains(note)) {
-                    noteHolder.itemView.setBackgroundColor(android.graphics.Color.parseColor("#333333"));
+                    if (noteHolder.itemView instanceof androidx.cardview.widget.CardView) {
+                        ((androidx.cardview.widget.CardView) noteHolder.itemView).setCardBackgroundColor(android.graphics.Color.LTGRAY);
+                        noteHolder.itemView.setAlpha(0.7f);
+                    }
                 } else {
-                    noteHolder.itemView.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+                    if (noteHolder.itemView instanceof androidx.cardview.widget.CardView) {
+                        int colorSurface = com.google.android.material.color.MaterialColors.getColor(requireContext(), com.google.android.material.R.attr.colorSurface, android.graphics.Color.WHITE);
+                        ((androidx.cardview.widget.CardView) noteHolder.itemView).setCardBackgroundColor(colorSurface);
+                        noteHolder.itemView.setAlpha(1.0f);
+                    }
                 }
 
                 if (note.isPinned()) {
                     noteHolder.imgPinned.setVisibility(View.VISIBLE);
                 } else {
                     noteHolder.imgPinned.setVisibility(View.GONE);
+                }
+
+                if ("CHECKLIST".equals(note.getType())) {
+                    noteHolder.imgChecklist.setVisibility(View.VISIBLE);
+                } else {
+                    noteHolder.imgChecklist.setVisibility(View.GONE);
+                }
+
+                if (note.getTags() != null && !note.getTags().isEmpty()) {
+                    noteHolder.txtLabel.setText(note.getTags().get(0));
+                    noteHolder.txtLabel.setVisibility(View.VISIBLE);
+                } else {
+                    noteHolder.txtLabel.setVisibility(View.GONE);
                 }
 
                 noteHolder.itemView.setOnClickListener(v -> {
@@ -374,11 +466,16 @@ public class NotesFragment extends Fragment {
         private void toggleSelection(Note note) {
             if (selectedNotes.contains(note)) {
                 selectedNotes.remove(note);
-                if (selectedNotes.isEmpty() && actionMode != null) actionMode.finish();
+                if (selectedNotes.isEmpty() && actionMode != null) {
+                    actionMode.finish();
+                }
             } else {
                 selectedNotes.add(note);
             }
-            if (actionMode != null) actionMode.setTitle(selectedNotes.size() + " selected");
+            
+            if (actionMode != null) {
+                actionMode.setTitle(selectedNotes.size() + " selected");
+            }
             notifyDataSetChanged();
         }
 
@@ -388,16 +485,19 @@ public class NotesFragment extends Fragment {
         }
 
         class NoteViewHolder extends RecyclerView.ViewHolder {
-            TextView txtTitle, txtDate, txtPreview;
-            ImageView imgPinned, imgLock;
+            TextView txtTitle, txtContent, txtDate, txtLabel;
+            ImageView imgPinned, imgChecklist;
+            View viewColorStrip;
 
             public NoteViewHolder(@NonNull View itemView) {
                 super(itemView);
                 txtTitle = itemView.findViewById(R.id.txtNoteTitle);
+                txtContent = itemView.findViewById(R.id.txtNoteContent);
                 txtDate = itemView.findViewById(R.id.txtNoteDate);
-                txtPreview = itemView.findViewById(R.id.txtPreview);
+                txtLabel = itemView.findViewById(R.id.txtNoteLabel);
                 imgPinned = itemView.findViewById(R.id.imgPinned);
-                imgLock = itemView.findViewById(R.id.imgLock);
+                imgChecklist = itemView.findViewById(R.id.imgChecklist);
+                viewColorStrip = itemView.findViewById(R.id.viewColorStrip);
             }
         }
 
