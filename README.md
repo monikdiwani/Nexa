@@ -24,6 +24,7 @@
 ### 2. Double-Column Cashbook
 - **Double Entry Tracking**: Separated monitoring for **Cash** and **Bank** mediums.
 - **Flexible Transaction Categorization**: Log entries under preset categories (Sales, Rent, Salary, Office, Personal, Food, Transport, Shopping, Bills) with search particulars and additional notes.
+- **Smart SMS Auto-Add**: Automatically detects and parses bank SMS messages ("debited", "credited", "spent") to automatically log transactions to your cashbook (requires user opt-in).
 - **Quick Filtering**: Filter transaction history by medium (All/Cash/Bank) or timeline (Today/This Week/This Month).
 - **Long-Press Deletion**: Delete incorrect entries with a single long-press, instantly recalculating your running balances.
 
@@ -45,6 +46,9 @@
 
 ### 6. Reminders & Background Work Manager
 - **Exact Notifications**: Utilizes `AlarmManager` to trigger notifications at the *exact* minute set by the user, featuring custom snooze (15-minute delay) and complete actions.
+- **High-Priority Alarms**: Reminders tagged as HIGH priority bypass standard notification sounds, triggering a persistent vibration pattern and the device's default alarm ringtone.
+- **Early Completion**: Long-press any pending reminder to mark it as completed ahead of time, automatically cancelling scheduled alarms.
+- **Reliable Background Execution**: Uses a `BootReceiver` to automatically reschedule all alarms and WorkManager jobs upon device reboot or power-on.
 - **SDK 36 Compatibility**: Safe fallback mechanism to inexact alarms on Android 12+ (SDK 31+) if exact scheduling is restricted by the OS, preventing crashes.
 - **Daily Morning Digest (8:00 AM)**: Displays a push notification overview of the day's pending tasks and weekly expenses.
 - **Night Summary (9:30 PM)**: Highlights completed tasks, new notes, and spending trends from the day.
@@ -56,7 +60,7 @@
 
 ### 8. Settings & Profile
 - **Global Dark Mode**: Persistent, launch-safe dark mode toggle that applies immediately at app startup.
-- **Notification Controls**: Toggle daily morning/night digests on or off.
+- **Granular Notification Controls**: Customize exactly what alerts you want to see. Toggle on or off alerts for Reminders, Daily Digests, Tasks, Money Activity, and General Activity directly from the profile.
 
 ---
 
