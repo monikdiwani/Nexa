@@ -199,81 +199,69 @@ public class HomeFragment extends Fragment {
 
         removeListeners();
 
-        // 1. Shared Ledgers calculations (Balance and Count)
+        // 1. ALL cashbooks (personal owned + shared member) for balance header
+        //    Query: ownerId == userId (personal) — we merge with shared below
         ledgersListener = db.collection("cashbooks")
                 .whereNotEqualTo("members." + userId, null)
                 .addSnapshotListener((snapshots, e) -> {
                     if (snapshots == null || !isAdded()) return;
-                    
-                    double cashInSum = 0;
-                    double cashOutSum = 0;
-                    int ledgerCount = snapshots.size();
 
-                    if (ledgerCount == 0) {
-                        totalCashOut = 0;
-                        txtTotalBalance.setText("₹0.00");
-                        txtHomeCashIn.setText("₹0.00");
-                        txtHomeCashOut.setText("₹0.00");
-                        txtLedgerCount.setText("0 ledgers");
-                        txtLedgerPreview.setText("Create or join a ledger to track expenses");
-                        updateInsight();
-                        return;
-                    }
+                    // Also load personal (owned) cashbooks in case they aren't in members map
+                    db.collection("cashbooks")
+                            .whereEqualTo("ownerId", userId)
+                            .get()
+                            .addOnCompleteListener(ownedTask -> {
+                                if (!isAdded()) return;
+                                double cashInSum = 0;
+                                double cashOutSum = 0;
+                                java.util.Set<String> seenIds = new java.util.HashSet<>();
 
-                    java.util.List<com.google.android.gms.tasks.Task<com.google.firebase.firestore.QuerySnapshot>> entryTasks = new java.util.ArrayList<>();
-                    for (DocumentSnapshot doc : snapshots) {
-                        Double in = doc.getDouble("totalCashIn");
-                        Double out = doc.getDouble("totalCashOut");
-                        if (in != null) cashInSum += in;
-                        if (out != null) cashOutSum += out;
-                        
-                        entryTasks.add(db.collection("cashbooks").document(doc.getId()).collection("entries").get());
-                    }
-                    
-                    totalCashOut = cashOutSum;
-                    double total = cashInSum - cashOutSum;
-                    txtTotalBalance.setText(String.format(Locale.getDefault(), "₹%.2f", total));
-                    txtHomeCashIn.setText(String.format(Locale.getDefault(), "₹%.2f", cashInSum));
-                    txtHomeCashOut.setText(String.format(Locale.getDefault(), "₹%.2f", cashOutSum));
-                    txtLedgerCount.setText(ledgerCount + (ledgerCount == 1 ? " ledger" : " ledgers"));
-                    txtLedgerPreview.setText("Calculating balances...");
-
-                    com.google.android.gms.tasks.Tasks.whenAllComplete(entryTasks).addOnCompleteListener(allTasks -> {
-                        if (!isAdded()) return;
-                        
-                        double totalIOwe = 0;
-                        double totalOwedToMe = 0;
-                        
-                        for (int i = 0; i < entryTasks.size(); i++) {
-                            com.google.android.gms.tasks.Task<com.google.firebase.firestore.QuerySnapshot> t = entryTasks.get(i);
-                            if (t.isSuccessful() && t.getResult() != null) {
-                                com.google.firebase.firestore.QuerySnapshot es = t.getResult();
-                                java.util.List<com.example.frienddebt.model.CashbookEntry> entries = new java.util.ArrayList<>();
-                                for (DocumentSnapshot edoc : es) {
-                                    entries.add(com.example.frienddebt.model.CashbookEntry.fromDocument(edoc));
+                                // From shared/member cashbooks
+                                for (com.google.firebase.firestore.DocumentSnapshot doc : snapshots) {
+                                    seenIds.add(doc.getId());
+                                    Double in = doc.getDouble("totalCashIn");
+                                    Double out = doc.getDouble("totalCashOut");
+                                    if (in != null) cashInSum += in;
+                                    if (out != null) cashOutSum += out;
                                 }
-                                java.util.List<com.example.frienddebt.model.DebtEdge> edges = com.example.frienddebt.dsa.DebtSimplifier.simplifyDebts(entries);
-                                for (com.example.frienddebt.model.DebtEdge edge : edges) {
-                                    if (edge.getFrom().equals(userId)) {
-                                        totalIOwe += edge.getAmount();
-                                    } else if (edge.getTo().equals(userId)) {
-                                        totalOwedToMe += edge.getAmount();
+
+                                // From owned cashbooks (avoid double-counting)
+                                if (ownedTask.isSuccessful() && ownedTask.getResult() != null) {
+                                    for (com.google.firebase.firestore.DocumentSnapshot doc : ownedTask.getResult()) {
+                                        if (seenIds.contains(doc.getId())) continue;
+                                        Double in = doc.getDouble("totalCashIn");
+                                        Double out = doc.getDouble("totalCashOut");
+                                        if (in != null) cashInSum += in;
+                                        if (out != null) cashOutSum += out;
                                     }
                                 }
-                            }
-                        }
-                        
-                        if (totalIOwe > 0 && totalOwedToMe > 0) {
-                            txtLedgerPreview.setText(String.format(Locale.getDefault(), "⚠️ Owe: ₹%.2f | ✅ Owed: ₹%.2f", totalIOwe, totalOwedToMe));
-                        } else if (totalIOwe > 0) {
-                            txtLedgerPreview.setText(String.format(Locale.getDefault(), "⚠️ You owe ₹%.2f overall", totalIOwe));
-                        } else if (totalOwedToMe > 0) {
-                            txtLedgerPreview.setText(String.format(Locale.getDefault(), "✅ You are owed ₹%.2f overall", totalOwedToMe));
-                        } else {
-                            txtLedgerPreview.setText("All settled up! Keep tracking");
-                        }
-                    });
-                    updateInsight();
+
+                                int totalLedgers = seenIds.size() + 
+                                    (ownedTask.isSuccessful() && ownedTask.getResult() != null
+                                        ? (int) ownedTask.getResult().getDocuments().stream()
+                                            .filter(d -> !seenIds.contains(d.getId())).count()
+                                        : 0);
+
+                                if (totalLedgers == 0) {
+                                    totalCashOut = 0;
+                                    txtTotalBalance.setText("₹0.00");
+                                    txtHomeCashIn.setText("₹0.00");
+                                    txtHomeCashOut.setText("₹0.00");
+                                    txtLedgerCount.setText("0 ledgers");
+                                    txtLedgerPreview.setText("Create or join a ledger to track expenses");
+                                    updateInsight();
+                                    return;
+                                }
+
+                                totalCashOut = cashOutSum;
+                                double total = cashInSum - cashOutSum;
+                                txtTotalBalance.setText(String.format(Locale.getDefault(), "₹%.2f", total));
+                                txtHomeCashIn.setText(String.format(Locale.getDefault(), "₹%.2f", cashInSum));
+                                txtHomeCashOut.setText(String.format(Locale.getDefault(), "₹%.2f", cashOutSum));
+                                txtLedgerCount.setText(totalLedgers + (totalLedgers == 1 ? " ledger" : " ledgers"));
+                                txtLedgerPreview.setText("Tap Money tab for settlement details");
+                                updateInsight();
+                            });
                 });
 
         // 2. Tasks preview

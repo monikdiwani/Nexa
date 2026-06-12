@@ -21,8 +21,11 @@ public class AddBudgetActivity extends AppCompatActivity {
 
     private AutoCompleteTextView actvCategory;
     private com.google.android.material.textfield.TextInputLayout layoutCustomCategory;
-    private EditText etCustomCategory;
+    private EditText etCustomCategory, etBudgetName;
     private EditText etAmount;
+    private AutoCompleteTextView actvPeriod;
+    private com.google.android.material.slider.Slider sliderAlertThreshold;
+    private android.widget.TextView txtThresholdLabel;
     private Button btnSaveBudget;
     private ImageButton btnBack;
 
@@ -32,6 +35,8 @@ public class AddBudgetActivity extends AppCompatActivity {
     private static final String[] CATEGORIES = {
             "Sales", "Rent", "Salary", "Office", "Personal", "Food", "Transport", "Shopping", "Bills", "Other"
     };
+
+    private static final String[] PERIODS = {"DAILY", "WEEKLY", "MONTHLY", "YEARLY"};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,14 +49,26 @@ public class AddBudgetActivity extends AppCompatActivity {
 
         actvCategory = findViewById(R.id.actvCategory);
         etAmount = findViewById(R.id.etAmount);
+        etBudgetName = findViewById(R.id.etBudgetName);
         btnSaveBudget = findViewById(R.id.btnSaveBudget);
         btnBack = findViewById(R.id.btnBack);
+        actvPeriod = findViewById(R.id.actvPeriod);
+        sliderAlertThreshold = findViewById(R.id.sliderAlertThreshold);
+        txtThresholdLabel = findViewById(R.id.txtThresholdLabel);
 
         btnBack.setOnClickListener(v -> finish());
 
-    
+        // Setup period dropdown
+        ArrayAdapter<String> periodAdapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, PERIODS);
+        actvPeriod.setAdapter(periodAdapter);
+        actvPeriod.setText(PERIODS[2], false); // Default to MONTHLY
 
-    
+        // Threshold slider label
+        if (sliderAlertThreshold != null && txtThresholdLabel != null) {
+            txtThresholdLabel.setText((int) sliderAlertThreshold.getValue() + "% of limit");
+            sliderAlertThreshold.addOnChangeListener((slider, value, fromUser) ->
+                txtThresholdLabel.setText((int) value + "% of limit"));
+        }
 
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, CATEGORIES);
         actvCategory.setAdapter(adapter);
@@ -111,7 +128,10 @@ public class AddBudgetActivity extends AppCompatActivity {
         String userId = auth.getCurrentUser().getUid();
         String budgetId = db.collection("users").document(userId).collection("budgets").document().getId();
 
-        Budget budget = new Budget(budgetId, category, amountLimit, "MONTHLY", System.currentTimeMillis());
+        String period = actvPeriod != null ? actvPeriod.getText().toString().trim() : "MONTHLY";
+        if (period.isEmpty()) period = "MONTHLY";
+
+        Budget budget = new Budget(budgetId, category, amountLimit, period, System.currentTimeMillis());
 
         btnSaveBudget.setEnabled(false);
         btnSaveBudget.setText("Saving...");
