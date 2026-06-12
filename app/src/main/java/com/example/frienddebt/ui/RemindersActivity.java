@@ -269,9 +269,22 @@ public class RemindersActivity extends AppCompatActivity {
             });
 
 
-            // Long click option: Delete it
+            // Long click option: Complete or Delete
             holder.itemView.setOnLongClickListener(v -> {
-                showDeleteDialog(r);
+                if (!r.isCompleted()) {
+                    new AlertDialog.Builder(RemindersActivity.this)
+                        .setTitle("Reminder Options")
+                        .setItems(new String[]{"Complete Early", "Delete"}, (dialog, which) -> {
+                            if (which == 0) {
+                                showCompleteDialog(r);
+                            } else {
+                                showDeleteDialog(r);
+                            }
+                        })
+                        .show();
+                } else {
+                    showDeleteDialog(r);
+                }
                 return true;
             });
         }
