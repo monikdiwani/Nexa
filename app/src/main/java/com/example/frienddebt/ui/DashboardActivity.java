@@ -2,6 +2,8 @@ package com.example.frienddebt.ui;
 
 import android.os.Bundle;
 import android.view.MenuItem;
+import android.widget.Toast;
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
@@ -30,6 +32,8 @@ public class DashboardActivity extends AppCompatActivity {
     private Fragment profileFragment;
     private Fragment activeFragment;
     private FragmentManager fm;
+
+    private long lastBackPressTime = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -173,11 +177,28 @@ public class DashboardActivity extends AppCompatActivity {
         } else {
             navView.setSelectedItemId(R.id.nav_home);
         }
+        // Back button: go to Home first, then double-press to exit
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                BottomNavigationView navView = findViewById(R.id.bottom_navigation);
+                if (navView.getSelectedItemId() != R.id.nav_home) {
+                    navView.setSelectedItemId(R.id.nav_home);
+                } else {
+                    long now = System.currentTimeMillis();
+                    if (now - lastBackPressTime < 2000) {
+                        // Second press within 2s — exit
+                        finish();
+                    } else {
+                        lastBackPressTime = now;
+                        Toast.makeText(DashboardActivity.this,
+                                "Press back again to exit", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            }
+        });
     }
 
-    /**
-     * Switch to a specific bottom nav tab programmatically.
-     */
     public void selectTab(int itemId) {
         BottomNavigationView navView = findViewById(R.id.bottom_navigation);
         navView.setSelectedItemId(itemId);
@@ -199,17 +220,8 @@ public class DashboardActivity extends AppCompatActivity {
         return null;
     }
 
-    @Override
-    public void onBackPressed() {
-        BottomNavigationView navView = findViewById(R.id.bottom_navigation);
-        if (navView.getSelectedItemId() == R.id.nav_home) {
-            super.onBackPressed();
-        } else {
-            navView.setSelectedItemId(R.id.nav_home);
-        }
-    }
 
-    
+
 
     @Override
     public void startActivity(android.content.Intent intent) {
