@@ -28,6 +28,7 @@ public class BudgetAdapter extends RecyclerView.Adapter<BudgetAdapter.BudgetView
 
     public interface OnBudgetInteractionListener {
         void onDeleteClick(Budget budget);
+        void onEditClick(Budget budget);
     }
 
     public BudgetAdapter(Context context, List<Budget> budgetList, OnBudgetInteractionListener listener) {
@@ -76,6 +77,11 @@ public class BudgetAdapter extends RecyclerView.Adapter<BudgetAdapter.BudgetView
 
         holder.btnDeleteBudget.setOnClickListener(v -> {
             if (listener != null) listener.onDeleteClick(budget);
+        });
+
+        // Full card tap = edit
+        holder.itemView.setOnClickListener(v -> {
+            if (listener != null) listener.onEditClick(budget);
         });
     }
 

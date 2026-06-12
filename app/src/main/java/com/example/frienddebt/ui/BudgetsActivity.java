@@ -72,13 +72,23 @@ public class BudgetsActivity extends AppCompatActivity {
         budgetList = new ArrayList<>();
         currentMonthEntries = new ArrayList<>();
         
-        adapter = new BudgetAdapter(this, budgetList, budget -> {
-            new MaterialAlertDialogBuilder(this)
-                    .setTitle("Delete Budget")
-                    .setMessage("Are you sure you want to delete this budget?")
-                    .setPositiveButton("Delete", (dialog, which) -> deleteBudget(budget.getId()))
-                    .setNegativeButton("Cancel", null)
-                    .show();
+        adapter = new BudgetAdapter(this, budgetList, new BudgetAdapter.OnBudgetInteractionListener() {
+            @Override
+            public void onDeleteClick(Budget budget) {
+                new MaterialAlertDialogBuilder(BudgetsActivity.this)
+                        .setTitle("Delete Budget")
+                        .setMessage("Are you sure you want to delete this budget?")
+                        .setPositiveButton("Delete", (dialog, which) -> deleteBudget(budget.getId()))
+                        .setNegativeButton("Cancel", null)
+                        .show();
+            }
+
+            @Override
+            public void onEditClick(Budget budget) {
+                Intent intent = new Intent(BudgetsActivity.this, AddBudgetActivity.class);
+                intent.putExtra("BUDGET_ID", budget.getId());
+                startActivity(intent);
+            }
         });
         rvBudgets.setAdapter(adapter);
     }

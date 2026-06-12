@@ -38,6 +38,8 @@ public class AddBudgetActivity extends AppCompatActivity {
 
     private static final String[] PERIODS = {"DAILY", "WEEKLY", "MONTHLY", "YEARLY"};
 
+    private String editingBudgetId = null; // non-null = edit mode
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -88,24 +90,58 @@ public class AddBudgetActivity extends AppCompatActivity {
         });
 
         btnSaveBudget.setOnClickListener(v -> saveBudget());
+
+        // Detect edit mode
+        editingBudgetId = getIntent().getStringExtra("BUDGET_ID");
+        if (editingBudgetId != null) {
+            btnSaveBudget.setText("Update Budget");
+            loadBudgetForEdit(editingBudgetId);
+        }
+    }
+
+    /** Load existing budget data for edit mode */
+    private void loadBudgetForEdit(String budgetId) {
+        if (auth.getCurrentUser() == null) return;
+        db.collection("users")
+                .document(auth.getCurrentUser().getUid())
+                .collection("budgets")
+                .document(budgetId)
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (!doc.exists()) return;
+                    String cat = doc.getString("category");
+                    Double amount = doc.getDouble("amountLimit");
+                    String period = doc.getString("period");
+
+                    if (cat != null) {
+                        boolean isPreset = false;
+                        for (String c : CATEGORIES) { if (c.equals(cat)) { isPreset = true; break; } }
+                        if (isPreset) {
+                            actvCategory.setText(cat, false);
+                            layoutCustomCategory.setVisibility(android.view.View.GONE);
+                        } else {
+                            actvCategory.setText("Other", false);
+                            layoutCustomCategory.setVisibility(android.view.View.VISIBLE);
+                            etCustomCategory.setText(cat);
+                        }
+                    }
+                    if (amount != null) etAmount.setText(String.valueOf(amount.intValue()));
+                    if (period != null) actvPeriod.setText(period, false);
+                });
     }
 
     private void saveBudget() {
         String category = actvCategory.getText().toString().trim();
         if ("Other".equalsIgnoreCase(category)) {
             String customCat = etCustomCategory.getText().toString().trim();
-            if (!customCat.isEmpty()) {
-                category = customCat;
-            }
+            if (!customCat.isEmpty()) category = customCat;
         }
         String amountStr = etAmount.getText().toString().trim();
-
         if (amountStr.isEmpty()) {
             etAmount.setError("Amount limit is required");
             etAmount.requestFocus();
             return;
         }
-
         double amountLimit;
         try {
             amountLimit = Double.parseDouble(amountStr);
@@ -119,34 +155,29 @@ public class AddBudgetActivity extends AppCompatActivity {
             etAmount.requestFocus();
             return;
         }
-
         if (auth.getCurrentUser() == null) {
             Toast.makeText(this, "User not logged in", Toast.LENGTH_SHORT).show();
             return;
         }
-
         String userId = auth.getCurrentUser().getUid();
-        String budgetId = db.collection("users").document(userId).collection("budgets").document().getId();
-
         String period = actvPeriod != null ? actvPeriod.getText().toString().trim() : "MONTHLY";
         if (period.isEmpty()) period = "MONTHLY";
-
-        Budget budget = new Budget(budgetId, category, amountLimit, period, System.currentTimeMillis());
-
         btnSaveBudget.setEnabled(false);
         btnSaveBudget.setText("Saving...");
-
-        db.collection("users").document(userId).collection("budgets").document(budgetId)
-                .set(budget.toFirestoreMap())
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(this, "Budget saved!", Toast.LENGTH_SHORT).show();
-                    finish();
-                })
-                .addOnFailureListener(e -> {
-                    btnSaveBudget.setEnabled(true);
-                    btnSaveBudget.setText("Save Budget");
-                    Toast.makeText(this, "Failed to save: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                });
+        if (editingBudgetId != null) {
+            Budget budget = new Budget(editingBudgetId, category, amountLimit, period, System.currentTimeMillis());
+            db.collection("users").document(userId).collection("budgets").document(editingBudgetId)
+                    .update(budget.toFirestoreMap())
+                    .addOnSuccessListener(aVoid -> { Toast.makeText(this, "Budget updated!", Toast.LENGTH_SHORT).show(); finish(); })
+                    .addOnFailureListener(e -> { btnSaveBudget.setEnabled(true); btnSaveBudget.setText("Update Budget"); Toast.makeText(this, "Failed: " + e.getMessage(), Toast.LENGTH_LONG).show(); });
+        } else {
+            String budgetId = db.collection("users").document(userId).collection("budgets").document().getId();
+            Budget budget = new Budget(budgetId, category, amountLimit, period, System.currentTimeMillis());
+            db.collection("users").document(userId).collection("budgets").document(budgetId)
+                    .set(budget.toFirestoreMap())
+                    .addOnSuccessListener(aVoid -> { Toast.makeText(this, "Budget saved!", Toast.LENGTH_SHORT).show(); finish(); })
+                    .addOnFailureListener(e -> { btnSaveBudget.setEnabled(true); btnSaveBudget.setText("Save Budget"); Toast.makeText(this, "Failed: " + e.getMessage(), Toast.LENGTH_LONG).show(); });
+        }
     }
 
     @Override
