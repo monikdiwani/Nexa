@@ -58,13 +58,16 @@
             android:exported="false" />
         <activity
             android:name=".ui.AddCashbookEntryActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".ui.AddSharedExpenseActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".ui.SettleUpActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".ui.LedgerBookDetailActivity"
             android:exported="false" />
@@ -81,7 +84,8 @@
             android:exported="false" />
         <activity
             android:name=".ui.AddBudgetActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".ui.CashCounterActivity"
             android:exported="false" />
@@ -90,7 +94,8 @@
             android:exported="false" />
         <activity
             android:name=".ui.AddTaskActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".ui.AddEditNoteActivity"
             android:exported="false"
@@ -100,7 +105,8 @@
             android:exported="false" />
         <activity
             android:name=".ui.AddReminderActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".ui.ReportsActivity"
             android:exported="false" />
@@ -114,10 +120,12 @@
         <receiver
             android:name=".notification.BootReceiver"
             android:enabled="true"
-            android:exported="true">
+            android:exported="true"
+            android:directBootAware="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
 
