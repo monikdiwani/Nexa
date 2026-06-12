@@ -83,18 +83,32 @@ public class JoinGroupActivity extends AppCompatActivity {
                     }
 
                     String bookId = doc.getString("bookId");
+                    String assignedRole = doc.getString("role");
+                    if (assignedRole == null || assignedRole.isEmpty()) {
+                        assignedRole = "VIEWER";
+                    }
 
                     if (bookId == null) {
                         Toast.makeText(this, "Corrupted invite code data", Toast.LENGTH_SHORT).show();
                         resetButton();
                         return;
                     }
+                    
+                    String userName = auth.getCurrentUser().getDisplayName();
+                    if (userName == null || userName.isEmpty()) {
+                        userName = auth.getCurrentUser().getEmail() != null ? auth.getCurrentUser().getEmail() : "Unknown";
+                    }
 
-                    // Update the members map of the LedgerBook
+                    String finalAssignedRole = assignedRole;
+                    // Update the members map and memberNames map of the LedgerBook
+                    java.util.Map<String, Object> updates = new java.util.HashMap<>();
+                    updates.put("members." + userId, finalAssignedRole);
+                    updates.put("memberNames." + userId, userName);
+
                     db.collection("cashbooks").document(bookId)
-                            .update("members." + userId, "VIEWER")
+                            .update(updates)
                             .addOnSuccessListener(aVoid -> {
-                                Toast.makeText(this, "Joined ledger successfully!", Toast.LENGTH_LONG).show();
+                                Toast.makeText(this, "Joined ledger as " + finalAssignedRole + "!", Toast.LENGTH_LONG).show();
                                 finish();
                             })
                             .addOnFailureListener(e -> {

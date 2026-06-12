@@ -20,6 +20,7 @@ public class CashbookEntry {
     private String contactName;
     private String contactPhone;
     private String createdBy;
+    private String createdByName;
     private long lastModifiedAt;
     
     // Shared Expense fields
@@ -94,6 +95,9 @@ public class CashbookEntry {
     public String getCreatedBy() { return createdBy; }
     public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
 
+    public String getCreatedByName() { return createdByName; }
+    public void setCreatedByName(String createdByName) { this.createdByName = createdByName; }
+
     public long getLastModifiedAt() { return lastModifiedAt; }
     public void setLastModifiedAt(long lastModifiedAt) { this.lastModifiedAt = lastModifiedAt; }
 
@@ -140,6 +144,7 @@ public class CashbookEntry {
         entry.setContactName(doc.getString("contactName"));
         entry.setContactPhone(doc.getString("contactPhone"));
         entry.setCreatedBy(doc.getString("createdBy"));
+        entry.setCreatedByName(doc.getString("createdByName"));
         entry.setLastModifiedAt(doc.getLong("lastModifiedAt") != null ? doc.getLong("lastModifiedAt") : 0L);
         
         entry.setPaidBy(doc.getString("paidBy"));
@@ -171,6 +176,7 @@ public class CashbookEntry {
         map.put("contactName", contactName);
         map.put("contactPhone", contactPhone);
         map.put("createdBy", createdBy);
+        map.put("createdByName", createdByName);
         map.put("lastModifiedAt", lastModifiedAt);
         
         map.put("paidBy", paidBy);

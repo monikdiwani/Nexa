@@ -308,6 +308,13 @@ public class AddCashbookEntryActivity extends AppCompatActivity {
         CashbookEntry entry = new CashbookEntry(targetEntryId, bookId, dateMs, particulars, type, medium, amount, category, note, createdAt);
         entry.setContactName(contactName);
         entry.setCreatedBy(userId);
+        
+        String userName = auth.getCurrentUser().getDisplayName();
+        if (userName == null || userName.isEmpty()) {
+            userName = auth.getCurrentUser().getEmail() != null ? auth.getCurrentUser().getEmail() : "Unknown";
+        }
+        entry.setCreatedByName(userName);
+        
         entry.setLastModifiedAt(createdAt);
         
         if (switchRecurring.isChecked()) {

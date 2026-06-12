@@ -144,9 +144,10 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
             androidx.appcompat.widget.PopupMenu popup = new androidx.appcompat.widget.PopupMenu(this, v);
             popup.getMenu().add(0, 1, 0, "Cash Counter");
             popup.getMenu().add(0, 2, 0, "Export PDF Report");
-            popup.getMenu().add(0, 3, 0, "Share Invite Code");
             popup.getMenu().add(0, 4, 0, "View Activity Log");
-            if ("OWNER".equalsIgnoreCase(userRole)) {
+            if ("ADMIN".equalsIgnoreCase(userRole)) {
+                popup.getMenu().add(0, 3, 0, "Share Invite Code");
+                popup.getMenu().add(0, 7, 0, "Manage Members");
                 popup.getMenu().add(0, 5, 0, "Rename Cashbook");
                 popup.getMenu().add(0, 6, 0, "Delete Cashbook");
             }
@@ -182,18 +183,7 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                         }
                         return true;
                     case 3:
-                        db.collection("cashbooks").document(bookId).get()
-                            .addOnSuccessListener(doc -> {
-                                String code = doc.getString("inviteCode");
-                                if (code != null && !code.isEmpty()) {
-                                    Intent shareCodeIntent = new Intent(Intent.ACTION_SEND);
-                                    shareCodeIntent.setType("text/plain");
-                                    shareCodeIntent.putExtra(Intent.EXTRA_TEXT, "Join my Ledger on Nexa! Invite Code: " + code);
-                                    startActivity(Intent.createChooser(shareCodeIntent, "Share Invite Code"));
-                                } else {
-                                    generateAndSaveInviteCode(bookId);
-                                }
-                            });
+                        showInviteRoleDialog();
                         return true;
                     case 4:
                         Intent activityLogIntent = new Intent(this, ActivityLogActivity.class);
@@ -205,6 +195,9 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                         return true;
                     case 6:
                         showDeleteCashbookDialog();
+                        return true;
+                    case 7:
+                        showManageMembersDialog();
                         return true;
                     default:
                         return false;
@@ -427,7 +420,21 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
         return res;
     }
 
-    private void generateAndSaveInviteCode(String bookId) {
+    private void showInviteRoleDialog() {
+        String[] roles = {"Viewer", "Editor"};
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Select Role for Invite")
+            .setSingleChoiceItems(roles, 0, null)
+            .setPositiveButton("Generate Link", (dialog, which) -> {
+                int selectedPosition = ((androidx.appcompat.app.AlertDialog)dialog).getListView().getCheckedItemPosition();
+                String role = selectedPosition == 0 ? "VIEWER" : "EDITOR";
+                generateAndSaveInviteCode(bookId, role);
+            })
+            .setNegativeButton("Cancel", null)
+            .show();
+    }
+
+    private void generateAndSaveInviteCode(String bookId, String role) {
         String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < 6; i++) {
@@ -456,25 +463,92 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                         inviteMapping.put("bookId", bookId);
                         inviteMapping.put("ownerId", finalOwnerId);
                         inviteMapping.put("createdAt", finalCreatedAt);
+                        inviteMapping.put("role", role);
                         
                         db.collection("invite_codes").document(newCode).set(inviteMapping)
                             .addOnSuccessListener(aVoid2 -> {
                                 Intent shareCodeIntent = new Intent(Intent.ACTION_SEND);
                                 shareCodeIntent.setType("text/plain");
-                                shareCodeIntent.putExtra(Intent.EXTRA_TEXT, "Join my Ledger on Nexa! Invite Code: " + newCode);
+                                shareCodeIntent.putExtra(Intent.EXTRA_TEXT, "Join my Ledger on Nexa as " + role + "! Invite Code: " + newCode);
                                 startActivity(Intent.createChooser(shareCodeIntent, "Share Invite Code"));
                             })
                             .addOnFailureListener(e -> {
-                                Toast.makeText(LedgerBookDetailActivity.this, "Failed to save invite code mapping", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(LedgerBookDetailActivity.this, "Failed to save invite", Toast.LENGTH_SHORT).show();
                             });
                     })
                     .addOnFailureListener(e -> {
-                        Toast.makeText(LedgerBookDetailActivity.this, "Failed to update ledger invite code", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(LedgerBookDetailActivity.this, "Failed to update cashbook", Toast.LENGTH_SHORT).show();
                     });
             })
             .addOnFailureListener(e -> {
                 Toast.makeText(LedgerBookDetailActivity.this, "Failed to retrieve ledger details", Toast.LENGTH_SHORT).show();
             });
+    }
+
+    private void showManageMembersDialog() {
+        db.collection("cashbooks").document(bookId).get()
+            .addOnSuccessListener(doc -> {
+                if (!doc.exists()) return;
+                
+                java.util.Map<String, String> members = (java.util.Map<String, String>) doc.get("members");
+                java.util.Map<String, String> memberNames = (java.util.Map<String, String>) doc.get("memberNames");
+                if (members == null) members = new java.util.HashMap<>();
+                if (memberNames == null) memberNames = new java.util.HashMap<>();
+                
+                final java.util.Map<String, String> finalMembers = members;
+                
+                java.util.List<String> userIds = new java.util.ArrayList<>(members.keySet());
+                String[] displayNames = new String[userIds.size()];
+                
+                for (int i = 0; i < userIds.size(); i++) {
+                    String uid = userIds.get(i);
+                    String role = members.get(uid);
+                    String name = memberNames.containsKey(uid) ? memberNames.get(uid) : "User (" + uid.substring(0, 5) + "...)";
+                    displayNames[i] = name + " - " + role;
+                }
+                
+                new androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle("Manage Members")
+                    .setItems(displayNames, (dialog, which) -> {
+                        String selectedUid = userIds.get(which);
+                        String currentRole = finalMembers.get(selectedUid);
+                        if ("ADMIN".equalsIgnoreCase(currentRole)) {
+                            Toast.makeText(this, "Cannot change ADMIN role", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        
+                        String[] options = {"Make Editor", "Make Viewer", "Remove from Cashbook"};
+                        new androidx.appcompat.app.AlertDialog.Builder(this)
+                            .setTitle("Change Role")
+                            .setItems(options, (d2, w2) -> {
+                                if (w2 == 0) {
+                                    updateMemberRole(selectedUid, "EDITOR");
+                                } else if (w2 == 1) {
+                                    updateMemberRole(selectedUid, "VIEWER");
+                                } else if (w2 == 2) {
+                                    removeMember(selectedUid);
+                                }
+                            })
+                            .show();
+                    })
+                    .setPositiveButton("Close", null)
+                    .show();
+            });
+    }
+
+    private void updateMemberRole(String uid, String newRole) {
+        db.collection("cashbooks").document(bookId)
+            .update("members." + uid, newRole)
+            .addOnSuccessListener(aVoid -> Toast.makeText(this, "Role updated to " + newRole, Toast.LENGTH_SHORT).show())
+            .addOnFailureListener(e -> Toast.makeText(this, "Failed to update role", Toast.LENGTH_SHORT).show());
+    }
+
+    private void removeMember(String uid) {
+        db.collection("cashbooks").document(bookId)
+            .update("members." + uid, com.google.firebase.firestore.FieldValue.delete(),
+                    "memberNames." + uid, com.google.firebase.firestore.FieldValue.delete())
+            .addOnSuccessListener(aVoid -> Toast.makeText(this, "Member removed", Toast.LENGTH_SHORT).show())
+            .addOnFailureListener(e -> Toast.makeText(this, "Failed to remove member", Toast.LENGTH_SHORT).show());
     }
 
     private void showRenameDialog() {
@@ -595,6 +669,13 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                 holder.txtRunningBalance.setVisibility(View.GONE);
             }
 
+            if (entry.getCreatedByName() != null && !entry.getCreatedByName().isEmpty()) {
+                holder.txtEntryAddedBy.setText("Added by: " + entry.getCreatedByName());
+                holder.txtEntryAddedBy.setVisibility(View.VISIBLE);
+            } else {
+                holder.txtEntryAddedBy.setVisibility(View.GONE);
+            }
+
             // Viewer cannot delete
             if (!"VIEWER".equalsIgnoreCase(userRole)) {
                 holder.itemView.setOnLongClickListener(v -> {
@@ -697,14 +778,16 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
         private void showTransactionDetails(CashbookEntry entry) {
             SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy hh:mm a", Locale.getDefault());
             String dateStr = sdf.format(new Date(entry.getDate()));
-            String createdBy = entry.getCreatedBy() != null ? entry.getCreatedBy() : "Unknown";
+            String createdBy = entry.getCreatedByName() != null ? entry.getCreatedByName() : 
+                               (entry.getCreatedBy() != null ? entry.getCreatedBy() : "Unknown");
             
             String msg = "Amount: ₹" + entry.getAmount() + "\n" +
                          "Type: " + entry.getType() + "\n" +
                          "Category: " + (entry.getCategory() != null ? entry.getCategory() : "Other") + "\n" +
                          "Medium: " + entry.getMedium() + "\n" +
                          "Date: " + dateStr + "\n" +
-                         "Particulars: " + entry.getParticulars() + "\n";
+                         "Particulars: " + entry.getParticulars() + "\n" +
+                         "Added by: " + createdBy + "\n";
                          
             if (entry.getContactName() != null && !entry.getContactName().isEmpty()) {
                 msg += "Contact: " + entry.getContactName() + "\n";
@@ -739,7 +822,7 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
         }
 
         class ViewHolder extends RecyclerView.ViewHolder {
-            TextView txtIcon, txtParticulars, txtDate, txtCategory, txtAmount, txtMedium, txtRunningBalance;
+            TextView txtIcon, txtParticulars, txtDate, txtCategory, txtAmount, txtMedium, txtRunningBalance, txtEntryAddedBy;
             android.widget.ImageButton btnOptions;
 
             public ViewHolder(@NonNull View itemView) {
@@ -751,6 +834,7 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                 txtAmount = itemView.findViewById(R.id.txtEntryAmount);
                 txtMedium = itemView.findViewById(R.id.txtEntryMedium);
                 txtRunningBalance = itemView.findViewById(R.id.txtRunningBalance);
+                txtEntryAddedBy = itemView.findViewById(R.id.txtEntryAddedBy);
                 btnOptions = itemView.findViewById(R.id.btnEntryOptions);
             }
         }
