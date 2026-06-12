@@ -13,7 +13,7 @@ import android.text.Layout;
 import android.text.Spannable;
 import android.text.TextWatcher;
 import android.text.style.AlignmentSpan;
-import android.text.style.BackgroundColorSpan;
+import com.example.frienddebt.ui.text.PaddingBackgroundColorSpan;
 import android.text.style.BulletSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.RelativeSizeSpan;
@@ -503,9 +503,10 @@ public class AddEditNoteActivity extends AppCompatActivity {
         int end   = etNoteContent.getSelectionEnd();
         if (start < 0 || end < 0 || start == end) return;
         Editable e = etNoteContent.getText();
-        for (BackgroundColorSpan s : e.getSpans(start, end, BackgroundColorSpan.class)) e.removeSpan(s);
+        for (PaddingBackgroundColorSpan s : e.getSpans(start, end, PaddingBackgroundColorSpan.class)) e.removeSpan(s);
         if (color != Color.TRANSPARENT) {
-            e.setSpan(new BackgroundColorSpan(color), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            // Apply 6px padding and 8px corner radius
+            e.setSpan(new PaddingBackgroundColorSpan(color, 6, 8f), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
         triggerAutoSave();
     }
