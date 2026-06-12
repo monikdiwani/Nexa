@@ -144,9 +144,11 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
             androidx.appcompat.widget.PopupMenu popup = new androidx.appcompat.widget.PopupMenu(this, v);
             popup.getMenu().add(0, 1, 0, "Cash Counter");
             popup.getMenu().add(0, 2, 0, "Export PDF Report");
-            popup.getMenu().add(0, 3, 0, "Share Invite Code");
             popup.getMenu().add(0, 4, 0, "View Activity Log");
-            if ("OWNER".equalsIgnoreCase(userRole)) {
+            // Feature 21: Only ADMIN/OWNER can share invite code or manage members
+            if ("ADMIN".equalsIgnoreCase(userRole) || "OWNER".equalsIgnoreCase(userRole)) {
+                popup.getMenu().add(0, 3, 0, "Share Invite Code");
+                popup.getMenu().add(0, 7, 0, "Manage Members");
                 popup.getMenu().add(0, 5, 0, "Rename Cashbook");
                 popup.getMenu().add(0, 6, 0, "Delete Cashbook");
             }
@@ -206,6 +208,9 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                     case 6:
                         showDeleteCashbookDialog();
                         return true;
+                    case 7:
+                        showManageMembersDialog();
+                        return true;
                     default:
                         return false;
                 }
@@ -213,7 +218,7 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
             popup.show();
         });
 
-        // Role check
+        // Role check — EDITOR and ADMIN can add entries
         if ("VIEWER".equalsIgnoreCase(userRole)) {
             fabAddEntry.setVisibility(View.GONE);
         } else {
@@ -538,6 +543,25 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
             CashbookEntry entry = list.get(position);
 
             holder.txtParticulars.setText(entry.getParticulars() != null ? entry.getParticulars() : "");
+
+            // Feature 20: Show who added this entry
+            String addedByLabel = "";
+            if (entry.getCreatedByName() != null && !entry.getCreatedByName().isEmpty()) {
+                String uid = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : "";
+                if (uid.equals(entry.getCreatedBy())) {
+                    addedByLabel = "by You";
+                } else {
+                    addedByLabel = "by " + entry.getCreatedByName();
+                }
+            }
+            if (holder.txtAddedBy != null) {
+                if (!addedByLabel.isEmpty()) {
+                    holder.txtAddedBy.setText(addedByLabel);
+                    holder.txtAddedBy.setVisibility(View.VISIBLE);
+                } else {
+                    holder.txtAddedBy.setVisibility(View.GONE);
+                }
+            }
             
             String category = entry.getCategory();
             if (category == null || category.trim().isEmpty()) category = "Other";
@@ -697,14 +721,23 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
         private void showTransactionDetails(CashbookEntry entry) {
             SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy hh:mm a", Locale.getDefault());
             String dateStr = sdf.format(new Date(entry.getDate()));
-            String createdBy = entry.getCreatedBy() != null ? entry.getCreatedBy() : "Unknown";
+
+            // Feature 20: Resolve added-by name
+            String uid = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : "";
+            String addedBy;
+            if (entry.getCreatedByName() != null && !entry.getCreatedByName().isEmpty()) {
+                addedBy = uid.equals(entry.getCreatedBy()) ? "You" : entry.getCreatedByName();
+            } else {
+                addedBy = "Unknown";
+            }
             
             String msg = "Amount: ₹" + entry.getAmount() + "\n" +
                          "Type: " + entry.getType() + "\n" +
                          "Category: " + (entry.getCategory() != null ? entry.getCategory() : "Other") + "\n" +
                          "Medium: " + entry.getMedium() + "\n" +
                          "Date: " + dateStr + "\n" +
-                         "Particulars: " + entry.getParticulars() + "\n";
+                         "Particulars: " + entry.getParticulars() + "\n" +
+                         "Added by: " + addedBy + "\n";
                          
             if (entry.getContactName() != null && !entry.getContactName().isEmpty()) {
                 msg += "Contact: " + entry.getContactName() + "\n";
@@ -739,13 +772,14 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
         }
 
         class ViewHolder extends RecyclerView.ViewHolder {
-            TextView txtIcon, txtParticulars, txtDate, txtCategory, txtAmount, txtMedium, txtRunningBalance;
+            TextView txtIcon, txtParticulars, txtAddedBy, txtDate, txtCategory, txtAmount, txtMedium, txtRunningBalance;
             android.widget.ImageButton btnOptions;
 
             public ViewHolder(@NonNull View itemView) {
                 super(itemView);
                 txtIcon = itemView.findViewById(R.id.txtEntryIcon);
                 txtParticulars = itemView.findViewById(R.id.txtEntryParticulars);
+                txtAddedBy = itemView.findViewById(R.id.txtEntryAddedBy); // may be null on older layouts
                 txtDate = itemView.findViewById(R.id.txtEntryDate);
                 txtCategory = itemView.findViewById(R.id.txtEntryCategory);
                 txtAmount = itemView.findViewById(R.id.txtEntryAmount);
@@ -754,6 +788,83 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                 btnOptions = itemView.findViewById(R.id.btnEntryOptions);
             }
         }
+    }
+
+    // Feature 19: Manage Members dialog (admin only)
+    private void showManageMembersDialog() {
+        db.collection("cashbooks").document(bookId).get()
+            .addOnSuccessListener(doc -> {
+                Map<String, Object> rawMembers = (Map<String, Object>) doc.get("members");
+                if (rawMembers == null || rawMembers.isEmpty()) {
+                    Toast.makeText(this, "No members found", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                String currentUid = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : "";
+                List<String> memberUids = new ArrayList<>(rawMembers.keySet());
+                String[] labels = new String[memberUids.size()];
+                for (int i = 0; i < memberUids.size(); i++) {
+                    String uid = memberUids.get(i);
+                    String role = String.valueOf(rawMembers.get(uid));
+                    String nameLabel = uid.equals(currentUid) ? "You" : "User (" + uid.substring(0, Math.min(6, uid.length())) + "...)";
+                    labels[i] = nameLabel + "  —  " + role;
+                }
+
+                new AlertDialog.Builder(this)
+                    .setTitle("Members (" + memberUids.size() + ")")
+                    .setItems(labels, (dialog, which) -> {
+                        String selectedUid = memberUids.get(which);
+                        if (selectedUid.equals(currentUid)) {
+                            Toast.makeText(this, "You cannot change your own role", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        showChangeRoleDialog(selectedUid, String.valueOf(rawMembers.get(selectedUid)));
+                    })
+                    .setNegativeButton("Close", null)
+                    .show();
+            })
+            .addOnFailureListener(e -> Toast.makeText(this, "Failed to load members: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+    }
+
+    private void showChangeRoleDialog(String targetUid, String currentRole) {
+        String shortId = targetUid.substring(0, Math.min(6, targetUid.length()));
+        String[] roles = {"VIEWER", "EDITOR", "ADMIN"};
+        int checkedItem = 0;
+        for (int i = 0; i < roles.length; i++) {
+            if (roles[i].equalsIgnoreCase(currentRole)) { checkedItem = i; break; }
+        }
+        final int[] selected = {checkedItem};
+
+        new AlertDialog.Builder(this)
+            .setTitle("Change Role — User (" + shortId + "...)")
+            .setSingleChoiceItems(roles, checkedItem, (dialog, which) -> selected[0] = which)
+            .setPositiveButton("Save", (dialog, which) -> {
+                String newRole = roles[selected[0]];
+                db.collection("cashbooks").document(bookId)
+                    .update("members." + targetUid, newRole)
+                    .addOnSuccessListener(aVoid -> {
+                        Toast.makeText(this, "Role updated to " + newRole, Toast.LENGTH_SHORT).show();
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(this, "Failed to update role: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    });
+            })
+            .setNeutralButton("Remove Member", (dialog, which) -> {
+                new AlertDialog.Builder(this)
+                    .setTitle("Remove Member")
+                    .setMessage("Remove this member from the cashbook?")
+                    .setPositiveButton("Remove", (d2, w2) -> {
+                        // Firestore: use FieldValue.delete() to remove the key from the map
+                        db.collection("cashbooks").document(bookId)
+                            .update("members." + targetUid, com.google.firebase.firestore.FieldValue.delete())
+                            .addOnSuccessListener(aVoid -> Toast.makeText(this, "Member removed", Toast.LENGTH_SHORT).show())
+                            .addOnFailureListener(e -> Toast.makeText(this, "Failed: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+            })
+            .setNegativeButton("Cancel", null)
+            .show();
     }
 
     @Override

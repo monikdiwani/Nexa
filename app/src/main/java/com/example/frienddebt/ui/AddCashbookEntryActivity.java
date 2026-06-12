@@ -308,6 +308,15 @@ public class AddCashbookEntryActivity extends AppCompatActivity {
         CashbookEntry entry = new CashbookEntry(targetEntryId, bookId, dateMs, particulars, type, medium, amount, category, note, createdAt);
         entry.setContactName(contactName);
         entry.setCreatedBy(userId);
+        // Also store display name so it can be shown without a second Firestore lookup
+        String actorDisplayName = auth.getCurrentUser().getDisplayName();
+        if (actorDisplayName == null || actorDisplayName.trim().isEmpty()) {
+            actorDisplayName = auth.getCurrentUser().getEmail();
+        }
+        if (actorDisplayName == null || actorDisplayName.trim().isEmpty()) {
+            actorDisplayName = "Unknown";
+        }
+        entry.setCreatedByName(actorDisplayName);
         entry.setLastModifiedAt(createdAt);
         
         if (switchRecurring.isChecked()) {
