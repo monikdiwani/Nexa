@@ -152,6 +152,13 @@ public class ReminderReceiver extends BroadcastReceiver {
         } else {
             String title = intent.getStringExtra("REMINDER_TITLE");
             String msg = intent.getStringExtra("REMINDER_MSG");
+            String priority = intent.getStringExtra("REMINDER_PRIORITY");
+
+            // Check user preference
+            if (!NotificationHelper.shouldNotify(context, NotificationHelper.KEY_REMINDERS)) {
+                Log.d(TAG, "Reminders silenced by user prefs");
+                return;
+            }
 
             if (title == null) title = "Reminder";
             if (msg == null) msg = "Nexa Reminder Alert";
@@ -168,9 +175,14 @@ public class ReminderReceiver extends BroadcastReceiver {
             snoozeIntent.putExtra("REMINDER_ID", reminderId);
             snoozeIntent.putExtra("USER_ID", userId);
 
+            // Choose channel: HIGH priority → alarm-style, others → standard
+            String channelId = "HIGH".equalsIgnoreCase(priority)
+                    ? NotificationHelper.CHANNEL_HIGH_PRIORITY_ID
+                    : NotificationHelper.CHANNEL_REMINDERS_ID;
+
             NotificationHelper.showNotification(
                     context,
-                    NotificationHelper.CHANNEL_REMINDERS_ID,
+                    channelId,
                     reminderId.hashCode(),
                     title,
                     msg,
