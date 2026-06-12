@@ -99,8 +99,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Logo */}
         <div className="flex items-center gap-3 px-5 py-5 border-b"
           style={{ borderColor: "var(--divider)" }}>
-          <div className="w-8 h-8 rounded-xl nexa-gradient flex items-center justify-center">
-            <span className="text-white font-black text-sm">N</span>
+          <div className="w-8 h-8 rounded-xl overflow-hidden flex items-center justify-center bg-white shadow-sm">
+            <img src="/logo.webp" alt="Nexa Logo" className="w-full h-full object-cover" />
           </div>
           <div>
             <p className="font-black text-base leading-tight" style={{ color: "var(--text-primary)" }}>Nexa</p>
@@ -164,8 +164,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div className="flex items-center justify-between px-5 py-5 border-b"
                 style={{ borderColor: "var(--divider)" }}>
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl nexa-gradient flex items-center justify-center">
-                    <span className="text-white font-black text-sm">N</span>
+                  <div className="w-8 h-8 rounded-xl overflow-hidden flex items-center justify-center bg-white shadow-sm">
+                    <img src="/logo.webp" alt="Nexa Logo" className="w-full h-full object-cover" />
                   </div>
                   <p className="font-black text-base" style={{ color: "var(--text-primary)" }}>Nexa</p>
                 </div>
@@ -217,8 +217,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </p>
             {/* Mobile: show logo */}
             <div className="flex items-center gap-2 md:hidden">
-              <div className="w-6 h-6 rounded-lg nexa-gradient flex items-center justify-center">
-                <span className="text-white font-black text-xs">N</span>
+              <div className="w-6 h-6 rounded-lg overflow-hidden flex items-center justify-center bg-white shadow-sm">
+                <img src="/logo.webp" alt="Nexa Logo" className="w-full h-full object-cover" />
               </div>
               <span className="font-black text-sm" style={{ color: "var(--text-primary)" }}>Nexa</span>
             </div>
