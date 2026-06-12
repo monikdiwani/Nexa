@@ -134,6 +134,8 @@ public class DashboardActivity extends AppCompatActivity {
             }
         }
 
+        checkBackgroundPermissions();
+
         navView.setOnItemSelectedListener(new NavigationBarView.OnItemSelectedListener() {
             @Override
             public boolean onNavigationItemSelected(@NonNull MenuItem item) {
@@ -229,4 +231,28 @@ public class DashboardActivity extends AppCompatActivity {
         com.example.frienddebt.utils.AnimationHelper.applyStartTransition(this, intent);
     }
 
+    private void checkBackgroundPermissions() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            android.app.AlarmManager alarmManager = (android.app.AlarmManager) getSystemService(android.content.Context.ALARM_SERVICE);
+            if (alarmManager != null && !alarmManager.canScheduleExactAlarms()) {
+                android.content.Intent intent = new android.content.Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+                startActivity(intent);
+                Toast.makeText(this, "Please allow Nexa to schedule exact alarms for reminders.", Toast.LENGTH_LONG).show();
+            }
+        }
+        
+        android.os.PowerManager pm = (android.os.PowerManager) getSystemService(android.content.Context.POWER_SERVICE);
+        if (pm != null && !pm.isIgnoringBatteryOptimizations(getPackageName())) {
+            new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Keep Nexa Running")
+                .setMessage("To ensure reminders and notifications fire on time, please disable battery optimization for Nexa.")
+                .setPositiveButton("Fix Now", (dialog, which) -> {
+                    android.content.Intent intent = new android.content.Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                    intent.setData(android.net.Uri.parse("package:" + getPackageName()));
+                    startActivity(intent);
+                })
+                .setNegativeButton("Later", null)
+                .show();
+        }
+    }
 }

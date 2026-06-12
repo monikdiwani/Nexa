@@ -41,7 +41,11 @@ public class NotificationHelper {
      */
     public static boolean shouldNotify(Context context, String typeKey) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        return prefs.getBoolean(typeKey, true);
+        boolean defaultVal = true;
+        if (KEY_MONEY.equals(typeKey) || KEY_TASKS.equals(typeKey) || KEY_ACTIVITY.equals(typeKey)) {
+            defaultVal = false;
+        }
+        return prefs.getBoolean(typeKey, defaultVal);
     }
 
     public static void setNotificationEnabled(Context context, String typeKey, boolean enabled) {

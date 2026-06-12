@@ -128,14 +128,16 @@ public class SmsReceiver extends BroadcastReceiver {
                     .addOnSuccessListener(aVoid -> {
                         Log.d(TAG, "SMS transaction saved: ₹" + amount);
                         // 🔔 Confirmation notification
-                        String title = "Transaction Auto-Added";
-                        String body  = String.format("₹%.2f %s detected and added to your ledger.",
-                                amount, "CASH_OUT".equals(type) ? "spent" : "received");
-                        NotificationHelper.showNotification(
-                                context,
-                                NotificationHelper.CHANNEL_SUMMARIES_ID,
-                                ("sms_" + entryId).hashCode(),
-                                title, body, null, null, null, null, null);
+                        if (NotificationHelper.shouldNotify(context, NotificationHelper.KEY_MONEY)) {
+                            String title = "Transaction Auto-Added";
+                            String body  = String.format("₹%.2f %s detected and added to your ledger.",
+                                    amount, "CASH_OUT".equals(type) ? "spent" : "received");
+                            NotificationHelper.showNotification(
+                                    context,
+                                    NotificationHelper.CHANNEL_SUMMARIES_ID,
+                                    ("sms_" + entryId).hashCode(),
+                                    title, body, null, null, null, null, null);
+                        }
                     })
                     .addOnFailureListener(e -> Log.e(TAG, "Failed to save SMS transaction", e));
               } else {

@@ -257,6 +257,15 @@ public class RemindersActivity extends AppCompatActivity {
                 holder.txtRepeat.setVisibility(View.GONE);
             }
 
+            if (r.isCompleted()) {
+                holder.btnMarkDone.setVisibility(View.GONE);
+            } else {
+                holder.btnMarkDone.setVisibility(View.VISIBLE);
+                holder.btnMarkDone.setOnClickListener(v -> {
+                    showCompleteDialog(r);
+                });
+            }
+
             // Tap: open edit if pending, otherwise show complete dialog
             holder.itemView.setOnClickListener(v -> {
                 if (r.isCompleted()) {
@@ -364,6 +373,7 @@ public class RemindersActivity extends AppCompatActivity {
 
         class ViewHolder extends RecyclerView.ViewHolder {
             TextView txtIcon, txtTitle, txtMsg, txtTime, txtRepeat, txtPriority, txtCountdown, txtLinkedTask;
+            android.widget.ImageView btnMarkDone;
 
             public ViewHolder(@NonNull View itemView) {
                 super(itemView);
@@ -375,6 +385,7 @@ public class RemindersActivity extends AppCompatActivity {
                 txtPriority = itemView.findViewById(R.id.txtReminderPriority);
                 txtCountdown = itemView.findViewById(R.id.txtReminderCountdown);
                 txtLinkedTask = itemView.findViewById(R.id.txtReminderLinkedTask);
+                btnMarkDone = itemView.findViewById(R.id.btnMarkReminderDone);
             }
         }
     }
