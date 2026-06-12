@@ -59,6 +59,8 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.6.0"))
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.firebase:firebase-storage")
+
 
     // ✅ WorkManager for scheduled background tasks (daily/night summaries)
     implementation("androidx.work:work-runtime:2.10.1")
