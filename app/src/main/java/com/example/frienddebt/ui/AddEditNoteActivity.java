@@ -271,9 +271,29 @@ public class AddEditNoteActivity extends AppCompatActivity {
         return null;
     }
 
+
+    /**
+     * Wire all formatting bar buttons.
+     * KEY: each button is set non-focusable so clicking it does NOT steal focus from
+     * etNoteContent. This preserves the text selection so getSelectionStart/End still
+     * returns the correct range when the span is applied.
+     */
     private void setupFormattingToolbar() {
+        int[] nonFocusableIds = {
+            R.id.btnFormatTask, R.id.btnFontColor, R.id.btnFontBg,
+            R.id.btnTextStyle, R.id.btnFontSize, R.id.btnFormatBold,
+            R.id.btnFormatItalic, R.id.btnFormatUnderline, R.id.btnFormatMore
+        };
+        for (int id : nonFocusableIds) {
+            View v = findViewById(id);
+            if (v != null) {
+                v.setFocusable(false);
+                v.setFocusableInTouchMode(false);
+            }
+        }
+
         // Checklist inline
-        findViewById(R.id.btnFormatTask).setOnClickListener(v -> insertInlineCheckbox());
+        findViewById(R.id.btnFormatTask).setOnClickListener(v -> { insertInlineCheckbox(); restoreEditTextFocus(); });
 
         // Font colour
         findViewById(R.id.btnFontColor).setOnClickListener(v -> showFontColorPopup(v));
@@ -285,16 +305,97 @@ public class AddEditNoteActivity extends AppCompatActivity {
         findViewById(R.id.btnTextStyle).setOnClickListener(v -> showTextStylePopup(v));
 
         // Font size
-        if (btnFontSizeLabel != null)
+        if (btnFontSizeLabel != null) {
+            btnFontSizeLabel.setFocusable(false);
+            btnFontSizeLabel.setFocusableInTouchMode(false);
             btnFontSizeLabel.setOnClickListener(v -> showFontSizePopup(v));
+        }
 
-        // Bold, Italic, Underline
-        findViewById(R.id.btnFormatBold).setOnClickListener(v -> toggleStyleSpan(Typeface.BOLD));
-        findViewById(R.id.btnFormatItalic).setOnClickListener(v -> toggleStyleSpan(Typeface.ITALIC));
-        findViewById(R.id.btnFormatUnderline).setOnClickListener(v -> toggleUnderlineSpan());
+        // Bold, Italic, Underline — live formatting with focus preservation
+        btnBold      = findViewById(R.id.btnFormatBold);
+        btnItalic    = findViewById(R.id.btnFormatItalic);
+        btnUnderline = findViewById(R.id.btnFormatUnderline);
+
+        btnBold.setOnClickListener(v      -> { toggleStyleSpan(Typeface.BOLD);    refreshToolbarState(); restoreEditTextFocus(); });
+        btnItalic.setOnClickListener(v    -> { toggleStyleSpan(Typeface.ITALIC);  refreshToolbarState(); restoreEditTextFocus(); });
+        btnUnderline.setOnClickListener(v -> { toggleUnderlineSpan();             refreshToolbarState(); restoreEditTextFocus(); });
 
         // Overflow → more options
         findViewById(R.id.btnFormatMore).setOnClickListener(v -> showOverflowPopup(v));
+
+        // Listen for selection changes to light up B/I/U contextually
+        setupSelectionListener();
+    }
+
+    /** Keep a reference so we can update colors without repeated findViewById */
+    private Button btnBold, btnItalic, btnUnderline;
+
+    /**
+     * After tapping a formatting button we force focus back to the EditText
+     * so the keyboard stays up and the cursor is visible.
+     */
+    private void restoreEditTextFocus() {
+        etNoteContent.requestFocus();
+    }
+
+    /**
+     * Touch listener on the EditText: whenever the user lifts their finger,
+     * check what spans are at the cursor / selection and highlight the relevant
+     * B / I / U buttons in the toolbar (Samsung Notes contextual behavior).
+     */
+    private void setupSelectionListener() {
+        etNoteContent.setOnTouchListener((v, event) -> {
+            if (event.getAction() == android.view.MotionEvent.ACTION_UP) {
+                // Post so the selection is finalized before we read it
+                etNoteContent.postDelayed(this::refreshToolbarState, 80);
+            }
+            return false; // don't consume — let EditText handle it normally
+        });
+    }
+
+    /**
+     * Reads the current selection (or cursor position) and highlights the formatting
+     * buttons that are active for the selected span range — exactly like Samsung Notes.
+     */
+    private void refreshToolbarState() {
+        if (btnBold == null || btnItalic == null || btnUnderline == null) return;
+        int start = etNoteContent.getSelectionStart();
+        int end   = etNoteContent.getSelectionEnd();
+        if (start < 0 || end < 0) return;
+        // If no selection, check the span at cursor - 1
+        int checkStart = (start == end) ? Math.max(0, start - 1) : start;
+        int checkEnd   = (start == end) ? start : end;
+        if (checkEnd <= checkStart) checkEnd = checkStart + 1;
+        Editable e = etNoteContent.getText();
+        if (checkEnd > e.length()) checkEnd = e.length();
+        if (checkStart >= checkEnd) {
+            // Nothing to check — neutral state
+            resetToolbarColors();
+            return;
+        }
+
+        boolean isBold = false, isItalic = false, isUnderline = false;
+        for (StyleSpan s : e.getSpans(checkStart, checkEnd, StyleSpan.class)) {
+            if (s.getStyle() == Typeface.BOLD)   isBold   = true;
+            if (s.getStyle() == Typeface.ITALIC) isItalic = true;
+        }
+        for (UnderlineSpan ignored : e.getSpans(checkStart, checkEnd, UnderlineSpan.class)) {
+            isUnderline = true;
+        }
+
+        int activeColor  = getColor(R.color.primary);
+        int normalColor  = getColor(R.color.text_primary);
+
+        btnBold.setTextColor(isBold      ? activeColor : normalColor);
+        btnItalic.setTextColor(isItalic  ? activeColor : normalColor);
+        btnUnderline.setTextColor(isUnderline ? activeColor : normalColor);
+    }
+
+    private void resetToolbarColors() {
+        int normalColor = getColor(R.color.text_primary);
+        if (btnBold      != null) btnBold.setTextColor(normalColor);
+        if (btnItalic    != null) btnItalic.setTextColor(normalColor);
+        if (btnUnderline != null) btnUnderline.setTextColor(normalColor);
     }
 
     // ─── Folder Picker ────────────────────────────────────────────────────────
@@ -493,13 +594,22 @@ public class AddEditNoteActivity extends AppCompatActivity {
         View popupView = LayoutInflater.from(this).inflate(R.layout.popup_format_overflow, null);
         PopupWindow popup = buildPopupWindow(popupView);
 
-        popupView.findViewById(R.id.overflowStrikethrough).setOnClickListener(v -> { toggleStrikethroughSpan(); popup.dismiss(); });
-        popupView.findViewById(R.id.overflowBullet).setOnClickListener(v -> { toggleBulletSpan(); popup.dismiss(); });
-        popupView.findViewById(R.id.overflowNumbered).setOnClickListener(v -> { insertNumberedListItem(); popup.dismiss(); });
-        popupView.findViewById(R.id.overflowAlignLeft).setOnClickListener(v -> { toggleAlignment(Layout.Alignment.ALIGN_NORMAL); popup.dismiss(); });
-        popupView.findViewById(R.id.overflowAlignCenter).setOnClickListener(v -> { toggleAlignment(Layout.Alignment.ALIGN_CENTER); popup.dismiss(); });
-        popupView.findViewById(R.id.overflowAlignRight).setOnClickListener(v -> { toggleAlignment(Layout.Alignment.ALIGN_OPPOSITE); popup.dismiss(); });
-        popupView.findViewById(R.id.overflowAddImage).setOnClickListener(v -> { openGallery(); popup.dismiss(); });
+        popupView.findViewById(R.id.overflowQuote).setOnClickListener(v -> {
+            toggleQuoteSpan(); restoreEditTextFocus(); popup.dismiss(); });
+        popupView.findViewById(R.id.overflowStrikethrough).setOnClickListener(v -> {
+            toggleStrikethroughSpan(); restoreEditTextFocus(); popup.dismiss(); });
+        popupView.findViewById(R.id.overflowBullet).setOnClickListener(v -> {
+            toggleBulletSpan(); restoreEditTextFocus(); popup.dismiss(); });
+        popupView.findViewById(R.id.overflowNumbered).setOnClickListener(v -> {
+            insertNumberedListItem(); restoreEditTextFocus(); popup.dismiss(); });
+        popupView.findViewById(R.id.overflowAlignLeft).setOnClickListener(v -> {
+            toggleAlignment(Layout.Alignment.ALIGN_NORMAL); restoreEditTextFocus(); popup.dismiss(); });
+        popupView.findViewById(R.id.overflowAlignCenter).setOnClickListener(v -> {
+            toggleAlignment(Layout.Alignment.ALIGN_CENTER); restoreEditTextFocus(); popup.dismiss(); });
+        popupView.findViewById(R.id.overflowAlignRight).setOnClickListener(v -> {
+            toggleAlignment(Layout.Alignment.ALIGN_OPPOSITE); restoreEditTextFocus(); popup.dismiss(); });
+        popupView.findViewById(R.id.overflowAddImage).setOnClickListener(v -> {
+            openGallery(); popup.dismiss(); });
 
         showPopupAbove(popup, anchor);
     }
@@ -931,6 +1041,29 @@ public class AddEditNoteActivity extends AppCompatActivity {
         BulletSpan[] spans = e.getSpans(lineStart, lineEnd, BulletSpan.class);
         if (spans.length > 0) for (BulletSpan s : spans) e.removeSpan(s);
         else e.setSpan(new BulletSpan(40), lineStart, lineEnd, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        triggerAutoSave();
+    }
+
+    /**
+     * Quote/blockquote: applies a colored vertical-bar QuoteSpan on the current paragraph.
+     * Tapping again removes the quote. Works live, no preview needed.
+     */
+    private void toggleQuoteSpan() {
+        undoRedoManager.saveState();
+        int start = etNoteContent.getSelectionStart();
+        Editable e = etNoteContent.getText();
+        if (start < 0) return;
+        String text = e.toString();
+        int lineStart = start; while (lineStart > 0 && text.charAt(lineStart - 1) != '\n') lineStart--;
+        int lineEnd = start; while (lineEnd < text.length() && text.charAt(lineEnd) != '\n') lineEnd++;
+        android.text.style.QuoteSpan[] existing = e.getSpans(lineStart, lineEnd, android.text.style.QuoteSpan.class);
+        if (existing.length > 0) {
+            for (android.text.style.QuoteSpan s : existing) e.removeSpan(s);
+        } else {
+            int quoteColor = ContextCompat.getColor(this, R.color.primary);
+            e.setSpan(new android.text.style.QuoteSpan(quoteColor), lineStart, lineEnd,
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
         triggerAutoSave();
     }
 

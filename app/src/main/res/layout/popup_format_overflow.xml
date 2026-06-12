@@ -1,23 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="160dp"
+    android:layout_width="180dp"
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:background="@drawable/bg_popup_rounded"
     android:paddingVertical="8dp"
     android:elevation="12dp">
 
+    <!-- Quote / Blockquote -->
     <TextView
-        android:id="@+id/overflowStrikethrough"
+        android:id="@+id/overflowQuote"
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:text="Strikethrough"
+        android:text="❝ Quote"
         android:textSize="14sp"
         android:textColor="@color/text_primary"
         android:gravity="center_vertical"
         android:paddingHorizontal="16dp"
         android:background="?attr/selectableItemBackground" />
 
+    <!-- Strikethrough -->
+    <TextView
+        android:id="@+id/overflowStrikethrough"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="S̶ Strikethrough"
+        android:textSize="14sp"
+        android:textColor="@color/text_primary"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp"
+        android:background="?attr/selectableItemBackground" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider"
+        android:layout_marginHorizontal="12dp"
+        android:layout_marginVertical="4dp" />
+
+    <!-- Bullet list -->
     <TextView
         android:id="@+id/overflowBullet"
         android:layout_width="match_parent"
@@ -29,6 +50,7 @@
         android:paddingHorizontal="16dp"
         android:background="?attr/selectableItemBackground" />
 
+    <!-- Numbered list -->
     <TextView
         android:id="@+id/overflowNumbered"
         android:layout_width="match_parent"
@@ -47,33 +69,36 @@
         android:layout_marginHorizontal="12dp"
         android:layout_marginVertical="4dp" />
 
+    <!-- Align Left -->
     <TextView
         android:id="@+id/overflowAlignLeft"
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:text="≡ Align left"
+        android:text="⬅ Align left"
         android:textSize="14sp"
         android:textColor="@color/text_primary"
         android:gravity="center_vertical"
         android:paddingHorizontal="16dp"
         android:background="?attr/selectableItemBackground" />
 
+    <!-- Align Center -->
     <TextView
         android:id="@+id/overflowAlignCenter"
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:text="≡ Align center"
+        android:text="↔ Align center"
         android:textSize="14sp"
         android:textColor="@color/text_primary"
         android:gravity="center_vertical"
         android:paddingHorizontal="16dp"
         android:background="?attr/selectableItemBackground" />
 
+    <!-- Align Right -->
     <TextView
         android:id="@+id/overflowAlignRight"
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:text="≡ Align right"
+        android:text="➡ Align right"
         android:textSize="14sp"
         android:textColor="@color/text_primary"
         android:gravity="center_vertical"
@@ -87,6 +112,7 @@
         android:layout_marginHorizontal="12dp"
         android:layout_marginVertical="4dp" />
 
+    <!-- Add Image -->
     <TextView
         android:id="@+id/overflowAddImage"
         android:layout_width="match_parent"
