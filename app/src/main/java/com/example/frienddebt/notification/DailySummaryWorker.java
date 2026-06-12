@@ -30,7 +30,11 @@ public class DailySummaryWorker extends Worker {
         Log.d(TAG, "Daily summary worker triggered");
 
         FirebaseAuth auth = FirebaseAuth.getInstance();
-        if (auth.getCurrentUser() == null) {
+        if (auth.getCurrentUser() == null) return Result.success();
+
+        // Check user pref
+        if (!NotificationHelper.shouldNotify(getApplicationContext(), NotificationHelper.KEY_DIGEST)) {
+            Log.d(TAG, "Digest notifications disabled by user");
             return Result.success();
         }
 
