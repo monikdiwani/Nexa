@@ -1,5 +1,5 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme — Premium Dark -->
+    <!-- Base application theme — Light Mode default, Dark Mode via values-night -->
     <style name="Base.Theme.Nexa" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/primary</item>
         <item name="colorPrimaryDark">@color/primary_dark</item>
@@ -13,8 +13,9 @@
         <item name="android:textColorSecondary">@color/text_secondary</item>
         <item name="android:statusBarColor">@color/background_primary</item>
         <item name="android:navigationBarColor">@color/surface_primary</item>
-        <item name="android:windowLightStatusBar">false</item>
-        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">false</item>
+        <!-- Light mode: dark icons on light status bar -->
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">true</item>
     </style>
 
     <style name="Theme.Nexa" parent="Base.Theme.Nexa" />
@@ -25,9 +26,35 @@
         <item name="textAllCaps">false</item>
     </style>
 
-    <!-- Note editor full-screen theme (no status bar colour change) -->
+    <!-- Note editor theme -->
     <style name="Theme.Nexa.NoteEditor" parent="Theme.Nexa">
         <item name="android:windowSoftInputMode">adjustResize</item>
     </style>
 
-</resources>
+    <!-- TextInputLayout outlined style -->
+    <style name="Nexa.TextInputLayout" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        <item name="boxStrokeColor">@color/primary</item>
+        <item name="hintTextColor">@color/primary</item>
+        <item name="boxCornerRadiusTopStart">12dp</item>
+        <item name="boxCornerRadiusTopEnd">12dp</item>
+        <item name="boxCornerRadiusBottomStart">12dp</item>
+        <item name="boxCornerRadiusBottomEnd">12dp</item>
+    </style>
+
+    <!-- Card style -->
+    <style name="Nexa.Card" parent="Widget.MaterialComponents.CardView">
+        <item name="cardCornerRadius">16dp</item>
+        <item name="cardElevation">2dp</item>
+        <item name="cardBackgroundColor">@color/surface_card</item>
+    </style>
+
+    <!-- Primary button style -->
+    <style name="Nexa.Button.Primary" parent="Widget.MaterialComponents.Button">
+        <item name="android:backgroundTint">@color/primary</item>
+        <item name="android:textColor">@color/on_primary</item>
+        <item name="cornerRadius">12dp</item>
+        <item name="android:paddingTop">14dp</item>
+        <item name="android:paddingBottom">14dp</item>
+    </style>
+
+</resources>

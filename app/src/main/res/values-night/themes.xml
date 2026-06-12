@@ -7,11 +7,13 @@
         <item name="colorOnSecondary">@color/on_secondary</item>
         <item name="android:colorBackground">@color/background_primary</item>
         <item name="colorSurface">@color/surface_primary</item>
+        <item name="colorOnSurface">@color/text_primary</item>
         <item name="android:textColorPrimary">@color/text_primary</item>
         <item name="android:textColorSecondary">@color/text_secondary</item>
         <item name="android:statusBarColor">@color/background_primary</item>
         <item name="android:navigationBarColor">@color/surface_primary</item>
+        <!-- Dark mode: light icons on dark status bar -->
         <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">false</item>
     </style>
-
 </resources>

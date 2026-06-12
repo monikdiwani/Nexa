@@ -31,6 +31,8 @@
     <color name="surface_primary">#1A1A2E</color>
     <color name="surface_elevated">#24243E</color>
     <color name="surface_card">#1A1A2E</color>
+    <color name="surface_toolbar">#1A1A2E</color>
+    <color name="surface_drawing_bar">#121220</color>
 
     <!-- Text -->
     <color name="text_primary">#E8E8F0</color>
@@ -98,4 +100,24 @@
     <!-- Ripple -->
     <color name="ripple_primary">#1A7986CB</color>
     <color name="ripple_negative">#1AE57373</color>
+
+    <!-- Notes-specific UI (dark mode) -->
+    <color name="note_thumbnail_bg">#24243E</color>
+    <color name="note_section_header">#A5A5C0</color>
+    <color name="note_date_text">#6E6E85</color>
+    <color name="toolbar_icon">#A5A5C0</color>
+    <color name="toolbar_icon_active">#E8E8F0</color>
+    <color name="note_menu_bg">#24243E</color>
+    <color name="orange_dot">#FF6F00</color>
+
+    <!-- Note style swatches (dark mode) -->
+    <color name="note_swatch_default">#1A1A2E</color>
+    <color name="note_swatch_yellow">#3A3000</color>
+    <color name="note_swatch_green">#0D2A0D</color>
+    <color name="note_swatch_blue">#0D1A2E</color>
+    <color name="note_swatch_purple">#1A0D2E</color>
+    <color name="note_swatch_pink">#2E0D1A</color>
+    <color name="note_swatch_orange">#2E1A00</color>
+    <color name="note_swatch_dark">#0A0A0A</color>
 </resources>
+
