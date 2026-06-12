@@ -1,9 +1,12 @@
 package com.example.frienddebt.ui.fragment;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.text.InputType;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -16,7 +19,6 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.provider.Settings;
-import android.net.Uri;
 import java.io.File;
 import java.io.FileWriter;
 import androidx.core.content.FileProvider;
@@ -36,7 +38,11 @@ import androidx.work.WorkManager;
 import com.example.frienddebt.R;
 import com.example.frienddebt.notification.DailySummaryWorker;
 import com.example.frienddebt.notification.NightSummaryWorker;
+import com.example.frienddebt.notification.NotificationHelper;
+import com.example.frienddebt.receiver.SmsReceiver;
 import com.example.frienddebt.ui.Login;
+
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.EmailAuthProvider;
 import com.google.firebase.auth.FirebaseAuth;
@@ -54,11 +60,17 @@ public class ProfileFragment extends Fragment {
 
     private TextView txtProfileInitials, txtProfileName, txtProfileEmail, txtMemberSince;
     private ImageView imgProfilePicture;
+    private androidx.activity.result.ActivityResultLauncher<Intent> galleryLauncher;
+    private androidx.activity.result.ActivityResultLauncher<Uri> cameraLauncher;
+    private Uri pendingPhotoUri = null;
+
     private TextView btnEditProfile, txtPasswordHint, txtLoginProvider;
     private LinearLayout rowChangePassword;
     private SwitchCompat switchDarkMode, switchMorningDigest, switchEveningDigest, switchAppLock;
     private Button btnLogout, btnDeleteAccount;
     private LinearLayout rowExportData, rowNotificationSettings, rowBatteryOptimization;
+    private androidx.appcompat.widget.SwitchCompat switchSmsAutoAdd;
+
     private TextView btnAbout, btnFAQ, btnPrivacyPolicy;
 
     private FirebaseAuth auth;
@@ -80,6 +92,23 @@ public class ProfileFragment extends Fragment {
 
         txtProfileInitials = view.findViewById(R.id.txtProfileInitials);
         imgProfilePicture = view.findViewById(R.id.imgProfilePicture);
+
+        // Register photo pickers
+        galleryLauncher = registerForActivityResult(
+            new androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                    Uri uri = result.getData().getData();
+                    if (uri != null) pendingPhotoUri = uri;
+                }
+            }
+        );
+
+        cameraLauncher = registerForActivityResult(
+            new androidx.activity.result.contract.ActivityResultContracts.TakePicture(),
+            success -> { /* Uri already set in pendingPhotoUri */ }
+        );
+
         txtProfileName = view.findViewById(R.id.txtProfileName);
         txtProfileEmail = view.findViewById(R.id.txtProfileEmail);
         txtMemberSince = view.findViewById(R.id.txtMemberSince);
@@ -96,6 +125,7 @@ public class ProfileFragment extends Fragment {
         rowExportData = view.findViewById(R.id.rowExportData);
         rowNotificationSettings = view.findViewById(R.id.rowNotificationSettings);
         rowBatteryOptimization = view.findViewById(R.id.rowBatteryOptimization);
+        switchSmsAutoAdd = view.findViewById(R.id.switchSmsAutoAdd);
         btnAbout = view.findViewById(R.id.btnAbout);
         btnFAQ = view.findViewById(R.id.btnFAQ);
         btnPrivacyPolicy = view.findViewById(R.id.btnPrivacyPolicy);
@@ -105,6 +135,21 @@ public class ProfileFragment extends Fragment {
         setupAccountSection();
 
         btnEditProfile.setOnClickListener(v -> showEditProfileDialog());
+
+        // SMS auto-add toggle
+        if (switchSmsAutoAdd != null) {
+            switchSmsAutoAdd.setChecked(SmsReceiver.isSmsAutoAddEnabled(requireContext()));
+            switchSmsAutoAdd.setOnCheckedChangeListener((btn, checked) -> {
+                SmsReceiver.setSmsAutoAddEnabled(requireContext(), checked);
+                if (checked) {
+                    new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                            .setTitle("SMS Auto-Add Enabled")
+                            .setMessage("Nexa will detect bank SMS messages and auto-add transactions to your default ledger. You can disable this anytime.")
+                            .setPositiveButton("Got it", null)
+                            .show();
+                }
+            });
+        }
 
         rowChangePassword.setOnClickListener(v -> {
             FirebaseUser user = auth.getCurrentUser();
@@ -138,11 +183,8 @@ public class ProfileFragment extends Fragment {
 
         rowExportData.setOnClickListener(v -> exportUserData());
         
-        rowNotificationSettings.setOnClickListener(v -> {
-            Intent intent = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS);
-            intent.putExtra(Settings.EXTRA_APP_PACKAGE, requireContext().getPackageName());
-            startActivity(intent);
-        });
+        rowNotificationSettings.setOnClickListener(v -> showNotificationPrefsSheet());
+
 
         rowBatteryOptimization.setOnClickListener(v -> {
             Intent intent = new Intent();
@@ -267,44 +309,177 @@ public class ProfileFragment extends Fragment {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) return;
 
-        LinearLayout layout = new LinearLayout(requireContext());
-        layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(60, 40, 60, 20);
+        com.google.android.material.bottomsheet.BottomSheetDialog sheet =
+                new com.google.android.material.bottomsheet.BottomSheetDialog(requireContext());
 
-        EditText inputName = new EditText(requireContext());
-        inputName.setHint("Display Name");
-        inputName.setInputType(InputType.TYPE_TEXT_VARIATION_PERSON_NAME);
-        if (user.getDisplayName() != null) {
-            inputName.setText(user.getDisplayName());
+        android.view.View sheetView = android.view.LayoutInflater.from(requireContext())
+                .inflate(R.layout.layout_edit_profile_sheet, null);
+
+        ImageView ivPreview = sheetView.findViewById(R.id.ivEditProfilePreview);
+        android.widget.Button btnGallery = sheetView.findViewById(R.id.btnPickGallery);
+        android.widget.Button btnCamera = sheetView.findViewById(R.id.btnPickCamera);
+        EditText etName = sheetView.findViewById(R.id.etEditProfileName);
+        android.widget.Button btnSave = sheetView.findViewById(R.id.btnSaveProfile);
+
+        // Pre-fill
+        if (user.getDisplayName() != null) etName.setText(user.getDisplayName());
+        if (user.getPhotoUrl() != null) {
+            com.bumptech.glide.Glide.with(this).load(user.getPhotoUrl()).circleCrop().into(ivPreview);
         }
-        layout.addView(inputName);
 
-        new AlertDialog.Builder(requireContext())
-                .setTitle("Edit Profile")
-                .setMessage("Update your display name")
-                .setView(layout)
-                .setPositiveButton("Save", (dialog, which) -> {
-                    String newName = inputName.getText().toString().trim();
-                    if (newName.isEmpty()) {
-                        Toast.makeText(requireContext(), "Name cannot be empty", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
+        btnGallery.setOnClickListener(v -> {
+            Intent pick = new Intent(Intent.ACTION_PICK,
+                    android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+            galleryLauncher.launch(pick);
+            // After picking, pendingPhotoUri will be set. Preview update on resume.
+        });
 
-                    UserProfileChangeRequest profileUpdate = new UserProfileChangeRequest.Builder()
-                            .setDisplayName(newName)
-                            .build();
+        btnCamera.setOnClickListener(v -> {
+            java.io.File tmp = new java.io.File(requireContext().getCacheDir(), "nexa_profile_tmp.jpg");
+            Uri camUri = androidx.core.content.FileProvider.getUriForFile(
+                    requireContext(), requireContext().getPackageName() + ".provider", tmp);
+            pendingPhotoUri = camUri;
+            cameraLauncher.launch(camUri);
+        });
 
-                    user.updateProfile(profileUpdate)
-                            .addOnSuccessListener(aVoid -> {
+        btnSave.setOnClickListener(v -> {
+            String newName = etName.getText().toString().trim();
+            if (newName.isEmpty()) {
+                etName.setError("Name cannot be empty");
+                return;
+            }
+            btnSave.setEnabled(false);
+            btnSave.setText("Saving...");
+
+            if (pendingPhotoUri != null) {
+                // Upload photo first
+                com.google.firebase.storage.FirebaseStorage storage =
+                        com.google.firebase.storage.FirebaseStorage.getInstance();
+                com.google.firebase.storage.StorageReference ref =
+                        storage.getReference("profile_photos/" + user.getUid() + ".jpg");
+                ref.putFile(pendingPhotoUri).continueWithTask(task -> ref.getDownloadUrl())
+                        .addOnSuccessListener(downloadUri -> {
+                            UserProfileChangeRequest req = new UserProfileChangeRequest.Builder()
+                                    .setDisplayName(newName)
+                                    .setPhotoUri(downloadUri)
+                                    .build();
+                            user.updateProfile(req).addOnSuccessListener(x -> {
                                 Toast.makeText(requireContext(), "Profile updated!", Toast.LENGTH_SHORT).show();
-                                setupUserInfo(); // Refresh UI
-                            })
-                            .addOnFailureListener(e -> {
-                                Toast.makeText(requireContext(), "Failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                                setupUserInfo();
+                                sheet.dismiss();
                             });
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
+                        })
+                        .addOnFailureListener(e -> {
+                            btnSave.setEnabled(true);
+                            btnSave.setText("Save");
+                            Toast.makeText(requireContext(), "Upload failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        });
+            } else {
+                // Name only
+                UserProfileChangeRequest req = new UserProfileChangeRequest.Builder()
+                        .setDisplayName(newName).build();
+                user.updateProfile(req).addOnSuccessListener(x -> {
+                    Toast.makeText(requireContext(), "Name updated!", Toast.LENGTH_SHORT).show();
+                    setupUserInfo();
+                    sheet.dismiss();
+                }).addOnFailureListener(e -> {
+                    btnSave.setEnabled(true);
+                    btnSave.setText("Save");
+                    Toast.makeText(requireContext(), "Failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
+            }
+        });
+
+        sheet.setContentView(sheetView);
+        sheet.show();
+    }
+
+    // ═══════════════════════════════════════════════
+    // NOTIFICATION PREFERENCES SHEET
+    // ═══════════════════════════════════════════════
+    private void showNotificationPrefsSheet() {
+        com.google.android.material.bottomsheet.BottomSheetDialog sheet =
+                new com.google.android.material.bottomsheet.BottomSheetDialog(requireContext());
+
+        android.widget.LinearLayout root = new android.widget.LinearLayout(requireContext());
+        root.setOrientation(android.widget.LinearLayout.VERTICAL);
+        root.setPadding(64, 48, 64, 48);
+        root.setBackgroundColor(getResources().getColor(R.color.surface_primary));
+
+        // Title
+        android.widget.TextView title = new android.widget.TextView(requireContext());
+        title.setText("Notification Preferences");
+        title.setTextSize(18f);
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
+        title.setTextColor(getResources().getColor(R.color.text_primary));
+        title.setPadding(0, 0, 0, 32);
+        root.addView(title);
+
+        // Helper to add a switch row
+        android.widget.LinearLayout.LayoutParams rowParams = new android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT);
+        rowParams.setMargins(0, 8, 0, 8);
+
+        String[][] items = {
+                {NotificationHelper.KEY_REMINDERS, "⏰ Reminders", "Alert when your reminders fire"},
+                {NotificationHelper.KEY_DIGEST,    "📋 Daily Digest", "Morning & evening summaries"},
+                {NotificationHelper.KEY_TASKS,     "✅ Tasks", "Task due date reminders"},
+                {NotificationHelper.KEY_MONEY,     "💰 Money Activity", "New entries and settlements"},
+                {NotificationHelper.KEY_ACTIVITY,  "🔔 General Activity", "Other Nexa alerts"}
+        };
+
+        for (String[] item : items) {
+            android.widget.LinearLayout row = new android.widget.LinearLayout(requireContext());
+            row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            row.setLayoutParams(rowParams);
+
+            android.widget.LinearLayout textCol = new android.widget.LinearLayout(requireContext());
+            textCol.setOrientation(android.widget.LinearLayout.VERTICAL);
+            android.widget.LinearLayout.LayoutParams textParams =
+                    new android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+            textCol.setLayoutParams(textParams);
+
+            android.widget.TextView labelView = new android.widget.TextView(requireContext());
+            labelView.setText(item[1]);
+            labelView.setTextSize(15f);
+            labelView.setTextColor(getResources().getColor(R.color.text_primary));
+
+            android.widget.TextView subView = new android.widget.TextView(requireContext());
+            subView.setText(item[2]);
+            subView.setTextSize(12f);
+            subView.setTextColor(getResources().getColor(R.color.text_secondary));
+
+            textCol.addView(labelView);
+            textCol.addView(subView);
+            row.addView(textCol);
+
+            androidx.appcompat.widget.SwitchCompat sw = new androidx.appcompat.widget.SwitchCompat(requireContext());
+            sw.setChecked(NotificationHelper.isNotificationEnabled(requireContext(), item[0]));
+            final String key = item[0];
+            sw.setOnCheckedChangeListener((btn, checked) ->
+                    NotificationHelper.setNotificationEnabled(requireContext(), key, checked));
+            row.addView(sw);
+
+            root.addView(row);
+        }
+
+        // System settings link
+        android.widget.TextView systemLink = new android.widget.TextView(requireContext());
+        systemLink.setText("Advanced system notification settings →");
+        systemLink.setTextSize(13f);
+        systemLink.setTextColor(getResources().getColor(R.color.primary));
+        systemLink.setPadding(0, 32, 0, 0);
+        systemLink.setOnClickListener(v2 -> {
+            Intent sysIntent = new Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS);
+            sysIntent.putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, requireContext().getPackageName());
+            startActivity(sysIntent);
+        });
+        root.addView(systemLink);
+
+        sheet.setContentView(root);
+        sheet.show();
     }
 
     // ═══════════════════════════════════════════════
