@@ -1,5 +1,5 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
+    <!-- Base application theme — Premium Dark -->
     <style name="Base.Theme.Nexa" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/primary</item>
         <item name="colorPrimaryDark">@color/primary_dark</item>
@@ -8,11 +8,13 @@
         <item name="colorOnSecondary">@color/on_secondary</item>
         <item name="android:colorBackground">@color/background_primary</item>
         <item name="colorSurface">@color/surface_primary</item>
+        <item name="colorOnSurface">@color/text_primary</item>
         <item name="android:textColorPrimary">@color/text_primary</item>
         <item name="android:textColorSecondary">@color/text_secondary</item>
         <item name="android:statusBarColor">@color/background_primary</item>
         <item name="android:navigationBarColor">@color/surface_primary</item>
-        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">false</item>
     </style>
 
     <style name="Theme.Nexa" parent="Base.Theme.Nexa" />
@@ -23,4 +25,9 @@
         <item name="textAllCaps">false</item>
     </style>
 
-</resources>
+    <!-- Note editor full-screen theme (no status bar colour change) -->
+    <style name="Theme.Nexa.NoteEditor" parent="Theme.Nexa">
+        <item name="android:windowSoftInputMode">adjustResize</item>
+    </style>
+
+</resources>

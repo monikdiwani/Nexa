@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@color/surface_primary"
+    android:paddingVertical="16dp">
+
+    <!-- Handle bar -->
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:background="@color/divider"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Note style"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="@color/text_primary"
+        android:paddingHorizontal="20dp"
+        android:paddingBottom="16dp" />
+
+    <!-- Color swatches row -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="BACKGROUND COLOR"
+        android:textSize="11sp"
+        android:textColor="@color/text_hint"
+        android:letterSpacing="0.1"
+        android:paddingHorizontal="20dp"
+        android:paddingBottom="8dp" />
+
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none"
+        android:paddingHorizontal="16dp">
+
+        <LinearLayout
+            android:id="@+id/colorSwatchesRow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <!-- Default -->
+            <FrameLayout android:id="@+id/swatchDefault"
+                android:layout_width="48dp" android:layout_height="48dp"
+                android:layout_margin="4dp" android:background="@drawable/swatch_selected_bg">
+                <View android:layout_width="40dp" android:layout_height="40dp"
+                    android:layout_gravity="center"
+                    android:background="@color/note_swatch_default" />
+            </FrameLayout>
+
+            <View android:id="@+id/swatchYellow"
+                android:layout_width="40dp" android:layout_height="40dp"
+                android:layout_margin="4dp"
+                android:background="@color/note_swatch_yellow" />
+
+            <View android:id="@+id/swatchGreen"
+                android:layout_width="40dp" android:layout_height="40dp"
+                android:layout_margin="4dp"
+                android:background="@color/note_swatch_green" />
+
+            <View android:id="@+id/swatchBlue"
+                android:layout_width="40dp" android:layout_height="40dp"
+                android:layout_margin="4dp"
+                android:background="@color/note_swatch_blue" />
+
+            <View android:id="@+id/swatchPurple"
+                android:layout_width="40dp" android:layout_height="40dp"
+                android:layout_margin="4dp"
+                android:background="@color/note_swatch_purple" />
+
+            <View android:id="@+id/swatchPink"
+                android:layout_width="40dp" android:layout_height="40dp"
+                android:layout_margin="4dp"
+                android:background="@color/note_swatch_pink" />
+
+            <View android:id="@+id/swatchOrange"
+                android:layout_width="40dp" android:layout_height="40dp"
+                android:layout_margin="4dp"
+                android:background="@color/note_swatch_orange" />
+
+            <View android:id="@+id/swatchDark"
+                android:layout_width="40dp" android:layout_height="40dp"
+                android:layout_margin="4dp"
+                android:background="@color/note_swatch_dark" />
+
+        </LinearLayout>
+    </HorizontalScrollView>
+
+    <!-- Page background style -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="PAGE BACKGROUND"
+        android:textSize="11sp"
+        android:textColor="@color/text_hint"
+        android:letterSpacing="0.1"
+        android:paddingHorizontal="20dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="8dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingBottom="24dp">
+
+        <LinearLayout android:id="@+id/styleBlank"
+            android:layout_width="0dp" android:layout_height="72dp"
+            android:layout_weight="1" android:layout_margin="4dp"
+            android:orientation="vertical" android:gravity="center"
+            android:background="@color/surface_elevated">
+            <View android:layout_width="match_parent" android:layout_height="match_parent"
+                android:background="@color/note_swatch_default" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Blank" android:textSize="11sp" android:textColor="@color/text_secondary"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
+
+        <LinearLayout android:id="@+id/styleLined"
+            android:layout_width="0dp" android:layout_height="72dp"
+            android:layout_weight="1" android:layout_margin="4dp"
+            android:orientation="vertical" android:gravity="center"
+            android:background="@color/surface_elevated">
+            <View android:layout_width="match_parent" android:layout_height="match_parent"
+                android:background="@drawable/bg_note_lined" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Lined" android:textSize="11sp" android:textColor="@color/text_secondary"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
+
+        <LinearLayout android:id="@+id/styleDotted"
+            android:layout_width="0dp" android:layout_height="72dp"
+            android:layout_weight="1" android:layout_margin="4dp"
+            android:orientation="vertical" android:gravity="center"
+            android:background="@color/surface_elevated">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Dotted" android:textSize="11sp" android:textColor="@color/text_secondary"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
+
+        <LinearLayout android:id="@+id/styleGrid"
+            android:layout_width="0dp" android:layout_height="72dp"
+            android:layout_weight="1" android:layout_margin="4dp"
+            android:orientation="vertical" android:gravity="center"
+            android:background="@color/surface_elevated">
+            <View android:layout_width="match_parent" android:layout_height="match_parent"
+                android:background="@drawable/bg_note_grid" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Grid" android:textSize="11sp" android:textColor="@color/text_secondary"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
+    </LinearLayout>
+
+</LinearLayout>

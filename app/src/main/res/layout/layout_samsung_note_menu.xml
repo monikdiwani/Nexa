@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="220dp"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@color/note_menu_bg"
+    android:paddingVertical="6dp"
+    android:elevation="8dp">
+
+    <TextView
+        android:id="@+id/menuSearch"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="Search"
+        android:textColor="@color/text_primary"
+        android:textSize="15sp"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="20dp"
+        android:background="?attr/selectableItemBackground" />
+
+    <TextView
+        android:id="@+id/menuNoteStyle"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="Note style"
+        android:textColor="@color/text_primary"
+        android:textSize="15sp"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="20dp"
+        android:background="?attr/selectableItemBackground" />
+
+    <TextView
+        android:id="@+id/menuPageSettings"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="Page settings"
+        android:textColor="@color/text_primary"
+        android:textSize="15sp"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="20dp"
+        android:background="?attr/selectableItemBackground" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider"
+        android:layout_marginHorizontal="12dp"
+        android:layout_marginVertical="4dp" />
+
+    <TextView
+        android:id="@+id/menuFullScreen"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="Full screen"
+        android:textColor="@color/text_primary"
+        android:textSize="15sp"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="20dp"
+        android:background="?attr/selectableItemBackground" />
+
+    <TextView
+        android:id="@+id/menuAddTags"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="Add tags"
+        android:textColor="@color/text_primary"
+        android:textSize="15sp"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="20dp"
+        android:background="?attr/selectableItemBackground" />
+
+    <TextView
+        android:id="@+id/menuVersionHistory"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="Version history"
+        android:textColor="@color/text_primary"
+        android:textSize="15sp"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="20dp"
+        android:background="?attr/selectableItemBackground" />
+
+    <TextView
+        android:id="@+id/menuShare"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="Share"
+        android:textColor="@color/text_primary"
+        android:textSize="15sp"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="20dp"
+        android:background="?attr/selectableItemBackground" />
+
+    <TextView
+        android:id="@+id/menuArchive"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="Archive"
+        android:textColor="@color/text_primary"
+        android:textSize="15sp"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="20dp"
+        android:background="?attr/selectableItemBackground" />
+
+    <TextView
+        android:id="@+id/menuTrash"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="Move to trash"
+        android:textColor="@color/accent_negative"
+        android:textSize="15sp"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="20dp"
+        android:background="?attr/selectableItemBackground" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider"
+        android:layout_marginHorizontal="12dp"
+        android:layout_marginVertical="4dp" />
+
+    <!-- Icon row: Star · Lock · Convert -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:paddingVertical="4dp">
+
+        <ImageButton
+            android:id="@+id/menuStar"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:src="@android:drawable/btn_star"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            app:tint="@color/text_secondary"
+            android:contentDescription="Pin" />
+
+        <ImageButton
+            android:id="@+id/menuLock"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:src="@android:drawable/ic_secure"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            app:tint="@color/text_secondary"
+            android:contentDescription="Lock" />
+
+        <ImageButton
+            android:id="@+id/menuConvert"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:src="@android:drawable/ic_menu_share"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            app:tint="@color/text_secondary"
+            android:contentDescription="Convert" />
+
+    </LinearLayout>
+
+</LinearLayout>

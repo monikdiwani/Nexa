@@ -1,72 +1,75 @@
 package com.example.frienddebt.ui.fragment;
 
 import android.content.Intent;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextWatcher;
-import android.view.ActionMode;
+import android.text.Html;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
-import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.widget.LinearLayout;
-import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
+import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.ItemTouchHelper;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 
 import com.example.frienddebt.R;
 import com.example.frienddebt.model.Note;
 import com.example.frienddebt.ui.AddEditNoteActivity;
 import com.example.frienddebt.ui.GlobalSearchActivity;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
-import com.google.firebase.firestore.WriteBatch;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 
+import android.net.Uri;
+import android.widget.ImageView;
+import androidx.cardview.widget.CardView;
+
 public class NotesFragment extends Fragment {
 
-    private LinearLayout layoutEmptyState;
+    private DrawerLayout drawerLayout;
     private RecyclerView rvNotes;
     private FloatingActionButton fabAddNote;
+    private LinearLayout layoutEmptyState;
+    private TextView txtHeaderSubtitle;
+    private ImageButton btnSearch, btnMenu, btnMore;
 
-    private TextView chipAll, chipArchive, chipTrash, chipPinned, chipChecklist, chipImages;
+    // Drawer filter targets
+    private TextView drawerAll, drawerPinned, drawerPersonal, drawerWork, drawerArchive, drawerTrash;
 
     private FirebaseFirestore db;
     private FirebaseAuth auth;
     private ListenerRegistration notesListener;
 
     private List<Note> allNotes = new ArrayList<>();
-    private List<Object> displayItems = new ArrayList<>();
+    private List<Object> displayItems = new ArrayList<>(); // String headers + Note objects
     private NotesAdapter adapter;
 
-    private String activeFilter = "ALL";
-    private String searchQuery = "";
+    // Active filter
+    private String activeFilter = "all"; // all, pinned, personal, work, archived, trash
 
-    private ActionMode actionMode;
-    private boolean isMultiSelectMode = false;
-    private List<Note> selectedNotes = new ArrayList<>();
-
-    private android.widget.ImageButton btnSearch, btnMenu;
+    // ─── Lifecycle ────────────────────────────────────────────────────────────
 
     @Nullable
     @Override
@@ -76,76 +79,28 @@ public class NotesFragment extends Fragment {
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
 
+        drawerLayout    = view.findViewById(R.id.drawerLayout);
+        rvNotes         = view.findViewById(R.id.rvNotes);
+        fabAddNote      = view.findViewById(R.id.fabAddNote);
         layoutEmptyState = view.findViewById(R.id.layoutEmptyState);
-        rvNotes = view.findViewById(R.id.rvNotes);
-        fabAddNote = view.findViewById(R.id.fabAddNote);
+        txtHeaderSubtitle = view.findViewById(R.id.txtHeaderSubtitle);
+        btnSearch       = view.findViewById(R.id.btnSearch);
+        btnMenu         = view.findViewById(R.id.btnMenu);
+        btnMore         = view.findViewById(R.id.btnMore);
 
-        btnSearch = view.findViewById(R.id.btnSearch);
-        btnMenu = view.findViewById(R.id.btnMenu);
+        drawerAll      = view.findViewById(R.id.drawerAll);
+        drawerPinned   = view.findViewById(R.id.drawerPinned);
+        drawerPersonal = view.findViewById(R.id.drawerPersonal);
+        drawerWork     = view.findViewById(R.id.drawerWork);
+        drawerArchive  = view.findViewById(R.id.drawerArchive);
+        drawerTrash    = view.findViewById(R.id.drawerTrash);
 
-        if (btnSearch != null) {
-            btnSearch.setOnClickListener(v -> startActivity(new Intent(requireContext(), GlobalSearchActivity.class)));
-        }
-
-        if (btnMenu != null) {
-            btnMenu.setOnClickListener(v -> {
-                android.widget.PopupMenu popup = new android.widget.PopupMenu(requireContext(), btnMenu);
-                popup.getMenu().add("Select Notes");
-                popup.setOnMenuItemClickListener(item -> {
-                    if ("Select Notes".equals(item.getTitle().toString())) {
-                        startActionMode();
-                    }
-                    return true;
-                });
-                popup.show();
-            });
-        }
-
-        chipAll = view.findViewById(R.id.chipAll);
-        chipArchive = view.findViewById(R.id.chipArchive);
-        chipTrash = view.findViewById(R.id.chipTrash);
-        chipPinned = view.findViewById(R.id.chipPinned);
-        chipChecklist = view.findViewById(R.id.chipChecklist);
-        chipImages = view.findViewById(R.id.chipImages);
-
-        rvNotes.setLayoutManager(new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL));
-        adapter = new NotesAdapter();
-        rvNotes.setAdapter(adapter);
-        
-        setupFilters();
-
-        fabAddNote.setOnClickListener(v -> {
-            Animation pop = AnimationUtils.loadAnimation(requireContext(), R.anim.button_pop);
-            v.startAnimation(pop);
-            startActivity(new Intent(requireActivity(), AddEditNoteActivity.class));
-        });
+        setupDrawer();
+        setupRecyclerView();
+        setupFab();
+        setupTopBarButtons();
 
         return view;
-    }
-
-    private void setupFilters() {
-        chipAll.setOnClickListener(v -> setFilter("ALL", chipAll));
-        chipPinned.setOnClickListener(v -> setFilter("PINNED", chipPinned));
-        chipChecklist.setOnClickListener(v -> setFilter("CHECKLIST", chipChecklist));
-        chipImages.setOnClickListener(v -> setFilter("IMAGES", chipImages));
-        chipArchive.setOnClickListener(v -> setFilter("ARCHIVE", chipArchive));
-        chipTrash.setOnClickListener(v -> setFilter("TRASH", chipTrash));
-    }
-
-    private void setFilter(String filter, TextView activeChip) {
-        activeFilter = filter;
-        resetChipStyles();
-        activeChip.setBackgroundResource(R.drawable.rounded_button);
-        activeChip.setTextColor(getResources().getColor(R.color.on_primary));
-        applyFilter();
-    }
-
-    private void resetChipStyles() {
-        TextView[] chips = {chipAll, chipPinned, chipChecklist, chipImages, chipArchive, chipTrash};
-        for (TextView chip : chips) {
-            chip.setBackgroundResource(R.drawable.chip_background);
-            chip.setTextColor(getResources().getColor(R.color.text_secondary));
-        }
     }
 
     @Override
@@ -157,20 +112,136 @@ public class NotesFragment extends Fragment {
     @Override
     public void onStop() {
         super.onStop();
-        if (notesListener != null) {
-            notesListener.remove();
-            notesListener = null;
+        if (notesListener != null) { notesListener.remove(); notesListener = null; }
+    }
+
+    // ─── Setup ────────────────────────────────────────────────────────────────
+
+    private void setupDrawer() {
+        if (btnMenu != null) {
+            btnMenu.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.openDrawer(androidx.core.view.GravityCompat.START);
+            });
+        }
+
+        setDrawerItem(drawerAll, "all");
+        setDrawerItem(drawerPinned, "pinned");
+        setDrawerItem(drawerPersonal, "personal");
+        setDrawerItem(drawerWork, "work");
+        setDrawerItem(drawerArchive, "archived");
+        setDrawerItem(drawerTrash, "trash");
+    }
+
+    private void setDrawerItem(TextView tv, String filter) {
+        if (tv == null) return;
+        tv.setOnClickListener(v -> {
+            activeFilter = filter;
+            if (drawerLayout != null) drawerLayout.closeDrawers();
+            applyFilter();
+        });
+    }
+
+    private void setupRecyclerView() {
+        rvNotes.setLayoutManager(new LinearLayoutManager(requireContext()));
+        adapter = new NotesAdapter();
+        rvNotes.setAdapter(adapter);
+
+        // Swipe gestures
+        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(
+                0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
+
+            @Override
+            public int getMovementFlags(@NonNull RecyclerView rv, @NonNull RecyclerView.ViewHolder vh) {
+                // Only allow swipe on Note items, not on section headers
+                int pos = vh.getAdapterPosition();
+                if (pos >= 0 && pos < displayItems.size() && displayItems.get(pos) instanceof String) {
+                    return makeMovementFlags(0, 0);
+                }
+                return makeMovementFlags(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT);
+            }
+
+            @Override
+            public boolean onMove(@NonNull RecyclerView rv, @NonNull RecyclerView.ViewHolder vh,
+                                  @NonNull RecyclerView.ViewHolder target) { return false; }
+
+            @Override
+            public void onSwiped(@NonNull RecyclerView.ViewHolder vh, int direction) {
+                int pos = vh.getAdapterPosition();
+                if (pos < 0 || pos >= displayItems.size()) return;
+                Object item = displayItems.get(pos);
+                if (!(item instanceof Note)) return;
+                Note note = (Note) item;
+
+                if (direction == ItemTouchHelper.LEFT) {
+                    // Archive
+                    archiveNote(note);
+                    Snackbar.make(rvNotes, "Note archived", Snackbar.LENGTH_LONG)
+                            .setAction("Undo", v -> unarchiveNote(note))
+                            .setActionTextColor(getResources().getColor(R.color.primary))
+                            .show();
+                } else {
+                    // Trash
+                    trashNote(note);
+                    Snackbar.make(rvNotes, "Moved to trash", Snackbar.LENGTH_LONG)
+                            .setAction("Undo", v -> untrashNote(note))
+                            .setActionTextColor(getResources().getColor(R.color.primary))
+                            .show();
+                }
+            }
+
+            @Override
+            public void onChildDraw(@NonNull Canvas c, @NonNull RecyclerView rv,
+                                    @NonNull RecyclerView.ViewHolder vh, float dX, float dY,
+                                    int actionState, boolean active) {
+                View itemView = vh.itemView;
+                Paint paint = new Paint();
+                if (dX < 0) { // Swipe left = archive (blue)
+                    paint.setColor(Color.parseColor("#0A84FF"));
+                    c.drawRect((float) itemView.getRight() + dX, itemView.getTop(),
+                            itemView.getRight(), itemView.getBottom(), paint);
+                } else { // Swipe right = trash (red)
+                    paint.setColor(Color.parseColor("#FF453A"));
+                    c.drawRect(itemView.getLeft(), itemView.getTop(),
+                            (float) itemView.getLeft() + dX, itemView.getBottom(), paint);
+                }
+                super.onChildDraw(c, rv, vh, dX, dY, actionState, active);
+            }
+        });
+        itemTouchHelper.attachToRecyclerView(rvNotes);
+    }
+
+    private void setupFab() {
+        fabAddNote.setOnClickListener(v -> {
+            v.startAnimation(AnimationUtils.loadAnimation(requireContext(), android.R.anim.fade_in));
+            startActivity(new Intent(requireActivity(), AddEditNoteActivity.class));
+        });
+    }
+
+    private void setupTopBarButtons() {
+        if (btnSearch != null) {
+            btnSearch.setOnClickListener(v -> startActivity(new Intent(requireContext(), GlobalSearchActivity.class)));
+        }
+        if (btnMore != null) {
+            btnMore.setOnClickListener(v -> {
+                android.widget.PopupMenu popup = new android.widget.PopupMenu(requireContext(), btnMore);
+                popup.getMenu().add("Select");
+                popup.getMenu().add("Sort by date");
+                popup.getMenu().add("Sort by name");
+                popup.setOnMenuItemClickListener(item -> {
+                    Toast.makeText(requireContext(), item.getTitle(), Toast.LENGTH_SHORT).show();
+                    return true;
+                });
+                popup.show();
+            });
         }
     }
 
-    public void loadNotes() {
-        if (auth == null || db == null) return;
-        if (auth.getCurrentUser() == null) return;
-        String userId = auth.getCurrentUser().getUid();
+    // ─── Data Loading ─────────────────────────────────────────────────────────
 
-        if (notesListener != null) {
-            notesListener.remove();
-        }
+    public void loadNotes() {
+        if (auth == null || auth.getCurrentUser() == null) return;
+        String userId = auth.getCurrentUser().getUid();
+        if (notesListener != null) notesListener.remove();
 
         notesListener = db.collection("users")
                 .document(userId)
@@ -187,62 +258,55 @@ public class NotesFragment extends Fragment {
     }
 
     private void applyFilter() {
-        List<Note> filteredNotes = new ArrayList<>();
-
+        List<Note> filtered = new ArrayList<>();
         for (Note n : allNotes) {
-            boolean matchesFilter = false;
             switch (activeFilter) {
-                case "ALL":
-                    matchesFilter = !n.isArchived() && !n.isDeleted();
-                    break;
-                case "PINNED":
-                    matchesFilter = n.isPinned() && !n.isArchived() && !n.isDeleted();
-                    break;
-                case "CHECKLIST":
-                    matchesFilter = "CHECKLIST".equals(n.getType()) && !n.isArchived() && !n.isDeleted();
-                    break;
-                case "IMAGES":
-                    matchesFilter = ("IMAGE".equals(n.getType()) || (n.getImageUrl() != null && !n.getImageUrl().isEmpty()) || (n.getImageUrls() != null && !n.getImageUrls().isEmpty())) && !n.isArchived() && !n.isDeleted();
-                    break;
-                case "ARCHIVE":
-                    matchesFilter = n.isArchived() && !n.isDeleted();
-                    break;
-                case "TRASH":
-                    matchesFilter = n.isDeleted();
-                    break;
-            }
-
-            if (matchesFilter) {
-                filteredNotes.add(n);
+                case "pinned":   if (n.isPinned() && !n.isDeleted() && !n.isArchived()) filtered.add(n); break;
+                case "personal": if ("Personal".equalsIgnoreCase(n.getFolder()) && !n.isDeleted() && !n.isArchived()) filtered.add(n); break;
+                case "work":     if ("Work".equalsIgnoreCase(n.getFolder()) && !n.isDeleted() && !n.isArchived()) filtered.add(n); break;
+                case "archived": if (n.isArchived() && !n.isDeleted()) filtered.add(n); break;
+                case "trash":    if (n.isDeleted()) filtered.add(n); break;
+                default:         if (!n.isDeleted() && !n.isArchived()) filtered.add(n); break;
             }
         }
 
-        // Prepare display items (inject headers if needed)
+        txtHeaderSubtitle.setText(filtered.size() + " notes");
+        buildDisplayList(filtered);
+    }
+
+    private void buildDisplayList(List<Note> notes) {
         displayItems.clear();
-        
-        List<Note> pinned = new ArrayList<>();
-        List<Note> unpinned = new ArrayList<>();
-        
-        for (Note n : filteredNotes) {
-            if (n.isPinned()) pinned.add(n);
-            else unpinned.add(n);
-        }
 
-        if (!pinned.isEmpty() && !unpinned.isEmpty() && activeFilter.equals("ALL")) {
-            displayItems.add("PINNED");
-            displayItems.addAll(pinned);
-            displayItems.add("ALL NOTES");
-            displayItems.addAll(unpinned);
-        } else {
-            // Sort by date descending
-            filteredNotes.sort((n1, n2) -> Long.compare(n2.getUpdatedAt(), n1.getUpdatedAt()));
-            displayItems.addAll(filteredNotes);
+        Calendar todayCal = Calendar.getInstance();
+        Calendar yesterdayCal = Calendar.getInstance();
+        yesterdayCal.add(Calendar.DAY_OF_YEAR, -1);
+
+        String currentHeader = "";
+        for (Note note : notes) {
+            Calendar noteCal = Calendar.getInstance();
+            noteCal.setTimeInMillis(note.getUpdatedAt());
+
+            String header;
+            if (isSameDay(noteCal, todayCal)) {
+                header = "Today";
+            } else if (isSameDay(noteCal, yesterdayCal)) {
+                header = "Yesterday";
+            } else if (noteCal.get(Calendar.YEAR) == todayCal.get(Calendar.YEAR)) {
+                header = new SimpleDateFormat("MMMM", Locale.getDefault()).format(noteCal.getTime());
+            } else {
+                header = String.valueOf(noteCal.get(Calendar.YEAR));
+            }
+
+            if (!header.equals(currentHeader)) {
+                displayItems.add(header);
+                currentHeader = header;
+            }
+            displayItems.add(note);
         }
 
         adapter.notifyDataSetChanged();
-        rvNotes.scheduleLayoutAnimation();
 
-        if (displayItems.isEmpty()) {
+        if (notes.isEmpty()) {
             layoutEmptyState.setVisibility(View.VISIBLE);
             rvNotes.setVisibility(View.GONE);
         } else {
@@ -251,94 +315,42 @@ public class NotesFragment extends Fragment {
         }
     }
 
-    // ======================== ACTION MODE ========================
-
-    private void startActionMode() {
-        if (actionMode == null) {
-            actionMode = requireActivity().startActionMode(actionModeCallback);
-        }
+    private boolean isSameDay(Calendar a, Calendar b) {
+        return a.get(Calendar.YEAR) == b.get(Calendar.YEAR)
+                && a.get(Calendar.DAY_OF_YEAR) == b.get(Calendar.DAY_OF_YEAR);
     }
 
-    private ActionMode.Callback actionModeCallback = new ActionMode.Callback() {
-        @Override
-        public boolean onCreateActionMode(ActionMode mode, Menu menu) {
-            isMultiSelectMode = true;
-            mode.getMenuInflater().inflate(R.menu.menu_note_selection, menu);
-            
-            // Adjust menu based on active filter
-            if (activeFilter.equals("TRASH")) {
-                menu.findItem(R.id.action_pin).setVisible(false);
-                menu.findItem(R.id.action_archive).setVisible(false);
-                menu.findItem(R.id.action_trash).setVisible(false);
-                menu.findItem(R.id.action_restore).setVisible(true);
-            } else if (activeFilter.equals("ARCHIVE")) {
-                menu.findItem(R.id.action_archive).setTitle("Unarchive");
-            }
-            return true;
-        }
+    // ─── Firestore mutations ───────────────────────────────────────────────────
 
-        @Override
-        public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
-            return false;
-        }
+    private void archiveNote(Note note) {
+        if (auth.getCurrentUser() == null) return;
+        db.collection("users").document(auth.getCurrentUser().getUid())
+                .collection("notes").document(note.getId())
+                .update("isArchived", true);
+    }
 
-        @Override
-        public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
-            if (selectedNotes.isEmpty()) return false;
+    private void unarchiveNote(Note note) {
+        if (auth.getCurrentUser() == null) return;
+        db.collection("users").document(auth.getCurrentUser().getUid())
+                .collection("notes").document(note.getId())
+                .update("isArchived", false);
+    }
 
-            WriteBatch batch = db.batch();
-            String userId = auth.getCurrentUser().getUid();
-            
-            if (item.getItemId() == R.id.action_trash) {
-                for (Note n : selectedNotes) {
-                    batch.update(db.collection("users").document(userId).collection("notes").document(n.getId()), "isDeleted", true);
-                }
-                batch.commit().addOnSuccessListener(a -> Toast.makeText(requireContext(), "Moved to trash", Toast.LENGTH_SHORT).show());
-                mode.finish();
-                return true;
-            } else if (item.getItemId() == R.id.action_archive) {
-                boolean isUnarchiving = activeFilter.equals("ARCHIVE");
-                for (Note n : selectedNotes) {
-                    batch.update(db.collection("users").document(userId).collection("notes").document(n.getId()), "isArchived", !isUnarchiving);
-                }
-                batch.commit().addOnSuccessListener(a -> Toast.makeText(requireContext(), isUnarchiving ? "Unarchived" : "Archived", Toast.LENGTH_SHORT).show());
-                mode.finish();
-                return true;
-            } else if (item.getItemId() == R.id.action_pin) {
-                for (Note n : selectedNotes) {
-                    batch.update(db.collection("users").document(userId).collection("notes").document(n.getId()), "isPinned", true);
-                }
-                batch.commit().addOnSuccessListener(a -> Toast.makeText(requireContext(), "Pinned", Toast.LENGTH_SHORT).show());
-                mode.finish();
-                return true;
-            } else if (item.getItemId() == R.id.action_restore) {
-                for (Note n : selectedNotes) {
-                    batch.update(db.collection("users").document(userId).collection("notes").document(n.getId()), "isDeleted", false);
-                }
-                batch.commit().addOnSuccessListener(a -> Toast.makeText(requireContext(), "Restored", Toast.LENGTH_SHORT).show());
-                mode.finish();
-                return true;
-            } else if (item.getItemId() == R.id.action_delete_forever) {
-                for (Note n : selectedNotes) {
-                    batch.delete(db.collection("users").document(userId).collection("notes").document(n.getId()));
-                }
-                batch.commit().addOnSuccessListener(a -> Toast.makeText(requireContext(), "Deleted permanently", Toast.LENGTH_SHORT).show());
-                mode.finish();
-                return true;
-            }
-            return false;
-        }
+    private void trashNote(Note note) {
+        if (auth.getCurrentUser() == null) return;
+        db.collection("users").document(auth.getCurrentUser().getUid())
+                .collection("notes").document(note.getId())
+                .update("isDeleted", true);
+    }
 
-        @Override
-        public void onDestroyActionMode(ActionMode mode) {
-            isMultiSelectMode = false;
-            selectedNotes.clear();
-            actionMode = null;
-            adapter.notifyDataSetChanged();
-        }
-    };
+    private void untrashNote(Note note) {
+        if (auth.getCurrentUser() == null) return;
+        db.collection("users").document(auth.getCurrentUser().getUid())
+                .collection("notes").document(note.getId())
+                .update("isDeleted", false);
+    }
 
-    // ======================== ADAPTER ========================
+    // ─── Adapter ──────────────────────────────────────────────────────────────
 
     private static final int TYPE_HEADER = 0;
     private static final int TYPE_NOTE = 1;
@@ -347,166 +359,132 @@ public class NotesFragment extends Fragment {
 
         @Override
         public int getItemViewType(int position) {
-            if (displayItems.get(position) instanceof String) {
-                return TYPE_HEADER;
-            }
-            return TYPE_NOTE;
+            return (displayItems.get(position) instanceof String) ? TYPE_HEADER : TYPE_NOTE;
         }
 
         @NonNull
         @Override
         public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             if (viewType == TYPE_HEADER) {
-                TextView header = new TextView(parent.getContext());
-                header.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-                header.setPadding(24, 32, 24, 8);
-                header.setTextSize(11);
-                header.setLetterSpacing(0.1f);
-                header.setAllCaps(true);
-                header.setTextColor(getResources().getColor(R.color.text_hint));
-                return new HeaderViewHolder(header);
+                TextView tv = new TextView(parent.getContext());
+                RecyclerView.LayoutParams lp = new RecyclerView.LayoutParams(
+                        RecyclerView.LayoutParams.MATCH_PARENT,
+                        RecyclerView.LayoutParams.WRAP_CONTENT);
+                tv.setLayoutParams(lp);
+                tv.setPadding(dpToPx(16), dpToPx(20), dpToPx(16), dpToPx(6));
+                tv.setTextSize(13f);
+                tv.setTypeface(null, android.graphics.Typeface.BOLD);
+                tv.setLetterSpacing(0.04f);
+                tv.setTextColor(getResources().getColor(R.color.note_section_header));
+                return new HeaderViewHolder(tv);
             } else {
-                View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_note, parent, false);
-                return new NoteViewHolder(view);
+                View v = LayoutInflater.from(parent.getContext())
+                        .inflate(R.layout.item_note_samsung, parent, false);
+                return new NoteViewHolder(v);
             }
         }
 
         @Override
         public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
             if (holder.getItemViewType() == TYPE_HEADER) {
-                StaggeredGridLayoutManager.LayoutParams layoutParams = new StaggeredGridLayoutManager.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                layoutParams.setFullSpan(true);
-                holder.itemView.setLayoutParams(layoutParams);
-                
-                ((HeaderViewHolder) holder).txtHeader.setText((String) displayItems.get(position));
+                ((HeaderViewHolder) holder).tv.setText((String) displayItems.get(position));
             } else {
-                NoteViewHolder noteHolder = (NoteViewHolder) holder;
                 Note note = (Note) displayItems.get(position);
+                NoteViewHolder h = (NoteViewHolder) holder;
 
+                // Title
                 String title = note.getTitle();
-                if (title == null || title.trim().isEmpty()) {
-                    title = "Untitled Note";
-                }
-                noteHolder.txtTitle.setText(title);
+                if (title == null || title.trim().isEmpty()) title = "Untitled";
+                h.txtTitle.setText(title);
 
-                String content = note.getContent();
-                if (content == null) content = "";
-                
-                if (content.contains("<") && content.contains(">")) {
-                    noteHolder.txtContent.setText(android.text.Html.fromHtml(content, android.text.Html.FROM_HTML_MODE_LEGACY).toString().trim());
+                // Date
+                Calendar cal = Calendar.getInstance();
+                cal.setTimeInMillis(note.getUpdatedAt());
+                Calendar today = Calendar.getInstance();
+                if (isSameDay(cal, today)) {
+                    h.txtDate.setText(new SimpleDateFormat("HH:mm", Locale.getDefault()).format(cal.getTime()));
                 } else {
-                    noteHolder.txtContent.setText(content.trim());
+                    h.txtDate.setText(new SimpleDateFormat("d MMM", Locale.getDefault()).format(cal.getTime()));
                 }
 
-                SimpleDateFormat sdf = new SimpleDateFormat("MMM dd", Locale.getDefault());
-                noteHolder.txtDate.setText(sdf.format(new Date(note.getUpdatedAt())));
-
-                // Color Strip mapping
-                String colorStr = note.getColorCode();
-                if (colorStr != null && !colorStr.isEmpty() && !colorStr.equals("#surface_primary")) {
-                    int colorVal = android.graphics.Color.parseColor(colorStr);
-                    noteHolder.viewColorStrip.setBackgroundColor(colorVal);
-                } else {
-                    noteHolder.viewColorStrip.setBackgroundColor(android.graphics.Color.TRANSPARENT);
-                }
-                
-                // Selection styling
-                if (isMultiSelectMode && selectedNotes.contains(note)) {
-                    if (noteHolder.itemView instanceof androidx.cardview.widget.CardView) {
-                        ((androidx.cardview.widget.CardView) noteHolder.itemView).setCardBackgroundColor(android.graphics.Color.LTGRAY);
-                        noteHolder.itemView.setAlpha(0.7f);
+                // Thumbnail: prefer image, else locked, else text preview
+                if (note.isLocked()) {
+                    h.imgThumbnail.setVisibility(View.GONE);
+                    h.imgLock.setVisibility(View.VISIBLE);
+                    h.txtPreviewLines.setVisibility(View.GONE);
+                    h.txtTitle.setText("Locked note");
+                    h.txtTitle.setAlpha(0.4f);
+                } else if (note.getImageUrls() != null && !note.getImageUrls().isEmpty()) {
+                    h.imgLock.setVisibility(View.GONE);
+                    h.txtPreviewLines.setVisibility(View.GONE);
+                    h.imgThumbnail.setVisibility(View.VISIBLE);
+                    try {
+                        h.imgThumbnail.setImageURI(Uri.parse(note.getImageUrls().get(0)));
+                    } catch (Exception e) {
+                        h.imgThumbnail.setVisibility(View.GONE);
+                        h.txtPreviewLines.setVisibility(View.VISIBLE);
                     }
                 } else {
-                    if (noteHolder.itemView instanceof androidx.cardview.widget.CardView) {
-                        int colorSurface = com.google.android.material.color.MaterialColors.getColor(requireContext(), com.google.android.material.R.attr.colorSurface, android.graphics.Color.WHITE);
-                        ((androidx.cardview.widget.CardView) noteHolder.itemView).setCardBackgroundColor(colorSurface);
-                        noteHolder.itemView.setAlpha(1.0f);
-                    }
-                }
-
-                if (note.isPinned()) {
-                    noteHolder.imgPinned.setVisibility(View.VISIBLE);
-                } else {
-                    noteHolder.imgPinned.setVisibility(View.GONE);
-                }
-
-                if ("CHECKLIST".equals(note.getType())) {
-                    noteHolder.imgChecklist.setVisibility(View.VISIBLE);
-                } else {
-                    noteHolder.imgChecklist.setVisibility(View.GONE);
-                }
-
-                if (note.getTags() != null && !note.getTags().isEmpty()) {
-                    noteHolder.txtLabel.setText(note.getTags().get(0));
-                    noteHolder.txtLabel.setVisibility(View.VISIBLE);
-                } else {
-                    noteHolder.txtLabel.setVisibility(View.GONE);
-                }
-
-                noteHolder.itemView.setOnClickListener(v -> {
-                    if (isMultiSelectMode) {
-                        toggleSelection(note);
+                    h.imgThumbnail.setVisibility(View.GONE);
+                    h.imgLock.setVisibility(View.GONE);
+                    h.txtPreviewLines.setVisibility(View.VISIBLE);
+                    h.txtTitle.setAlpha(1f);
+                    String content = note.getContent();
+                    if (content == null) content = "";
+                    if (content.startsWith("<") && content.contains(">")) {
+                        h.txtPreviewLines.setText(Html.fromHtml(content, Html.FROM_HTML_MODE_LEGACY).toString().trim());
                     } else {
-                        Intent intent = new Intent(requireActivity(), AddEditNoteActivity.class);
-                        intent.putExtra("NOTE_ID", note.getId());
-                        startActivity(intent);
+                        h.txtPreviewLines.setText(content.trim());
                     }
+                }
+
+                // Pin
+                h.imgPinned.setVisibility(note.isPinned() ? View.VISIBLE : View.GONE);
+
+                // Click to open
+                holder.itemView.setOnClickListener(v -> {
+                    Intent intent = new Intent(requireActivity(), AddEditNoteActivity.class);
+                    intent.putExtra("NOTE_ID", note.getId());
+                    startActivity(intent);
                 });
 
-                noteHolder.itemView.setOnLongClickListener(v -> {
-                    if (!isMultiSelectMode) {
-                        startActionMode();
-                    }
-                    toggleSelection(note);
+                // Long press to archive/trash
+                holder.itemView.setOnLongClickListener(v -> {
+                    new android.app.AlertDialog.Builder(requireContext())
+                        .setItems(new String[]{"Archive", "Move to Trash", "Cancel"}, (d, which) -> {
+                            if (which == 0) archiveNote(note);
+                            else if (which == 1) trashNote(note);
+                        }).show();
                     return true;
                 });
             }
         }
 
-        private void toggleSelection(Note note) {
-            if (selectedNotes.contains(note)) {
-                selectedNotes.remove(note);
-                if (selectedNotes.isEmpty() && actionMode != null) {
-                    actionMode.finish();
-                }
-            } else {
-                selectedNotes.add(note);
-            }
-            
-            if (actionMode != null) {
-                actionMode.setTitle(selectedNotes.size() + " selected");
-            }
-            notifyDataSetChanged();
-        }
-
         @Override
-        public int getItemCount() {
-            return displayItems.size();
+        public int getItemCount() { return displayItems.size(); }
+
+        private int dpToPx(int dp) {
+            return (int) (dp * getResources().getDisplayMetrics().density);
         }
 
         class NoteViewHolder extends RecyclerView.ViewHolder {
-            TextView txtTitle, txtContent, txtDate, txtLabel;
-            ImageView imgPinned, imgChecklist;
-            View viewColorStrip;
+            TextView txtTitle, txtDate, txtPreviewLines;
+            ImageView imgPinned, imgLock, imgThumbnail;
 
-            public NoteViewHolder(@NonNull View itemView) {
+            NoteViewHolder(@NonNull View itemView) {
                 super(itemView);
                 txtTitle = itemView.findViewById(R.id.txtNoteTitle);
-                txtContent = itemView.findViewById(R.id.txtNoteContent);
                 txtDate = itemView.findViewById(R.id.txtNoteDate);
-                txtLabel = itemView.findViewById(R.id.txtNoteLabel);
+                txtPreviewLines = itemView.findViewById(R.id.txtPreviewLines);
                 imgPinned = itemView.findViewById(R.id.imgPinned);
-                imgChecklist = itemView.findViewById(R.id.imgChecklist);
-                viewColorStrip = itemView.findViewById(R.id.viewColorStrip);
+                imgLock = itemView.findViewById(R.id.imgLock);
+                imgThumbnail = itemView.findViewById(R.id.imgThumbnail);
             }
         }
 
         class HeaderViewHolder extends RecyclerView.ViewHolder {
-            TextView txtHeader;
-            public HeaderViewHolder(@NonNull TextView itemView) {
-                super(itemView);
-                txtHeader = itemView;
-            }
+            TextView tv;
+            HeaderViewHolder(@NonNull TextView itemView) { super(itemView); tv = itemView; }
         }
     }
 }

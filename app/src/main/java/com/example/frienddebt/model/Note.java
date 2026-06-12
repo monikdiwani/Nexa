@@ -27,6 +27,8 @@ public class Note {
     private java.util.List<String> imageUrls;
     private String linkedTaskId;
     private String linkedCashbookId;
+    private boolean isLocked;
+    private String pageStyle; // "blank", "lined", "dotted", "grid"
 
     public Note() {
         // Required for Firestore
@@ -51,6 +53,8 @@ public class Note {
         this.imageUrls = new java.util.ArrayList<>();
         this.linkedTaskId = null;
         this.linkedCashbookId = null;
+        this.isLocked = false;
+        this.pageStyle = "blank";
     }
 
     public String getId() { return id; }
@@ -107,6 +111,12 @@ public class Note {
     public String getLinkedCashbookId() { return linkedCashbookId; }
     public void setLinkedCashbookId(String linkedCashbookId) { this.linkedCashbookId = linkedCashbookId; }
 
+    public boolean isLocked() { return isLocked; }
+    public void setLocked(boolean locked) { isLocked = locked; }
+
+    public String getPageStyle() { return pageStyle; }
+    public void setPageStyle(String pageStyle) { this.pageStyle = pageStyle; }
+
     public static Note fromDocument(DocumentSnapshot doc) {
         Note n = new Note();
         n.setId(doc.getId());
@@ -127,6 +137,8 @@ public class Note {
         n.setReminderAt(doc.getLong("reminderAt") != null ? doc.getLong("reminderAt") : 0L);
         n.setLinkedTaskId(doc.getString("linkedTaskId"));
         n.setLinkedCashbookId(doc.getString("linkedCashbookId"));
+        n.setLocked(doc.getBoolean("isLocked") != null ? doc.getBoolean("isLocked") : false);
+        n.setPageStyle(doc.getString("pageStyle") != null ? doc.getString("pageStyle") : "blank");
         
         if (doc.get("tags") != null) {
             n.setTags((java.util.List<String>) doc.get("tags"));
@@ -163,6 +175,8 @@ public class Note {
         map.put("imageUrls", imageUrls);
         map.put("linkedTaskId", linkedTaskId);
         map.put("linkedCashbookId", linkedCashbookId);
+        map.put("isLocked", isLocked);
+        map.put("pageStyle", pageStyle);
         
         return map;
     }

@@ -1,101 +1,122 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- ═══════════════════════════════════════════════════════
-         NEXA COLOR SYSTEM — Light Mode
-         Primary: Deep Indigo/Violet for a premium feel
+         NEXA COLOR SYSTEM — Premium Dark (Samsung Notes-inspired)
+         Brand: Indigo/Violet accent on deep black surfaces
     ═══════════════════════════════════════════════════════ -->
 
-    <!-- Legacy compat names (kept to avoid any stale references) -->
+    <!-- Legacy compat -->
     <color name="purple_200">#B39DDB</color>
-    <color name="purple_500">#5C6BC0</color>
-    <color name="purple_700">#3949AB</color>
+    <color name="purple_500">#7986CB</color>
+    <color name="purple_700">#5C6BC0</color>
     <color name="teal_200">#80CBC4</color>
     <color name="teal_700">#00897B</color>
-    <color name="black">#1A1A2E</color>
+    <color name="black">#000000</color>
     <color name="white">#FFFFFF</color>
 
-    <!-- Primary Brand — Deep Indigo -->
-    <color name="primary">#5C6BC0</color>
-    <color name="primary_dark">#3949AB</color>
-    <color name="primary_light">#9FA8DA</color>
-    <color name="primary_surface">#EEF0FB</color>
+    <!-- Primary Brand — Indigo (Nexa identity) -->
+    <color name="primary">#7C83F7</color>
+    <color name="primary_dark">#5C6BC0</color>
+    <color name="primary_light">#B0B8FF</color>
+    <color name="primary_surface">#1A1B3A</color>
     <color name="on_primary">#FFFFFF</color>
 
-    <!-- Secondary / Accent — Vibrant Teal -->
+    <!-- Secondary Accent -->
     <color name="secondary">#26C6DA</color>
     <color name="secondary_dark">#00ACC1</color>
     <color name="on_secondary">#FFFFFF</color>
 
-    <!-- Backgrounds and Surfaces -->
-    <color name="background_primary">#F4F5FB</color>
-    <color name="surface_primary">#FFFFFF</color>
-    <color name="surface_elevated">#FFFFFF</color>
-    <color name="surface_card">#FFFFFF</color>
+    <!-- Dark backgrounds (Samsung Notes style) -->
+    <color name="background_primary">#000000</color>
+    <color name="surface_primary">#1C1C1E</color>
+    <color name="surface_elevated">#2C2C2E</color>
+    <color name="surface_card">#1C1C1E</color>
+    <color name="surface_toolbar">#1C1C1E</color>
+    <color name="surface_drawing_bar">#222222</color>
 
-    <!-- Text -->
-    <color name="text_primary">#1A1A2E</color>
-    <color name="text_secondary">#555670</color>
-    <color name="text_hint">#9898A8</color>
+    <!-- Text on dark -->
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#AEAEB2</color>
+    <color name="text_hint">#636366</color>
     <color name="text_on_dark">#FFFFFF</color>
 
     <!-- Semantic / Status -->
-    <color name="accent_positive">#43A047</color>
-    <color name="accent_negative">#E53935</color>
-    <color name="accent_warning">#FB8C00</color>
-    <color name="accent_info">#1E88E5</color>
+    <color name="accent_positive">#34C759</color>
+    <color name="accent_negative">#FF453A</color>
+    <color name="accent_warning">#FF9F0A</color>
+    <color name="accent_info">#0A84FF</color>
 
     <!-- Cashbook specific -->
-    <color name="cash_in">#43A047</color>
-    <color name="cash_in_bg">#E8F5E9</color>
-    <color name="cash_out">#E53935</color>
-    <color name="cash_out_bg">#FFEBEE</color>
-    <color name="bank_color">#1E88E5</color>
-    <color name="bank_color_bg">#E3F2FD</color>
+    <color name="cash_in">#34C759</color>
+    <color name="cash_in_bg">#1A2E1E</color>
+    <color name="cash_out">#FF453A</color>
+    <color name="cash_out_bg">#2E1A1A</color>
+    <color name="bank_color">#0A84FF</color>
+    <color name="bank_color_bg">#1A2333</color>
 
     <!-- Priority colors -->
-    <color name="priority_high">#E53935</color>
-    <color name="priority_medium">#FB8C00</color>
-    <color name="priority_low">#43A047</color>
+    <color name="priority_high">#FF453A</color>
+    <color name="priority_medium">#FF9F0A</color>
+    <color name="priority_low">#34C759</color>
 
-    <!-- Note card pastel backgrounds (light mode) -->
-    <color name="note_bg_1">#FFF9C4</color>
-    <color name="note_bg_2">#DCEDC8</color>
-    <color name="note_bg_3">#B3E5FC</color>
-    <color name="note_bg_4">#F8BBD9</color>
-    <color name="note_bg_5">#D7CCC8</color>
-    <color name="note_bg_6">#CFD8DC</color>
+    <!-- Note card backgrounds (dark mode pastels) -->
+    <color name="note_bg_1">#2A2A00</color>
+    <color name="note_bg_2">#001A00</color>
+    <color name="note_bg_3">#001A2E</color>
+    <color name="note_bg_4">#2A001A</color>
+    <color name="note_bg_5">#1A1A1A</color>
+    <color name="note_bg_6">#002A2A</color>
 
-    <!-- Gradient pairs for feature cards -->
-    <color name="gradient_purple_start">#7986CB</color>
+    <!-- Note style swatches (page background choices) -->
+    <color name="note_swatch_default">#1C1C1E</color>
+    <color name="note_swatch_yellow">#3A3000</color>
+    <color name="note_swatch_green">#0D2A0D</color>
+    <color name="note_swatch_blue">#0D1A2E</color>
+    <color name="note_swatch_purple">#1A0D2E</color>
+    <color name="note_swatch_pink">#2E0D1A</color>
+    <color name="note_swatch_orange">#2E1A00</color>
+    <color name="note_swatch_dark">#0A0A0A</color>
+
+    <!-- Gradient pairs -->
+    <color name="gradient_purple_start">#7C83F7</color>
     <color name="gradient_purple_end">#5C6BC0</color>
-    <color name="gradient_green_start">#66BB6A</color>
-    <color name="gradient_green_end">#43A047</color>
-    <color name="gradient_red_start">#EF5350</color>
-    <color name="gradient_red_end">#E53935</color>
-    <color name="gradient_blue_start">#42A5F5</color>
-    <color name="gradient_blue_end">#1E88E5</color>
-    <color name="gradient_amber_start">#FFA726</color>
-    <color name="gradient_amber_end">#FB8C00</color>
-    <color name="gradient_teal_start">#26C6DA</color>
-    <color name="gradient_teal_end">#00ACC1</color>
+    <color name="gradient_green_start">#34C759</color>
+    <color name="gradient_green_end">#248A3D</color>
+    <color name="gradient_red_start">#FF6B6B</color>
+    <color name="gradient_red_end">#FF453A</color>
+    <color name="gradient_blue_start">#5AC8FA</color>
+    <color name="gradient_blue_end">#0A84FF</color>
+    <color name="gradient_amber_start">#FFD60A</color>
+    <color name="gradient_amber_end">#FF9F0A</color>
+    <color name="gradient_teal_start">#5CE5E5</color>
+    <color name="gradient_teal_end">#26C6DA</color>
 
-    <!-- Auth gradient -->
-    <color name="auth_gradient_top">#3949AB</color>
-    <color name="auth_gradient_bottom">#5C6BC0</color>
+    <!-- Auth gradient (keep dark) -->
+    <color name="auth_gradient_top">#0D0D1A</color>
+    <color name="auth_gradient_bottom">#1A1B3A</color>
 
     <!-- Splash -->
-    <color name="splash_bg_top">#1A1A2E</color>
-    <color name="splash_bg_bottom">#3949AB</color>
+    <color name="splash_bg_top">#000000</color>
+    <color name="splash_bg_bottom">#1A1B3A</color>
 
     <!-- Bottom nav -->
-    <color name="nav_selected">#5C6BC0</color>
-    <color name="nav_unselected">#9898A8</color>
+    <color name="nav_selected">#7C83F7</color>
+    <color name="nav_unselected">#636366</color>
 
     <!-- Divider / stroke -->
-    <color name="divider">#E8E8F0</color>
-    <color name="stroke_light">#DDDDE8</color>
+    <color name="divider">#3A3A3C</color>
+    <color name="stroke_light">#2C2C2E</color>
 
     <!-- Ripple -->
-    <color name="ripple_primary">#1A5C6BC0</color>
-    <color name="ripple_negative">#1AE53935</color>
+    <color name="ripple_primary">#1A7C83F7</color>
+    <color name="ripple_negative">#1AFF453A</color>
+
+    <!-- Notes-specific UI -->
+    <color name="note_thumbnail_bg">#1C1C1E</color>
+    <color name="note_section_header">#AEAEB2</color>
+    <color name="note_date_text">#8E8E93</color>
+    <color name="toolbar_icon">#AEAEB2</color>
+    <color name="toolbar_icon_active">#FFFFFF</color>
+    <color name="note_menu_bg">#2C2C2E</color>
+    <color name="orange_dot">#FF6F00</color>
 </resources>

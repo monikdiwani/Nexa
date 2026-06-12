@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/noteItemRoot"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingVertical="10dp"
+    android:paddingStart="16dp"
+    android:paddingEnd="12dp"
+    android:background="@drawable/note_item_ripple"
+    android:minHeight="72dp">
+
+    <!-- Left Thumbnail -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/cardThumbnail"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        app:cardBackgroundColor="@color/note_thumbnail_bg"
+        app:cardCornerRadius="14dp"
+        app:cardElevation="0dp">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <!-- Image preview (when note has image) -->
+            <ImageView
+                android:id="@+id/imgThumbnail"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:visibility="gone" />
+
+            <!-- Lock icon (when note is locked) -->
+            <ImageView
+                android:id="@+id/imgLock"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_centerInParent="true"
+                android:src="@android:drawable/ic_secure"
+                app:tint="@color/text_secondary"
+                android:visibility="gone" />
+
+            <!-- Text preview (default state) -->
+            <TextView
+                android:id="@+id/txtPreviewLines"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="7dp"
+                android:textSize="4sp"
+                android:textColor="#555555"
+                android:lineSpacingExtra="2dp"
+                android:maxLines="10"
+                android:ellipsize="end" />
+
+        </RelativeLayout>
+    </androidx.cardview.widget.CardView>
+
+    <!-- Right Content -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginStart="16dp">
+
+        <TextView
+            android:id="@+id/txtNoteTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Note Title"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/txtNoteDate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Today"
+            android:textSize="13sp"
+            android:textColor="@color/note_date_text"
+            android:layout_marginTop="3dp" />
+
+    </LinearLayout>
+
+    <!-- Pin icon (far right, only when pinned) -->
+    <ImageView
+        android:id="@+id/imgPinned"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:src="@drawable/ic_pin"
+        app:tint="@color/primary"
+        android:visibility="gone"
+        android:layout_marginStart="8dp" />
+
+</LinearLayout>
