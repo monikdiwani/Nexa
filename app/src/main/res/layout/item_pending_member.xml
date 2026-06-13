@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="16dp"
+    android:background="@drawable/card_bg"
+    android:layout_marginBottom="10dp">
+
+    <!-- Avatar circle with initials -->
+    <TextView
+        android:id="@+id/txtPendingAvatar"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:background="@drawable/card_gradient_purple"
+        android:gravity="center"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="@color/white"
+        android:text="A" />
+
+    <!-- Name + email -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginStart="12dp">
+
+        <TextView
+            android:id="@+id/txtPendingName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Amit Kumar"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary" />
+
+        <TextView
+            android:id="@+id/txtPendingEmail"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="amit@example.com"
+            android:textSize="12sp"
+            android:textColor="@color/text_secondary"
+            android:layout_marginTop="2dp" />
+
+        <TextView
+            android:id="@+id/txtPendingTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="2 min ago"
+            android:textSize="11sp"
+            android:textColor="@color/text_hint"
+            android:layout_marginTop="2dp" />
+    </LinearLayout>
+
+    <!-- Decline button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnDecline"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:text="Decline"
+        android:textSize="12sp"
+        app:cornerRadius="8dp"
+        style="@style/Widget.Material3.Button.OutlinedButton"
+        android:textColor="@color/negative"
+        app:strokeColor="@color/negative"
+        android:layout_marginEnd="8dp" />
+
+    <!-- Accept button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnAccept"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:text="Accept ▸"
+        android:textSize="12sp"
+        app:cornerRadius="8dp"
+        app:backgroundTint="@color/primary"
+        android:textColor="@color/text_primary" />
+
+</LinearLayout>
