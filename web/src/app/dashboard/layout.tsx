@@ -10,6 +10,7 @@ import {
   Bell, BarChart2, Settings, Menu, X, ChevronRight,
   Sun, Moon, LogOut, Search
 } from "lucide-react";
+import { useReminderAlerts } from "@/hooks/useReminderAlerts";
 
 const NAV = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -27,6 +28,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const [dark, setDark] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // 🔔 Reminder alarm — runs across all dashboard pages
+  useReminderAlerts();
 
   // Auth guard
   useEffect(() => {
