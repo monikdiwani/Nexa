@@ -13,99 +13,63 @@
         android:layout_height="match_parent"
         android:background="@color/background_primary">
 
-        <!-- AppBar with collapsing header -->
-        <com.google.android.material.appbar.AppBarLayout
-            android:id="@+id/appBarLayout"
+        <!-- Header matching Home and Money screens -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/background_primary"
-            app:elevation="0dp">
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="20dp"
+            android:paddingTop="20dp"
+            android:paddingBottom="12dp">
 
-            <!-- Collapsing large title area -->
             <LinearLayout
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:paddingTop="48dp"
-                android:paddingBottom="8dp"
-                android:paddingHorizontal="20dp"
-                app:layout_scrollFlags="scroll|exitUntilCollapsed">
-
+                android:layout_weight="1"
+                android:orientation="vertical">
                 <TextView
                     android:id="@+id/txtAllNotes"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="All notes"
-                    android:textColor="@color/text_primary"
-                    android:textSize="30sp"
+                    android:text="All Notes"
+                    android:textSize="24sp"
                     android:textStyle="bold"
-                    android:gravity="center_horizontal"
-                    android:layout_gravity="center_horizontal" />
-
+                    android:textColor="@color/text_primary" />
                 <TextView
                     android:id="@+id/txtHeaderSubtitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="0 notes"
                     android:textColor="@color/text_secondary"
-                    android:textSize="14sp"
-                    android:layout_marginTop="2dp"
-                    android:gravity="center_horizontal"
-                    android:layout_gravity="center_horizontal" />
+                    android:textSize="13sp" />
             </LinearLayout>
 
-            <!-- Sticky top bar with hamburger + search + more -->
-            <RelativeLayout
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:paddingHorizontal="8dp">
+            <ImageButton
+                android:id="@+id/btnMenu"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_sort_by_size"
+                app:tint="@color/text_primary"
+                android:contentDescription="Menu" />
 
-                <!-- Hamburger + notification dot -->
-                <FrameLayout
-                    android:id="@+id/btnMenuContainer"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:layout_centerVertical="true"
-                    android:layout_alignParentStart="true">
-
-                    <ImageButton
-                        android:id="@+id/btnMenu"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:src="@android:drawable/ic_menu_sort_by_size"
-                        app:tint="@color/text_primary"
-                        android:contentDescription="Menu" />
-                </FrameLayout>
-
-                <!-- Right: Search + More -->
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:layout_alignParentEnd="true"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-
-                    <ImageButton
-                        android:id="@+id/btnSearch"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:src="@android:drawable/ic_menu_search"
-                        app:tint="@color/text_primary"
-                        android:contentDescription="Search" />
-
-                    <ImageButton
-                        android:id="@+id/btnMore"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:src="@drawable/ic_more_vert"
-                        app:tint="@color/text_primary"
-                        android:contentDescription="More" />
-                </LinearLayout>
-            </RelativeLayout>
-        </com.google.android.material.appbar.AppBarLayout>
+            <ImageButton
+                android:id="@+id/btnSearch"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_search"
+                app:tint="@color/text_primary"
+                android:contentDescription="Search" />
+            
+            <!-- Hide btnMore to match cleaner UI -->
+            <ImageButton
+                android:id="@+id/btnMore"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone" />
+        </LinearLayout>
 
         <!-- Notes RecyclerView -->
         <androidx.recyclerview.widget.RecyclerView
