@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { collection, query, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, CheckSquare, Trash2, Star, Clock, Loader2, Flag } from "lucide-react";
+import { Plus, CheckSquare, Trash2, Star, Clock, Loader2, Flag, X, ChevronRight, ListChecks } from "lucide-react";
 
 interface Task {
   id: string; title: string; description: string; priority: string;
@@ -27,6 +27,7 @@ export default function TasksPage() {
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState("MEDIUM");
   const [dueDate, setDueDate] = useState("");
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -66,6 +67,16 @@ export default function TasksPage() {
   const deleteTask = async (id: string) => {
     if (!user) return;
     await deleteDoc(doc(db,"users",user.uid,"tasks",id));
+    if (selectedTask?.id === id) setSelectedTask(null);
+  };
+
+  const toggleSubtask = async (task: Task, idx: number) => {
+    if (!user) return;
+    const updated = [...(task.subtasks || [])];
+    updated[idx] = { ...updated[idx], isCompleted: !updated[idx].isCompleted };
+    await updateDoc(doc(db,"users",user.uid,"tasks",task.id), { subtasks: updated });
+    // Update local selectedTask too
+    if (selectedTask?.id === task.id) setSelectedTask({ ...task, subtasks: updated });
   };
 
   const FILTERS = [
@@ -191,10 +202,11 @@ export default function TasksPage() {
               <motion.div key={task.id}
                 initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} exit={{opacity:0,x:-20,height:0}}
                 transition={{delay:i*0.03,duration:0.2}}
-                className="card p-3.5 flex items-center gap-3 group"
+                onClick={() => setSelectedTask(task)}
+                className="card p-3.5 flex items-center gap-3 group cursor-pointer"
                 style={{borderColor: isOverdue(task) ? "rgba(229,57,53,0.3)" : "var(--divider)"}}>
                 {/* Complete btn */}
-                <button onClick={()=>toggleComplete(task)}
+                <button onClick={(e) => { e.stopPropagation(); toggleComplete(task); }}
                   className="w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all"
                   style={{
                     borderColor: task.isCompleted ? "var(--positive)" : task.priority==="HIGH" ? "var(--priority-high)" : "var(--stroke)",
@@ -229,10 +241,10 @@ export default function TasksPage() {
                 </div>
 
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={()=>toggleImportant(task)} className="btn-icon" style={{color: task.isImportant ? "var(--warning)" : "var(--text-hint)"}}>
+                  <button onClick={(e) => { e.stopPropagation(); toggleImportant(task); }} className="btn-icon" style={{color: task.isImportant ? "var(--warning)" : "var(--text-hint)"}}>
                     <Star size={15} fill={task.isImportant ? "currentColor" : "none"}/>
                   </button>
-                  <button onClick={()=>deleteTask(task.id)} className="btn-icon" style={{color:"var(--negative)"}}>
+                  <button onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }} className="btn-icon" style={{color:"var(--negative)"}}>
                     <Trash2 size={15}/>
                   </button>
                 </div>
@@ -241,6 +253,113 @@ export default function TasksPage() {
           </AnimatePresence>
         </div>
       )}
+
+      {/* ─── Task Detail Modal ─── */}
+      <AnimatePresence>
+        {selectedTask && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+            style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }}
+            onClick={() => setSelectedTask(null)}>
+            <motion.div
+              initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 60, opacity: 0 }} transition={{ type: "spring", damping: 28, stiffness: 300 }}
+              onClick={e => e.stopPropagation()}
+              className="w-full max-w-md rounded-3xl shadow-2xl overflow-hidden"
+              style={{ background: "var(--surface)", maxHeight: "85vh", overflowY: "auto" }}>
+              {/* Header */}
+              <div className="p-5 pb-3 border-b" style={{ borderColor: "var(--divider)" }}>
+                <div className="flex items-start gap-3">
+                  <button onClick={() => toggleComplete(selectedTask)}
+                    className="w-6 h-6 rounded-full border-2 flex-shrink-0 flex items-center justify-center mt-0.5 transition-all"
+                    style={{
+                      borderColor: selectedTask.isCompleted ? "var(--positive)" : PRIORITY_COLORS[selectedTask.priority] || "var(--stroke)",
+                      background: selectedTask.isCompleted ? "var(--positive)" : "transparent"
+                    }}>
+                    {selectedTask.isCompleted && (
+                      <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                        <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-base" style={{
+                      color: selectedTask.isCompleted ? "var(--text-hint)" : "var(--text-primary)",
+                      textDecoration: selectedTask.isCompleted ? "line-through" : "none"
+                    }}>{selectedTask.title}</h3>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      <span className="chip text-xs" style={{ background: PRIORITY_BG[selectedTask.priority], color: PRIORITY_COLORS[selectedTask.priority], padding: "2px 8px" }}>
+                        <Flag size={9} /> {selectedTask.priority[0] + selectedTask.priority.slice(1).toLowerCase()}
+                      </span>
+                      {selectedTask.dueDate && (
+                        <span className="text-xs flex items-center gap-1" style={{ color: isOverdue(selectedTask) ? "var(--negative)" : "var(--text-hint)" }}>
+                          <Clock size={11} />
+                          {isOverdue(selectedTask) ? "Overdue · " : "Due "}
+                          {new Date(selectedTask.dueDate).toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "2-digit" })}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-1 flex-shrink-0">
+                    <button onClick={() => toggleImportant(selectedTask)} className="btn-icon" style={{ color: selectedTask.isImportant ? "var(--warning)" : "var(--text-hint)" }}>
+                      <Star size={16} fill={selectedTask.isImportant ? "currentColor" : "none"} />
+                    </button>
+                    <button onClick={() => { deleteTask(selectedTask.id); }} className="btn-icon" style={{ color: "var(--negative)" }}>
+                      <Trash2 size={16} />
+                    </button>
+                    <button onClick={() => setSelectedTask(null)} className="btn-icon"><X size={18} /></button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Body */}
+              <div className="p-5 space-y-4">
+                {/* Description */}
+                {selectedTask.description && (
+                  <div>
+                    <p className="text-xs font-semibold mb-1" style={{ color: "var(--text-hint)" }}>DESCRIPTION</p>
+                    <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{selectedTask.description}</p>
+                  </div>
+                )}
+
+                {/* Subtasks */}
+                {selectedTask.subtasks && selectedTask.subtasks.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold mb-2 flex items-center gap-1" style={{ color: "var(--text-hint)" }}>
+                      <ListChecks size={12} /> SUBTASKS ({selectedTask.subtasks.filter(s => s.isCompleted).length}/{selectedTask.subtasks.length})
+                    </p>
+                    <div className="space-y-1.5">
+                      {selectedTask.subtasks.map((sub, idx) => (
+                        <button key={idx} onClick={() => toggleSubtask(selectedTask, idx)}
+                          className="flex items-center gap-2.5 w-full text-left p-2 rounded-xl hover:bg-opacity-50 transition-colors"
+                          style={{ background: "var(--bg)" }}>
+                          <div className="w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all"
+                            style={{ borderColor: sub.isCompleted ? "var(--positive)" : "var(--stroke)", background: sub.isCompleted ? "var(--positive)" : "transparent" }}>
+                            {sub.isCompleted && (
+                              <svg width="8" height="6" viewBox="0 0 10 8" fill="none">
+                                <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            )}
+                          </div>
+                          <span className="text-sm" style={{
+                            color: sub.isCompleted ? "var(--text-hint)" : "var(--text-primary)",
+                            textDecoration: sub.isCompleted ? "line-through" : "none"
+                          }}>{sub.title}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Created date */}
+                <p className="text-xs" style={{ color: "var(--text-hint)" }}>
+                  Created {new Date(selectedTask.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
