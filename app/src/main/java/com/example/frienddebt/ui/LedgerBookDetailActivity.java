@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.HashMap;
 
 import com.example.frienddebt.utils.StatusBarUtil;
+import com.example.frienddebt.utils.UserProfileHelper;
 
 public class LedgerBookDetailActivity extends AppCompatActivity {
 
@@ -790,7 +791,7 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
         }
     }
 
-    // Feature 19: Manage Members dialog (admin only)
+    // Feature 19: Manage Members dialog (admin only) — with real display names
     private void showManageMembersDialog() {
         db.collection("cashbooks").document(bookId).get()
             .addOnSuccessListener(doc -> {
@@ -802,32 +803,36 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
 
                 String currentUid = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : "";
                 List<String> memberUids = new ArrayList<>(rawMembers.keySet());
-                String[] labels = new String[memberUids.size()];
-                for (int i = 0; i < memberUids.size(); i++) {
-                    String uid = memberUids.get(i);
-                    String role = String.valueOf(rawMembers.get(uid));
-                    String nameLabel = uid.equals(currentUid) ? "You" : "User (" + uid.substring(0, Math.min(6, uid.length())) + "...)";
-                    labels[i] = nameLabel + "  —  " + role;
-                }
 
-                new AlertDialog.Builder(this)
-                    .setTitle("Members (" + memberUids.size() + ")")
-                    .setItems(labels, (dialog, which) -> {
-                        String selectedUid = memberUids.get(which);
-                        if (selectedUid.equals(currentUid)) {
-                            Toast.makeText(this, "You cannot change your own role", Toast.LENGTH_SHORT).show();
-                            return;
-                        }
-                        showChangeRoleDialog(selectedUid, String.valueOf(rawMembers.get(selectedUid)));
-                    })
-                    .setNegativeButton("Close", null)
-                    .show();
+                // Batch-fetch real display names
+                UserProfileHelper.resolveNames(db, memberUids, nameMap -> {
+                    String[] labels = new String[memberUids.size()];
+                    for (int i = 0; i < memberUids.size(); i++) {
+                        String uid = memberUids.get(i);
+                        String role = String.valueOf(rawMembers.get(uid));
+                        String name = uid.equals(currentUid) ? "You" : nameMap.getOrDefault(uid, "User");
+                        labels[i] = name + "  —  " + role;
+                    }
+
+                    new AlertDialog.Builder(this)
+                        .setTitle("Members (" + memberUids.size() + ")")
+                        .setItems(labels, (dialog, which) -> {
+                            String selectedUid = memberUids.get(which);
+                            if (selectedUid.equals(currentUid)) {
+                                Toast.makeText(this, "You cannot change your own role", Toast.LENGTH_SHORT).show();
+                                return;
+                            }
+                            String resolvedName = nameMap.getOrDefault(selectedUid, "User");
+                            showChangeRoleDialog(selectedUid, String.valueOf(rawMembers.get(selectedUid)), resolvedName);
+                        })
+                        .setNegativeButton("Close", null)
+                        .show();
+                });
             })
             .addOnFailureListener(e -> Toast.makeText(this, "Failed to load members: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
 
-    private void showChangeRoleDialog(String targetUid, String currentRole) {
-        String shortId = targetUid.substring(0, Math.min(6, targetUid.length()));
+    private void showChangeRoleDialog(String targetUid, String currentRole, String displayName) {
         String[] roles = {"VIEWER", "EDITOR", "ADMIN"};
         int checkedItem = 0;
         for (int i = 0; i < roles.length; i++) {
@@ -836,7 +841,7 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
         final int[] selected = {checkedItem};
 
         new AlertDialog.Builder(this)
-            .setTitle("Change Role — User (" + shortId + "...)")
+            .setTitle("Change Role — " + displayName)
             .setSingleChoiceItems(roles, checkedItem, (dialog, which) -> selected[0] = which)
             .setPositiveButton("Save", (dialog, which) -> {
                 String newRole = roles[selected[0]];
@@ -852,12 +857,11 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
             .setNeutralButton("Remove Member", (dialog, which) -> {
                 new AlertDialog.Builder(this)
                     .setTitle("Remove Member")
-                    .setMessage("Remove this member from the cashbook?")
+                    .setMessage("Remove " + displayName + " from the cashbook?")
                     .setPositiveButton("Remove", (d2, w2) -> {
-                        // Firestore: use FieldValue.delete() to remove the key from the map
                         db.collection("cashbooks").document(bookId)
                             .update("members." + targetUid, com.google.firebase.firestore.FieldValue.delete())
-                            .addOnSuccessListener(aVoid -> Toast.makeText(this, "Member removed", Toast.LENGTH_SHORT).show())
+                            .addOnSuccessListener(aVoid -> Toast.makeText(this, displayName + " removed", Toast.LENGTH_SHORT).show())
                             .addOnFailureListener(e -> Toast.makeText(this, "Failed: " + e.getMessage(), Toast.LENGTH_SHORT).show());
                     })
                     .setNegativeButton("Cancel", null)
