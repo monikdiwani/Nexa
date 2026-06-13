@@ -52,6 +52,7 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
     private FirebaseFirestore db;
     private FirebaseAuth auth;
     private ListenerRegistration entriesListener;
+    private ListenerRegistration pendingListener;
 
     private List<CashbookEntry> allEntries = new ArrayList<>();
     private List<CashbookEntry> filteredEntries = new ArrayList<>();
@@ -63,6 +64,7 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
     private String userRole;
     private String searchQuery = "";
     private Map<String, Double> runningBalances = new HashMap<>();
+    private int pendingCount = 0; // live count of pending join requests
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -150,8 +152,16 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
             if ("ADMIN".equalsIgnoreCase(userRole) || "OWNER".equalsIgnoreCase(userRole)) {
                 popup.getMenu().add(0, 3, 0, "Share Invite Code");
                 popup.getMenu().add(0, 7, 0, "Manage Members");
+                // Pending approvals with live count badge
+                String pendingLabel = pendingCount > 0
+                    ? "Pending Approvals  (" + pendingCount + ")"
+                    : "Pending Approvals";
+                popup.getMenu().add(0, 8, 0, pendingLabel);
                 popup.getMenu().add(0, 5, 0, "Rename Cashbook");
                 popup.getMenu().add(0, 6, 0, "Delete Cashbook");
+            } else {
+                // Non-admin members can leave the group
+                popup.getMenu().add(0, 9, 0, "Leave Group");
             }
             
             popup.setOnMenuItemClickListener(item -> {
@@ -212,6 +222,16 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                     case 7:
                         showManageMembersDialog();
                         return true;
+                    case 8:
+                        // Open Pending Approvals screen (admin only)
+                        Intent pendingIntent = new Intent(this, PendingApprovalsActivity.class);
+                        pendingIntent.putExtra("BOOK_ID", bookId);
+                        startActivity(pendingIntent);
+                        return true;
+                    case 9:
+                        // Leave Group (non-admin only)
+                        showLeaveGroupDialog();
+                        return true;
                     default:
                         return false;
                 }
@@ -236,15 +256,17 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         loadEntries();
+        // Admins get a live pending-requests count shown in the settings menu
+        if ("ADMIN".equalsIgnoreCase(userRole) || "OWNER".equalsIgnoreCase(userRole)) {
+            listenForPendingCount();
+        }
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        if (entriesListener != null) {
-            entriesListener.remove();
-            entriesListener = null;
-        }
+        if (entriesListener != null) { entriesListener.remove(); entriesListener = null; }
+        if (pendingListener  != null) { pendingListener.remove();  pendingListener  = null; }
     }
 
     private void loadEntries() {
@@ -884,6 +906,95 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
             })
             .setNegativeButton("Cancel", null)
             .show();
+    }
+
+    // ─── Pending join-request counter (admin only) ────────────────────────────
+
+    private void listenForPendingCount() {
+        if (pendingListener != null) pendingListener.remove();
+        pendingListener = db.collection("cashbooks").document(bookId)
+            .collection("pendingMembers")
+            .addSnapshotListener((snapshots, e) -> {
+                if (snapshots == null) return;
+                int count = 0;
+                for (com.google.firebase.firestore.DocumentSnapshot doc : snapshots) {
+                    if ("PENDING".equals(doc.getString("status"))) count++;
+                }
+                pendingCount = count;
+            });
+    }
+
+    // ─── Leave Group (non-admin) ──────────────────────────────────────────────
+
+    private void showLeaveGroupDialog() {
+        String currentUid = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : "";
+        if (currentUid.isEmpty()) return;
+
+        new AlertDialog.Builder(this)
+            .setTitle("Leave Group")
+            .setMessage("Are you sure you want to leave \"" + bookName + "\"? You will lose access to all entries.")
+            .setPositiveButton("Leave", (dialog, which) -> {
+                db.collection("cashbooks").document(bookId)
+                    .update("members." + currentUid, com.google.firebase.firestore.FieldValue.delete())
+                    .addOnSuccessListener(aVoid -> {
+                        Toast.makeText(this, "You have left \"" + bookName + "\"", Toast.LENGTH_SHORT).show();
+                        finish();
+                    })
+                    .addOnFailureListener(ex ->
+                        Toast.makeText(this, "Failed to leave: " + ex.getMessage(), Toast.LENGTH_SHORT).show());
+            })
+            .setNegativeButton("Cancel", null)
+            .show();
+    }
+
+    // ─── Admin leaves — promote oldest member or delete ───────────────────────
+
+    private void showAdminLeaveGroupDialog() {
+        String currentUid = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : "";
+        if (currentUid.isEmpty()) return;
+
+        db.collection("cashbooks").document(bookId).get().addOnSuccessListener(doc -> {
+            Map<String, Object> members = (Map<String, Object>) doc.get("members");
+            if (members == null) { finish(); return; }
+
+            // Remove current admin from the list to find others
+            List<String> others = new ArrayList<>(members.keySet());
+            others.remove(currentUid);
+
+            if (others.isEmpty()) {
+                // Admin is the only member — delete the cashbook
+                new AlertDialog.Builder(this)
+                    .setTitle("Delete Cashbook")
+                    .setMessage("You are the only member. Leaving will permanently delete \"" + bookName + "\". Continue?")
+                    .setPositiveButton("Delete", (d, w) -> {
+                        db.collection("cashbooks").document(bookId).delete()
+                            .addOnSuccessListener(aVoid -> { finish(); })
+                            .addOnFailureListener(ex -> Toast.makeText(this, "Failed: " + ex.getMessage(), Toast.LENGTH_SHORT).show());
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+            } else {
+                // Promote the first other member to ADMIN, then leave
+                new AlertDialog.Builder(this)
+                    .setTitle("Leave Group")
+                    .setMessage("You are the Admin. Leaving will promote another member to Admin. Continue?")
+                    .setPositiveButton("Leave & Promote", (d, w) -> {
+                        String newAdmin = others.get(0);
+                        Map<String, Object> updates = new HashMap<>();
+                        updates.put("members." + newAdmin, "ADMIN");
+                        updates.put("members." + currentUid, com.google.firebase.firestore.FieldValue.delete());
+                        updates.put("ownerId", newAdmin);
+                        db.collection("cashbooks").document(bookId).update(updates)
+                            .addOnSuccessListener(aVoid -> {
+                                Toast.makeText(this, "Left group. Another member is now Admin.", Toast.LENGTH_SHORT).show();
+                                finish();
+                            })
+                            .addOnFailureListener(ex -> Toast.makeText(this, "Failed: " + ex.getMessage(), Toast.LENGTH_SHORT).show());
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+            }
+        });
     }
 
     @Override
