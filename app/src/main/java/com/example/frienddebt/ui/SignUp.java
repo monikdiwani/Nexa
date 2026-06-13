@@ -19,6 +19,8 @@ import androidx.credentials.exceptions.GetCredentialException;
 
 import com.example.frienddebt.R;
 import com.example.frienddebt.utils.StatusBarUtil;
+import com.example.frienddebt.utils.UserProfileHelper;
+
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 import com.google.firebase.auth.AuthCredential;
@@ -118,6 +120,9 @@ public class SignUp extends AppCompatActivity {
                                     .setDisplayName(name)
                                     .build();
                             user.updateProfile(profileUpdates).addOnCompleteListener(profileTask -> {
+                                // Save to Firestore users/{uid} for name resolution in groups
+                                UserProfileHelper.saveProfile(user.getUid(), name, email);
+
                                 btnStartNav.setEnabled(true);
                                 btnStartNav.setText("Create Account");
                                 Toast.makeText(SignUp.this, "Account Created Successfully!", Toast.LENGTH_SHORT).show();
