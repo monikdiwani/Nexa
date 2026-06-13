@@ -431,21 +431,26 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
         String entryId = java.util.UUID.randomUUID().toString();
         long now = System.currentTimeMillis();
 
-        // Write a minimal SETTLEMENT entry using a plain map so we avoid constructor mismatch
+        // CRITICAL: paidBy must be the UID (not display name) so DebtSimplifier can process it.
+        // participants[0] = the UID of the receiver (creditor).
+        java.util.List<String> participants = new java.util.ArrayList<>();
+        participants.add(edge.getTo()); // receiver UID
+
         Map<String, Object> data = new HashMap<>();
-        data.put("id",          entryId);
-        data.put("bookId",      bookId);
-        data.put("date",        now);
-        data.put("particulars", fromName + " → " + toName);
-        data.put("type",        "SETTLEMENT");
-        data.put("medium",      "BANK");
-        data.put("amount",      edge.getAmount());
-        data.put("category",    "Settlement");
-        data.put("note",        "");
-        data.put("createdAt",   now);
+        data.put("id",           entryId);
+        data.put("bookId",       bookId);
+        data.put("date",         now);
+        data.put("particulars",  fromName + " → " + toName);
+        data.put("type",         "SETTLEMENT");
+        data.put("medium",       "BANK");
+        data.put("amount",       edge.getAmount());
+        data.put("category",     "Settlement");
+        data.put("note",         "");
+        data.put("createdAt",    now);
         data.put("lastModifiedAt", now);
-        data.put("addedBy",     auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : "");
-        data.put("paidBy",      fromName);
+        data.put("addedBy",      auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : "");
+        data.put("paidBy",       edge.getFrom());      // UID of the payer
+        data.put("participants", participants);          // [UID of receiver]
 
         db.collection("cashbooks").document(bookId).collection("entries")
             .document(entryId).set(data)
