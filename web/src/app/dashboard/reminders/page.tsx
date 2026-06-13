@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { collection, query, orderBy, onSnapshot, addDoc, updateDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Bell, CheckCircle2, Clock, Loader2, AlarmClock } from "lucide-react";
+import { Plus, Bell, CheckCircle2, Clock, Loader2, AlarmClock, Trash2, X, AlarmClockOff } from "lucide-react";
 
 interface Reminder {
   id: string; title: string; message: string;
@@ -61,6 +61,20 @@ export default function RemindersPage() {
   const markDone = async (r: Reminder) => {
     if (!user) return;
     await updateDoc(doc(db,"users",user.uid,"reminders",r.id), {isCompleted:true,completedAt:Date.now()});
+  };
+
+  const snoozeReminder = async (r: Reminder, hours: number) => {
+    if (!user) return;
+    const newTime = Date.now() + hours * 3600000;
+    await updateDoc(doc(db,"users",user.uid,"reminders",r.id), {
+      triggerTime: newTime, isSnoozed: true
+    });
+  };
+
+  const deleteReminder = async (id: string) => {
+    if (!user) return;
+    const { deleteDoc: del } = await import("firebase/firestore");
+    await del(doc(db,"users",user.uid,"reminders",id));
   };
 
   const now = Date.now();
@@ -209,16 +223,37 @@ export default function RemindersPage() {
                     {fmtCountdown(r.triggerTime)} · {new Date(r.triggerTime).toLocaleString("en-IN",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}
                   </p>
                 </div>
-                <div className="flex flex-col items-end gap-2">
+                <div className="flex flex-col items-end gap-1.5">
                   <span className={`chip text-xs ${r.priority==="HIGH"?"priority-high":r.priority==="LOW"?"priority-low":"priority-medium"}`}>
                     {r.priority[0]+r.priority.slice(1).toLowerCase()}
                   </span>
                   {!r.isCompleted && (
-                    <button onClick={()=>markDone(r)} className="btn btn-sm" style={{background:"var(--cash-in-bg)",color:"var(--positive)",border:"none",padding:"4px 10px"}}>
-                      <CheckCircle2 size={13}/> Done
-                    </button>
+                    <div className="flex items-center gap-1">
+                      {/* Snooze dropdown */}
+                      <div className="relative group/snooze">
+                        <button className="btn-icon" title="Snooze" style={{ color: "var(--warning)" }}>
+                          <AlarmClockOff size={15} />
+                        </button>
+                        <div className="absolute right-0 top-full mt-1 z-10 rounded-xl shadow-lg border overflow-hidden invisible group-hover/snooze:visible"
+                          style={{ background: "var(--surface)", borderColor: "var(--divider)", minWidth: "120px" }}>
+                          {[{label:"1 hour",h:1},{label:"3 hours",h:3},{label:"Tomorrow",h:24}].map(opt=>(
+                            <button key={opt.h} onClick={()=>snoozeReminder(r,opt.h)}
+                              className="block w-full text-left px-3 py-2 text-xs font-medium hover:opacity-80 transition-opacity"
+                              style={{ color: "var(--text-primary)" }}>
+                              ⏰ {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <button onClick={()=>markDone(r)} className="btn btn-sm" style={{background:"var(--cash-in-bg)",color:"var(--positive)",border:"none",padding:"4px 10px"}}>
+                        <CheckCircle2 size={13}/> Done
+                      </button>
+                    </div>
                   )}
                   {r.isCompleted && <CheckCircle2 size={18} style={{color:"var(--positive)"}}/>}
+                  <button onClick={()=>deleteReminder(r.id)} className="btn-icon" style={{ color: "var(--text-hint)" }} title="Delete">
+                    <Trash2 size={13} />
+                  </button>
                 </div>
               </motion.div>
             ))}
