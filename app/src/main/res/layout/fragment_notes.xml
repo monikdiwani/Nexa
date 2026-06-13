@@ -13,72 +13,78 @@
         android:layout_height="match_parent"
         android:background="@color/background_primary">
 
-        <!-- Header matching Home and Money screens -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingHorizontal="20dp"
-            android:paddingTop="20dp"
-            android:paddingBottom="12dp">
+            android:layout_height="match_parent"
+            android:orientation="vertical">
 
+            <!-- Header matching Home and Money screens -->
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-                <TextView
-                    android:id="@+id/txtAllNotes"
-                    android:layout_width="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="20dp"
+                android:paddingTop="20dp"
+                android:paddingBottom="12dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="All Notes"
-                    android:textSize="24sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/text_primary" />
-                <TextView
-                    android:id="@+id/txtHeaderSubtitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="0 notes"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="13sp" />
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+                    <TextView
+                        android:id="@+id/txtAllNotes"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="All Notes"
+                        android:textSize="24sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary" />
+                    <TextView
+                        android:id="@+id/txtHeaderSubtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0 notes"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <ImageButton
+                    android:id="@+id/btnMenu"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_sort_by_size"
+                    app:tint="@color/text_primary"
+                    android:contentDescription="Menu" />
+
+                <ImageButton
+                    android:id="@+id/btnSearch"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_search"
+                    app:tint="@color/text_primary"
+                    android:contentDescription="Search" />
+                
+                <!-- Hide btnMore to match cleaner UI -->
+                <ImageButton
+                    android:id="@+id/btnMore"
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:visibility="gone" />
             </LinearLayout>
 
-            <ImageButton
-                android:id="@+id/btnMenu"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@android:drawable/ic_menu_sort_by_size"
-                app:tint="@color/text_primary"
-                android:contentDescription="Menu" />
-
-            <ImageButton
-                android:id="@+id/btnSearch"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@android:drawable/ic_menu_search"
-                app:tint="@color/text_primary"
-                android:contentDescription="Search" />
-            
-            <!-- Hide btnMore to match cleaner UI -->
-            <ImageButton
-                android:id="@+id/btnMore"
-                android:layout_width="0dp"
+            <!-- Notes RecyclerView -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvNotes"
+                android:layout_width="match_parent"
                 android:layout_height="0dp"
-                android:visibility="gone" />
+                android:layout_weight="1"
+                android:clipToPadding="false"
+                android:paddingBottom="88dp" />
         </LinearLayout>
-
-        <!-- Notes RecyclerView -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvNotes"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:clipToPadding="false"
-            android:paddingBottom="88dp"
-            app:layout_behavior="@string/appbar_scrolling_view_behavior" />
 
         <!-- Empty state (centered) -->
         <LinearLayout
