@@ -67,8 +67,8 @@
         android:textSize="12sp"
         app:cornerRadius="8dp"
         style="@style/Widget.Material3.Button.OutlinedButton"
-        android:textColor="@color/negative"
-        app:strokeColor="@color/negative"
+        android:textColor="@color/accent_negative"
+        app:strokeColor="@color/accent_negative"
         android:layout_marginEnd="8dp" />
 
     <!-- Accept button -->
@@ -80,6 +80,6 @@
         android:textSize="12sp"
         app:cornerRadius="8dp"
         app:backgroundTint="@color/primary"
-        android:textColor="@color/text_primary" />
+        android:textColor="@color/on_primary" />
 
 </LinearLayout>
