@@ -144,7 +144,7 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Debt Summary (Only visible for shared ledgers) -->
+            <!-- Who Owes Whom (Only visible for shared ledgers) -->
             <LinearLayout
                 android:id="@+id/containerDebtSummary"
                 android:layout_width="match_parent"
@@ -155,21 +155,62 @@
                 android:layout_marginBottom="16dp"
                 android:visibility="gone">
 
-                <TextView
-                    android:layout_width="wrap_content"
+                <!-- Header row: icon + title + outstanding total -->
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Group Balances"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/text_primary"
-                    android:layout_marginBottom="8dp" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="12dp">
 
+                    <TextView
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:text="💸"
+                        android:textSize="18sp"
+                        android:gravity="center"
+                        android:background="@drawable/card_gradient_purple"
+                        android:layout_marginEnd="10dp" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Who Owes Whom"
+                            android:textSize="15sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary" />
+
+                        <TextView
+                            android:id="@+id/txtOutstandingTotal"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Calculating..."
+                            android:textSize="12sp"
+                            android:textColor="@color/text_secondary" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Debt edges list (RecyclerView for premium cards) -->
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rvDebtEdges"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" />
+
+                <!-- Fallback plain list (hidden when RecyclerView is used) -->
                 <LinearLayout
                     android:id="@+id/layoutDebtEdges"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical" />
-                    
+                    android:orientation="vertical"
+                    android:visibility="gone" />
+
             </LinearLayout>
 
             <!-- Filter Chips -->
