@@ -87,7 +87,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-14">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl overflow-hidden flex items-center justify-center bg-white shadow-md">
-              <img src="/logo.webp" alt="Nexa Logo" className="w-full h-full object-cover" />
+              <img src="/nexa-logo.svg" alt="Nexa Logo" className="w-full h-full object-cover" />
             </div>
             <span className="font-bold text-base" style={{ color: "var(--text-primary)" }}>Nexa</span>
           </div>
@@ -307,7 +307,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg overflow-hidden flex items-center justify-center bg-white shadow-sm">
-              <img src="/logo.webp" alt="Nexa Logo" className="w-full h-full object-cover" />
+              <img src="/nexa-logo.svg" alt="Nexa Logo" className="w-full h-full object-cover" />
             </div>
             <span className="font-semibold text-sm" style={{ color: "var(--text-secondary)" }}>Nexa</span>
           </div>
@@ -323,3 +323,4 @@ export default function LandingPage() {
     </div>
   );
 }
+
