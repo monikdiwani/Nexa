@@ -233,9 +233,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <button onClick={toggleDark} className="btn-icon hidden md:flex">
               {dark ? <Sun size={18} /> : <Moon size={18} />}
             </button>
-            <div className="w-8 h-8 rounded-xl nexa-gradient flex items-center justify-center text-white text-xs font-bold cursor-pointer"
+            <div className="w-8 h-8 rounded-xl overflow-hidden cursor-pointer flex-shrink-0"
               onClick={() => router.push("/dashboard/settings")}>
-              {initials}
+              {user?.photoURL ? (
+                <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full nexa-gradient flex items-center justify-center text-white text-xs font-bold">
+                  {initials}
+                </div>
+              )}
             </div>
           </div>
         </header>

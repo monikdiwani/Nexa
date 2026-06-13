@@ -64,8 +64,14 @@ export default function SettingsPage() {
       <motion.div initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} className="card mb-5">
         {/* Avatar + info */}
         <div className="p-5 flex items-center gap-4 border-b" style={{borderColor:"var(--divider)"}}>
-          <div className="w-16 h-16 rounded-2xl nexa-gradient flex items-center justify-center text-white text-2xl font-black flex-shrink-0">
-            {initials}
+          <div className="w-16 h-16 rounded-2xl flex-shrink-0 overflow-hidden">
+            {user?.photoURL ? (
+              <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full nexa-gradient flex items-center justify-center text-white text-2xl font-black">
+                {initials}
+              </div>
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-bold text-lg truncate" style={{color:"var(--text-primary)"}}>{user?.displayName || "Nexa User"}</p>
