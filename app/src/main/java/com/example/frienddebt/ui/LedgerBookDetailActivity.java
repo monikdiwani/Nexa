@@ -41,7 +41,7 @@ import com.example.frienddebt.utils.UserProfileHelper;
 
 public class LedgerBookDetailActivity extends AppCompatActivity {
 
-    private TextView txtBookTitle, txtTotalIn, txtTotalOut, txtEmptyCashbook;
+    private TextView txtBookTitle, txtTotalIn, txtTotalOut, txtCashInLabel, txtCashOutLabel, txtEmptyCashbook;
     private TextView chipAll, chipCash, chipBank, chipToday, chipWeek, chipMonth;
     private RecyclerView rvCashbookEntries;
     private RecyclerView rvDebtEdges;
@@ -66,6 +66,7 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
     private String userRole;
     private String searchQuery = "";
     private Map<String, Double> runningBalances = new HashMap<>();
+    private Map<String, String> resolvedUserNames = new HashMap<>();
     private int pendingCount = 0;
     private boolean isSharedGroup = false;
 
@@ -91,6 +92,8 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
         txtBookTitle = findViewById(R.id.txtBookTitle);
         txtTotalIn = findViewById(R.id.txtCashBalance);
         txtTotalOut = findViewById(R.id.txtBankBalance);
+        txtCashInLabel = findViewById(R.id.txtCashInLabel);
+        txtCashOutLabel = findViewById(R.id.txtCashOutLabel);
         txtEmptyCashbook = findViewById(R.id.txtEmptyCashbook);
         rvCashbookEntries = findViewById(R.id.rvCashbookEntries);
         containerDebtSummary  = findViewById(R.id.containerDebtSummary);
@@ -286,6 +289,11 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
         sheetView.findViewById(R.id.btnActionCreateLedger).setVisibility(View.GONE);
         sheetView.findViewById(R.id.btnActionJoinLedger).setVisibility(View.GONE);
 
+        if (isSharedGroup) {
+            sheetView.findViewById(R.id.btnActionAddIncome).setVisibility(View.GONE);
+            sheetView.findViewById(R.id.btnActionAddExpense).setVisibility(View.GONE);
+        }
+
         sheetView.findViewById(R.id.btnActionAddIncome).setOnClickListener(v1 -> {
             bottomSheetDialog.dismiss();
             Intent intent = new Intent(LedgerBookDetailActivity.this, AddCashbookEntryActivity.class);
@@ -376,18 +384,57 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                     // Update Book balances in background
                     updateBookBalances(totalIn, totalOut);
                     
-                    updateBalances(totalIn, totalOut);
                     applyFilter();
                     
                     // Run Debt Simplification
+                    final double finalTotalIn = totalIn;
+                    final double finalTotalOut = totalOut;
                     db.collection("cashbooks").document(bookId).get().addOnSuccessListener(doc -> {
                         com.example.frienddebt.model.LedgerBook book = com.example.frienddebt.model.LedgerBook.fromDocument(doc);
                         isSharedGroup = (book.getMembers() != null && book.getMembers().size() > 1);
                         if (isSharedGroup) {
+                            if (txtCashInLabel != null) txtCashInLabel.setText("My Balance");
+                            if (txtCashOutLabel != null) txtCashOutLabel.setText("Group Spending");
+
                             List<com.example.frienddebt.model.DebtEdge> edges = com.example.frienddebt.dsa.DebtSimplifier.simplifyDebts(allEntries);
                             updateDebtSummary(edges);
+
+                            double myBalance = 0;
+                            String currentUid = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : "";
+                            for (com.example.frienddebt.model.DebtEdge edge : edges) {
+                                if (edge.getFrom().equals(currentUid)) myBalance -= edge.getAmount();
+                                if (edge.getTo().equals(currentUid)) myBalance += edge.getAmount();
+                            }
+                            if (txtTotalIn != null) txtTotalIn.setText(String.format(Locale.getDefault(), "₹%.2f", myBalance));
+
+                            double groupSpend = 0;
+                            for (CashbookEntry entryObj2 : allEntries) {
+                                if ("EXPENSE".equals(entryObj2.getType())) groupSpend += entryObj2.getAmount();
+                            }
+                            if (txtTotalOut != null) txtTotalOut.setText(String.format(Locale.getDefault(), "₹%.2f", groupSpend));
                         } else {
+                            if (txtCashInLabel != null) txtCashInLabel.setText("Total Cash In");
+                            if (txtCashOutLabel != null) txtCashOutLabel.setText("Total Cash Out");
                             containerDebtSummary.setVisibility(View.GONE);
+                            updateBalances(finalTotalIn, finalTotalOut);
+                        }
+                        if (adapter != null) adapter.notifyDataSetChanged();
+
+                        // Fetch names for all participants to render nice labels
+                        List<String> allUids = new ArrayList<>();
+                        for (CashbookEntry entryObj3 : allEntries) {
+                            if (entryObj3.getPaidBy() != null && !allUids.contains(entryObj3.getPaidBy())) allUids.add(entryObj3.getPaidBy());
+                            if (entryObj3.getSplits() != null) {
+                                for (String uid : entryObj3.getSplits().keySet()) {
+                                    if (!allUids.contains(uid)) allUids.add(uid);
+                                }
+                            }
+                        }
+                        if (!allUids.isEmpty()) {
+                            UserProfileHelper.resolveNames(db, allUids, nameMap -> {
+                                resolvedUserNames.putAll(nameMap);
+                                if (adapter != null) adapter.notifyDataSetChanged();
+                            });
                         }
                     });
                 });
@@ -786,37 +833,110 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                 currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
             }
 
-            String prefix = "-";
-            int colorRes = R.color.accent_negative;
+            if (isSharedGroup) {
+                holder.txtRunningBalance.setVisibility(View.GONE);
+                holder.txtAddedBy.setVisibility(View.GONE);
+                
+                String payerName = "Someone";
+                if (entry.getPaidBy() != null) {
+                    if (entry.getPaidBy().equals(currentUserId)) payerName = "You";
+                    else if (resolvedUserNames.containsKey(entry.getPaidBy())) payerName = resolvedUserNames.get(entry.getPaidBy());
+                } else if (entry.getCreatedBy() != null) {
+                    if (entry.getCreatedBy().equals(currentUserId)) payerName = "You";
+                    else if (resolvedUserNames.containsKey(entry.getCreatedBy())) payerName = resolvedUserNames.get(entry.getCreatedBy());
+                }
 
-            if ("CASH_IN".equalsIgnoreCase(entry.getType())) {
-                prefix = "+";
-                colorRes = R.color.accent_positive;
-            } else if ("SETTLEMENT".equalsIgnoreCase(entry.getType())) {
-                if (entry.getParticipants() != null && entry.getParticipants().contains(currentUserId)) {
+                if ("EXPENSE".equalsIgnoreCase(entry.getType()) || entry.getSplits() != null) {
+                    holder.txtCategory.setText(payerName + " paid ₹" + String.format(Locale.getDefault(), "%.2f", entry.getAmount()));
+                    
+                    double myStake = 0;
+                    if (entry.getSplits() != null && entry.getSplits().containsKey(currentUserId)) {
+                        myStake = entry.getSplits().get(currentUserId);
+                    } else if (entry.getSplits() == null) {
+                        myStake = entry.getAmount(); 
+                    }
+                    
+                    if (payerName.equals("You")) {
+                        double lent = entry.getAmount() - myStake;
+                        if (lent > 0) {
+                            holder.txtAmount.setText("+" + String.format(Locale.getDefault(), "₹%.2f", lent));
+                            holder.txtAmount.setTextColor(getResources().getColor(R.color.accent_positive));
+                        } else {
+                            holder.txtAmount.setText("₹0.00");
+                            holder.txtAmount.setTextColor(getResources().getColor(R.color.text_secondary));
+                        }
+                    } else {
+                        if (myStake > 0) {
+                            holder.txtAmount.setText("-" + String.format(Locale.getDefault(), "₹%.2f", myStake));
+                            holder.txtAmount.setTextColor(getResources().getColor(R.color.accent_negative));
+                        } else {
+                            holder.txtAmount.setText("₹0.00");
+                            holder.txtAmount.setTextColor(getResources().getColor(R.color.text_secondary));
+                        }
+                    }
+                } else if ("SETTLEMENT".equalsIgnoreCase(entry.getType())) {
+                    String receiverName = "Someone";
+                    if (entry.getParticipants() != null && !entry.getParticipants().isEmpty()) {
+                        String recUid = entry.getParticipants().get(0);
+                        if (recUid.equals(currentUserId)) receiverName = "You";
+                        else if (resolvedUserNames.containsKey(recUid)) receiverName = resolvedUserNames.get(recUid);
+                    }
+                    holder.txtCategory.setText(payerName + " paid " + receiverName);
+                    
+                    if (payerName.equals("You")) {
+                        holder.txtAmount.setText("-" + String.format(Locale.getDefault(), "₹%.2f", entry.getAmount()));
+                        holder.txtAmount.setTextColor(getResources().getColor(R.color.text_primary));
+                    } else if (receiverName.equals("You")) {
+                        holder.txtAmount.setText("+" + String.format(Locale.getDefault(), "₹%.2f", entry.getAmount()));
+                        holder.txtAmount.setTextColor(getResources().getColor(R.color.accent_positive));
+                    } else {
+                        holder.txtAmount.setText(String.format(Locale.getDefault(), "₹%.2f", entry.getAmount()));
+                        holder.txtAmount.setTextColor(getResources().getColor(R.color.text_secondary));
+                    }
+                } else {
+                    holder.txtCategory.setText(category);
+                    holder.txtAmount.setText(String.format(Locale.getDefault(), "₹%.2f", entry.getAmount()));
+                    holder.txtAmount.setTextColor(getResources().getColor(R.color.text_primary));
+                }
+                
+                String mediumText = "CASH".equalsIgnoreCase(entry.getMedium()) ? "💵 Cash" : "🏦 Bank";
+                holder.txtMedium.setText(mediumText);
+
+            } else {
+                // Personal Ledger Logic
+                holder.txtCategory.setText(category);
+                String prefix = "-";
+                int colorRes = R.color.accent_negative;
+
+                if ("CASH_IN".equalsIgnoreCase(entry.getType())) {
                     prefix = "+";
                     colorRes = R.color.accent_positive;
-                } else if (currentUserId.equals(entry.getPaidBy())) {
-                    prefix = "-";
-                    colorRes = R.color.accent_negative;
-                } else {
-                    prefix = ""; // Neutral if viewing another person's settlement
-                    colorRes = R.color.text_primary;
+                } else if ("SETTLEMENT".equalsIgnoreCase(entry.getType())) {
+                    if (entry.getParticipants() != null && entry.getParticipants().contains(currentUserId)) {
+                        prefix = "+";
+                        colorRes = R.color.accent_positive;
+                    } else if (currentUserId.equals(entry.getPaidBy())) {
+                        prefix = "-";
+                        colorRes = R.color.accent_negative;
+                    } else {
+                        prefix = ""; // Neutral if viewing another person's settlement
+                        colorRes = R.color.text_primary;
+                    }
                 }
-            }
 
-            holder.txtAmount.setText(String.format(Locale.getDefault(), "%s₹%.2f", prefix, entry.getAmount()));
-            holder.txtAmount.setTextColor(getResources().getColor(colorRes));
+                holder.txtAmount.setText(String.format(Locale.getDefault(), "%s₹%.2f", prefix, entry.getAmount()));
+                holder.txtAmount.setTextColor(getResources().getColor(colorRes));
 
-            String mediumText = "CASH".equalsIgnoreCase(entry.getMedium()) ? "💵 Cash" : "🏦 Bank";
-            holder.txtMedium.setText(mediumText);
+                String mediumText = "CASH".equalsIgnoreCase(entry.getMedium()) ? "💵 Cash" : "🏦 Bank";
+                holder.txtMedium.setText(mediumText);
 
-            Double rb = runningBalances.get(entry.getId());
-            if (rb != null) {
-                holder.txtRunningBalance.setText(String.format(Locale.getDefault(), "Bal: ₹%.2f", rb));
-                holder.txtRunningBalance.setVisibility(View.VISIBLE);
-            } else {
-                holder.txtRunningBalance.setVisibility(View.GONE);
+                Double rb = runningBalances.get(entry.getId());
+                if (rb != null) {
+                    holder.txtRunningBalance.setText(String.format(Locale.getDefault(), "Bal: ₹%.2f", rb));
+                    holder.txtRunningBalance.setVisibility(View.VISIBLE);
+                } else {
+                    holder.txtRunningBalance.setVisibility(View.GONE);
+                }
             }
 
             // Viewer cannot delete
@@ -846,8 +966,10 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
             List<String> options = new ArrayList<>();
             if (isUdhaar) options.add("Send WhatsApp Reminder");
             options.add("Create App Reminder");
-            options.add("Edit Transaction");
-            options.add("Duplicate Transaction");
+            if (!"SETTLEMENT".equals(entry.getType())) {
+                options.add("Edit Transaction");
+                options.add("Duplicate Transaction");
+            }
             options.add("Delete Transaction");
 
             new AlertDialog.Builder(LedgerBookDetailActivity.this)
@@ -872,14 +994,14 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                             intent.putExtra("LINKED_TITLE", prefix + " ₹" + entry.getAmount() + " - " + name);
                             startActivity(intent);
                         } else if ("Edit Transaction".equals(selected)) {
-                            boolean isShared = "EXPENSE".equals(entry.getType()) && entry.getSplits() != null && !entry.getSplits().isEmpty();
+                            boolean isShared = isSharedGroup || ("EXPENSE".equals(entry.getType()) && entry.getSplits() != null && !entry.getSplits().isEmpty());
                             Intent intent = new Intent(LedgerBookDetailActivity.this, isShared ? AddSharedExpenseActivity.class : AddCashbookEntryActivity.class);
                             intent.putExtra("BOOK_ID", bookId);
                             intent.putExtra("ENTRY_ID", entry.getId());
                             intent.putExtra("IS_EDIT_MODE", true);
                             startActivity(intent);
                         } else if ("Duplicate Transaction".equals(selected)) {
-                            boolean isShared = "EXPENSE".equals(entry.getType()) && entry.getSplits() != null && !entry.getSplits().isEmpty();
+                            boolean isShared = isSharedGroup || ("EXPENSE".equals(entry.getType()) && entry.getSplits() != null && !entry.getSplits().isEmpty());
                             Intent intent = new Intent(LedgerBookDetailActivity.this, isShared ? AddSharedExpenseActivity.class : AddCashbookEntryActivity.class);
                             intent.putExtra("BOOK_ID", bookId);
                             intent.putExtra("ENTRY_ID", entry.getId());
@@ -924,33 +1046,54 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
             SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy hh:mm a", Locale.getDefault());
             String dateStr = sdf.format(new Date(entry.getDate()));
 
-            // Feature 20: Resolve added-by name
-            String uid = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : "";
-            String addedBy;
-            if (entry.getCreatedByName() != null && !entry.getCreatedByName().isEmpty()) {
-                addedBy = uid.equals(entry.getCreatedBy()) ? "You" : entry.getCreatedByName();
+            String currentUserId = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : "";
+            
+            String msg = "";
+            if (isSharedGroup) {
+                String payerName = "Someone";
+                if (entry.getPaidBy() != null) {
+                    payerName = entry.getPaidBy().equals(currentUserId) ? "You" : resolvedUserNames.getOrDefault(entry.getPaidBy(), "Unknown");
+                } else if (entry.getCreatedBy() != null) {
+                    payerName = entry.getCreatedBy().equals(currentUserId) ? "You" : resolvedUserNames.getOrDefault(entry.getCreatedBy(), "Unknown");
+                }
+
+                msg += "Amount: ₹" + String.format(Locale.getDefault(), "%.2f", entry.getAmount()) + "\n";
+                msg += "Category: " + (entry.getParticulars() != null && !entry.getParticulars().isEmpty() ? entry.getParticulars() : entry.getCategory()) + "\n";
+                msg += "Date: " + dateStr + "\n";
+                msg += "Paid by: " + payerName + "\n\n";
+
+                if ("EXPENSE".equalsIgnoreCase(entry.getType()) || entry.getSplits() != null) {
+                    msg += "--- SPLIT DETAILS ---\n";
+                    if (entry.getSplits() != null && !entry.getSplits().isEmpty()) {
+                        for (Map.Entry<String, Double> split : entry.getSplits().entrySet()) {
+                            String name = split.getKey().equals(currentUserId) ? "You" : resolvedUserNames.getOrDefault(split.getKey(), "Unknown Member");
+                            msg += name + " owes ₹" + String.format(Locale.getDefault(), "%.2f", split.getValue()) + "\n";
+                        }
+                    } else {
+                        msg += "Split equally (Legacy Entry)\n";
+                    }
+                } else if ("SETTLEMENT".equalsIgnoreCase(entry.getType())) {
+                    msg += "This is a settlement transaction.\n";
+                }
             } else {
-                addedBy = "Unknown";
-            }
-            
-            String msg = "Amount: ₹" + entry.getAmount() + "\n" +
-                         "Type: " + entry.getType() + "\n" +
-                         "Category: " + (entry.getCategory() != null ? entry.getCategory() : "Other") + "\n" +
-                         "Medium: " + entry.getMedium() + "\n" +
-                         "Date: " + dateStr + "\n" +
-                         "Particulars: " + entry.getParticulars() + "\n" +
-                         "Added by: " + addedBy + "\n";
-                         
-            if (entry.getContactName() != null && !entry.getContactName().isEmpty()) {
-                msg += "Contact: " + entry.getContactName() + "\n";
-            }
-            if (entry.getSplitMethod() != null && !entry.getSplitMethod().isEmpty()) {
-                msg += "Split: " + entry.getSplitMethod() + "\n";
-            }
-            
-            Double rb = runningBalances.get(entry.getId());
-            if (rb != null) {
-                msg += "Running Balance after this: ₹" + String.format(Locale.getDefault(), "%.2f", rb) + "\n";
+                String addedBy = entry.getCreatedByName() != null && !entry.getCreatedByName().isEmpty() ? 
+                    (currentUserId.equals(entry.getCreatedBy()) ? "You" : entry.getCreatedByName()) : "Unknown";
+                
+                msg += "Amount: ₹" + entry.getAmount() + "\n" +
+                       "Type: " + entry.getType() + "\n" +
+                       "Category: " + (entry.getCategory() != null ? entry.getCategory() : "Other") + "\n" +
+                       "Medium: " + entry.getMedium() + "\n" +
+                       "Date: " + dateStr + "\n" +
+                       "Particulars: " + entry.getParticulars() + "\n" +
+                       "Added by: " + addedBy + "\n";
+                             
+                if (entry.getContactName() != null && !entry.getContactName().isEmpty()) {
+                    msg += "Contact: " + entry.getContactName() + "\n";
+                }
+                Double rb = runningBalances.get(entry.getId());
+                if (rb != null) {
+                    msg += "Running Balance after this: ₹" + String.format(Locale.getDefault(), "%.2f", rb) + "\n";
+                }
             }
             
             androidx.appcompat.app.AlertDialog.Builder builder = new AlertDialog.Builder(LedgerBookDetailActivity.this)
@@ -958,12 +1101,13 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                 .setMessage(msg)
                 .setPositiveButton("Close", null);
                 
-            if (!"VIEWER".equalsIgnoreCase(userRole)) {
+            if (!"VIEWER".equalsIgnoreCase(userRole) && !"SETTLEMENT".equalsIgnoreCase(entry.getType())) {
                 builder.setNeutralButton("Options", (dialog, which) -> {
                     showActionDialog(entry);
                 });
                 builder.setNegativeButton("Edit", (dialog, which) -> {
-                    Intent intent = new Intent(LedgerBookDetailActivity.this, AddCashbookEntryActivity.class);
+                    boolean isShared = isSharedGroup || ("EXPENSE".equals(entry.getType()) && entry.getSplits() != null && !entry.getSplits().isEmpty());
+                    Intent intent = new Intent(LedgerBookDetailActivity.this, isShared ? AddSharedExpenseActivity.class : AddCashbookEntryActivity.class);
                     intent.putExtra("BOOK_ID", bookId);
                     intent.putExtra("ENTRY_ID", entry.getId());
                     intent.putExtra("IS_EDIT_MODE", true);

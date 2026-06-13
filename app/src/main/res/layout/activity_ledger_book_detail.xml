@@ -98,6 +98,7 @@
                     android:layout_marginEnd="6dp">
 
                     <TextView
+                        android:id="@+id/txtCashInLabel"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Total Cash In"
@@ -126,6 +127,7 @@
                     android:layout_marginStart="6dp">
 
                     <TextView
+                        android:id="@+id/txtCashOutLabel"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Total Cash Out"

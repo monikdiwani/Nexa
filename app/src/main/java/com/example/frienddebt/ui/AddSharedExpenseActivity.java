@@ -326,15 +326,19 @@ public class AddSharedExpenseActivity extends AppCompatActivity {
                             if (splits.containsKey(uId)) {
                                 if (cb != null) cb.setChecked(true);
                                 if (input != null && input.getVisibility() == View.VISIBLE) {
-                                    // If we stored original percentages or shares, we'd load those. But we only store exact double amounts in the model.
-                                    // We will just show the exact amounts and force exact mode if we don't have the ratio.
-                                    // To keep it simple, we just write the amount.
                                     input.setText(String.format(java.util.Locale.getDefault(), "%.2f", splits.get(uId)));
                                 }
                             } else {
                                 if (cb != null) cb.setChecked(false);
                             }
                         }
+                    }
+                } else {
+                    // Legacy entry without splits, default to Equally
+                    rbEqually.setChecked(true);
+                    for (String uId : memberIds) {
+                        android.widget.CheckBox cb = optOutCheckboxes.get(uId);
+                        if (cb != null) cb.setChecked(true);
                     }
                 }
             });
