@@ -18,6 +18,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationBarView;
 
 import com.example.frienddebt.utils.StatusBarUtil;
+import com.example.frienddebt.utils.UserProfileHelper;
 
 public class DashboardActivity extends AppCompatActivity {
 
@@ -53,6 +54,16 @@ public class DashboardActivity extends AppCompatActivity {
 
         // Run Recurring Engine
         com.example.frienddebt.utils.RecurringEngine.processRecurringItems(this, auth.getCurrentUser().getUid());
+
+        // Ensure user profile is stored in Firestore so names appear everywhere (groups, settle-up, etc.)
+        com.google.firebase.auth.FirebaseUser currentUser = auth.getCurrentUser();
+        if (currentUser != null) {
+            UserProfileHelper.saveProfile(
+                currentUser.getUid(),
+                currentUser.getDisplayName(),
+                currentUser.getEmail()
+            );
+        }
 
         sp.edit().putString("user_id", auth.getCurrentUser().getUid()).apply();
 
