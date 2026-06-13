@@ -19,6 +19,7 @@ import androidx.credentials.GetCredentialResponse;
 import androidx.credentials.exceptions.GetCredentialException;
 
 import com.example.frienddebt.R;
+import com.example.frienddebt.utils.UserProfileHelper;
 import com.example.frienddebt.utils.StatusBarUtil;
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
@@ -114,6 +115,9 @@ public class Login extends AppCompatActivity {
 
                     if (task.isSuccessful()) {
                         Toast.makeText(this, "Logged in Successfully", Toast.LENGTH_SHORT).show();
+                        // Save/update profile in Firestore for name resolution across groups
+                        com.google.firebase.auth.FirebaseUser u = firebaseAuth.getCurrentUser();
+                        if (u != null) UserProfileHelper.saveProfile(u.getUid(), u.getDisplayName(), u.getEmail());
                         navigateToMainActivity();
                     } else {
                         Toast.makeText(this, "Login failed: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
@@ -161,6 +165,8 @@ public class Login extends AppCompatActivity {
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
                         Toast.makeText(Login.this, "Google Login Successful", Toast.LENGTH_SHORT).show();
+                        com.google.firebase.auth.FirebaseUser u = firebaseAuth.getCurrentUser();
+                        if (u != null) UserProfileHelper.saveProfile(u.getUid(), u.getDisplayName(), u.getEmail());
                         navigateToMainActivity();
                     } else {
                         String errMsg = task.getException() != null ? task.getException().getMessage() : "Unknown error";
