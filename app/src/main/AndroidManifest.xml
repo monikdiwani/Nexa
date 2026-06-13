@@ -76,6 +76,10 @@
             android:name=".ui.ActivityLogActivity"
             android:exported="false" />
         <activity
+            android:name=".ui.PendingApprovalsActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".ui.GlobalSearchActivity"
             android:exported="false"
             android:windowSoftInputMode="stateVisible|adjustResize" />
