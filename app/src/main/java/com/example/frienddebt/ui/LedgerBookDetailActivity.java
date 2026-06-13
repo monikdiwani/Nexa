@@ -44,6 +44,8 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
     private TextView txtBookTitle, txtTotalIn, txtTotalOut, txtEmptyCashbook;
     private TextView chipAll, chipCash, chipBank, chipToday, chipWeek, chipMonth;
     private RecyclerView rvCashbookEntries;
+    private RecyclerView rvDebtEdges;
+    private TextView txtOutstandingTotal;
     private android.widget.LinearLayout containerDebtSummary, layoutDebtEdges;
     private FloatingActionButton fabAddEntry;
     private ImageButton btnBack, btnBookSettings, btnSearchTransactions;
@@ -90,8 +92,10 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
         txtTotalOut = findViewById(R.id.txtBankBalance);
         txtEmptyCashbook = findViewById(R.id.txtEmptyCashbook);
         rvCashbookEntries = findViewById(R.id.rvCashbookEntries);
-        containerDebtSummary = findViewById(R.id.containerDebtSummary);
-        layoutDebtEdges = findViewById(R.id.layoutDebtEdges);
+        containerDebtSummary  = findViewById(R.id.containerDebtSummary);
+        layoutDebtEdges        = findViewById(R.id.layoutDebtEdges);
+        rvDebtEdges            = findViewById(R.id.rvDebtEdges);
+        txtOutstandingTotal    = findViewById(R.id.txtOutstandingTotal);
         fabAddEntry = findViewById(R.id.fabAddEntry);
         btnBack = findViewById(R.id.btnBack);
         btnBookSettings = findViewById(R.id.btnBookSettings);
@@ -333,32 +337,122 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
         }
 
         containerDebtSummary.setVisibility(View.VISIBLE);
-        layoutDebtEdges.removeAllViews();
 
-        // Collect all unique UIDs from the edges
+        // Collect unique UIDs
         List<String> allUids = new ArrayList<>();
         for (com.example.frienddebt.model.DebtEdge edge : edges) {
             if (!allUids.contains(edge.getFrom())) allUids.add(edge.getFrom());
             if (!allUids.contains(edge.getTo()))   allUids.add(edge.getTo());
         }
 
+        // Outstanding total
+        double total = 0;
+        for (com.example.frienddebt.model.DebtEdge e : edges) total += e.getAmount();
+        final double outstandingTotal = total;
+
         String currentUid = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : "";
 
-        // Batch-fetch real display names then render
+        // Batch-fetch real display names then render via RecyclerView
         UserProfileHelper.resolveNames(db, allUids, nameMap -> {
-            layoutDebtEdges.removeAllViews();
-            for (com.example.frienddebt.model.DebtEdge edge : edges) {
-                String fromName = edge.getFrom().equals(currentUid) ? "You" : nameMap.getOrDefault(edge.getFrom(), "User");
-                String toName   = edge.getTo().equals(currentUid)   ? "You" : nameMap.getOrDefault(edge.getTo(), "User");
-
-                TextView txtEdge = new TextView(this);
-                txtEdge.setText(fromName + " owes " + toName + " ₹" + String.format(Locale.getDefault(), "%.2f", edge.getAmount()));
-                txtEdge.setTextColor(getResources().getColor(R.color.text_primary));
-                txtEdge.setTextSize(14f);
-                txtEdge.setPadding(0, 6, 0, 6);
-                layoutDebtEdges.addView(txtEdge);
+            if (txtOutstandingTotal != null) {
+                txtOutstandingTotal.setText(₹ + String.format(Locale.getDefault(), "%.2f", outstandingTotal) + " total outstanding");
             }
+
+            rvDebtEdges.setLayoutManager(new LinearLayoutManager(this));
+            rvDebtEdges.setAdapter(new DebtEdgeAdapter(edges, nameMap, currentUid));
         });
+    }
+
+    // ─── Inline DebtEdge Adapter (Who Owes Whom card with Settle button) ───────
+
+    private class DebtEdgeAdapter extends RecyclerView.Adapter<DebtEdgeAdapter.VH> {
+        private final List<com.example.frienddebt.model.DebtEdge> edges;
+        private final Map<String, String> nameMap;
+        private final String currentUid;
+
+        DebtEdgeAdapter(List<com.example.frienddebt.model.DebtEdge> edges,
+                        Map<String, String> nameMap, String currentUid) {
+            this.edges      = edges;
+            this.nameMap    = nameMap;
+            this.currentUid = currentUid;
+        }
+
+        @NonNull
+        @Override
+        public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View v = android.view.LayoutInflater.from(parent.getContext())
+                .inflate(R.layout.item_settlement, parent, false);
+            return new VH(v);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull VH h, int pos) {
+            com.example.frienddebt.model.DebtEdge edge = edges.get(pos);
+            String fromName = edge.getFrom().equals(currentUid)
+                ? "You" : nameMap.getOrDefault(edge.getFrom(), "User");
+            String toName = edge.getTo().equals(currentUid)
+                ? "You" : nameMap.getOrDefault(edge.getTo(), "User");
+
+            h.txtDebtor.setText(fromName);
+            h.txtCreditor.setText(toName);
+            h.txtAmount.setText(String.format(Locale.getDefault(), "₹%.2f", edge.getAmount()));
+
+            // Inline settle button
+            h.btnMarkPaid.setText("Settle");
+            h.btnMarkPaid.setOnClickListener(v -> {
+                new AlertDialog.Builder(LedgerBookDetailActivity.this)
+                    .setTitle("Confirm Settlement")
+                    .setMessage(fromName + " pays " + toName + " ₹" +
+                        String.format(Locale.getDefault(), "%.2f", edge.getAmount()))
+                    .setPositiveButton("Confirm", (d, w) -> recordSettlement(edge, fromName, toName))
+                    .setNegativeButton("Cancel", null)
+                    .show();
+            });
+        }
+
+        @Override
+        public int getItemCount() { return edges.size(); }
+
+        class VH extends RecyclerView.ViewHolder {
+            android.widget.TextView txtDebtor, txtCreditor, txtAmount;
+            android.widget.Button btnMarkPaid;
+            VH(View v) {
+                super(v);
+                txtDebtor   = v.findViewById(R.id.txtDebtor);
+                txtCreditor = v.findViewById(R.id.txtCreditor);
+                txtAmount   = v.findViewById(R.id.txtAmount);
+                btnMarkPaid = v.findViewById(R.id.btnMarkPaid);
+            }
+        }
+    }
+
+    private void recordSettlement(com.example.frienddebt.model.DebtEdge edge,
+                                  String fromName, String toName) {
+        String entryId = java.util.UUID.randomUUID().toString();
+        long now = System.currentTimeMillis();
+
+        // Write a minimal SETTLEMENT entry using a plain map so we avoid constructor mismatch
+        Map<String, Object> data = new HashMap<>();
+        data.put("id",          entryId);
+        data.put("bookId",      bookId);
+        data.put("date",        now);
+        data.put("particulars", fromName + " → " + toName);
+        data.put("type",        "SETTLEMENT");
+        data.put("medium",      "BANK");
+        data.put("amount",      edge.getAmount());
+        data.put("category",    "Settlement");
+        data.put("note",        "");
+        data.put("createdAt",   now);
+        data.put("lastModifiedAt", now);
+        data.put("addedBy",     auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : "");
+        data.put("paidBy",      fromName);
+
+        db.collection("cashbooks").document(bookId).collection("entries")
+            .document(entryId).set(data)
+            .addOnSuccessListener(aVoid ->
+                Toast.makeText(this, "Settlement recorded! ✅", Toast.LENGTH_SHORT).show())
+            .addOnFailureListener(e ->
+                Toast.makeText(this, "Failed: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
 
     private void updateBookBalances(double totalIn, double totalOut) {
