@@ -95,7 +95,7 @@ public class AddSharedExpenseActivity extends AppCompatActivity {
 
         if (isEditMode) {
             btnSaveExpense.setText("Update Expense");
-            TextView title = findViewById(R.id.txtHeaderTitle);
+            android.widget.TextView title = findViewById(R.id.txtHeaderTitle);
             if (title != null) title.setText("Edit Shared Expense");
         }
 

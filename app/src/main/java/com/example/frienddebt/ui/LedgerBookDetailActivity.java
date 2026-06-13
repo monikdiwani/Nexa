@@ -67,7 +67,6 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
     private String searchQuery = "";
     private Map<String, Double> runningBalances = new HashMap<>();
     private int pendingCount = 0;
-    private ListenerRegistration pendingListener;
     private boolean isSharedGroup = false;
 
     @Override
