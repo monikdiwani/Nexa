@@ -2,24 +2,44 @@ package com.example.frienddebt.ui;
 
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.frienddebt.R;
+import com.example.frienddebt.utils.StatusBarUtil;
+import com.example.frienddebt.utils.UserProfileHelper;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 
-import com.example.frienddebt.utils.StatusBarUtil;
+import java.util.HashMap;
+import java.util.Map;
 
+/**
+ * JoinGroupActivity — Pending Approval Flow
+ *
+ * Instead of letting the joining user pick their own role, we now:
+ * 1. Verify the invite code is valid
+ * 2. Write a pending join request to  cashbooks/{bookId}/pendingMembers/{userId}
+ * 3. Notify the cashbook admin via notifications/{adminUid}/pending
+ * 4. Show a "Request sent!" confirmation screen
+ *
+ * The admin then opens PendingApprovalsActivity to accept/decline and assign a role.
+ */
 public class JoinGroupActivity extends AppCompatActivity {
 
     private static final String TAG = "JoinGroupActivity";
 
     private EditText edtInviteCode;
     private Button btnJoin;
+    private View layoutCodeInput;   // the initial code-entry panel
+    private View layoutSuccess;     // the success/waiting panel
+    private TextView txtSuccessBook;
 
     private FirebaseFirestore db;
     private FirebaseAuth auth;
@@ -39,119 +59,133 @@ public class JoinGroupActivity extends AppCompatActivity {
         }
         toolbar.setNavigationOnClickListener(v -> finish());
 
-    
-
-    
-
-        // We reuse the XML but change the logic to Ledgers
         edtInviteCode = findViewById(R.id.edtInviteCode);
         btnJoin = findViewById(R.id.btnJoinGroup);
-        btnJoin.setText("JOIN LEDGER");
+        btnJoin.setText("SEND JOIN REQUEST");
 
-        db = FirebaseFirestore.getInstance();
+        // Success panel (we reuse the same XML but toggle visibility)
+        layoutCodeInput  = findViewById(R.id.layoutCodeInput);
+        layoutSuccess    = findViewById(R.id.layoutSuccess);
+        txtSuccessBook   = findViewById(R.id.txtSuccessBook);
+
+        db   = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
 
-        btnJoin.setOnClickListener(v -> joinLedgerByCode());
+        btnJoin.setOnClickListener(v -> sendJoinRequest());
     }
 
-    private void joinLedgerByCode() {
+    // ─── Step 1: Validate the invite code ─────────────────────────────────────
+
+    private void sendJoinRequest() {
         String code = edtInviteCode.getText().toString().trim().toUpperCase();
 
         if (code.isEmpty()) {
             Toast.makeText(this, "Enter invite code", Toast.LENGTH_SHORT).show();
             return;
         }
-
         if (auth.getCurrentUser() == null) {
             Toast.makeText(this, "User not logged in", Toast.LENGTH_SHORT).show();
             return;
         }
 
         String userId = auth.getCurrentUser().getUid();
-
         btnJoin.setEnabled(false);
         btnJoin.setText("CHECKING...");
 
-        db.collection("invite_codes")
-                .document(code)
-                .get()
-                .addOnSuccessListener(doc -> {
-                    if (!doc.exists()) {
-                        Toast.makeText(this, "Invalid invite code", Toast.LENGTH_SHORT).show();
-                        resetButton();
-                        return;
-                    }
+        db.collection("invite_codes").document(code).get()
+            .addOnSuccessListener(doc -> {
+                if (!doc.exists()) {
+                    Toast.makeText(this, "Invalid invite code", Toast.LENGTH_SHORT).show();
+                    resetButton();
+                    return;
+                }
 
-                    String bookId = doc.getString("bookId");
+                String bookId = doc.getString("bookId");
+                if (bookId == null) {
+                    Toast.makeText(this, "Corrupted invite code data", Toast.LENGTH_SHORT).show();
+                    resetButton();
+                    return;
+                }
 
-                    if (bookId == null) {
-                        Toast.makeText(this, "Corrupted invite code data", Toast.LENGTH_SHORT).show();
-                        resetButton();
-                        return;
-                    }
-
-                    // Check if already a member
-                    db.collection("cashbooks").document(bookId).get()
-                        .addOnSuccessListener(bookDoc -> {
-                            Object existingRole = bookDoc.get("members." + userId);
-                            if (existingRole != null) {
-                                Toast.makeText(this, "You are already a member of this cashbook!", Toast.LENGTH_LONG).show();
-                                resetButton();
-                                return;
-                            }
-                            // Show role picker dialog
-                            showRolePickerDialog(bookId, userId, bookDoc.getString("name"));
-                        })
-                        .addOnFailureListener(e -> {
-                            Toast.makeText(this, "Failed to verify cashbook: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                db.collection("cashbooks").document(bookId).get()
+                    .addOnSuccessListener(bookDoc -> {
+                        // Already a member?
+                        if (bookDoc.get("members." + userId) != null) {
+                            Toast.makeText(this, "You are already a member of this cashbook!", Toast.LENGTH_LONG).show();
                             resetButton();
-                        });
-                })
-                .addOnFailureListener(e -> {
-                    android.util.Log.e(TAG, "Join ledger query failed", e);
-                    Toast.makeText(this, "Failed to join: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                    resetButton();
-                });
+                            return;
+                        }
+                        // Already have a pending request?
+                        db.collection("cashbooks").document(bookId)
+                            .collection("pendingMembers").document(userId).get()
+                            .addOnSuccessListener(pendingDoc -> {
+                                if (pendingDoc.exists()) {
+                                    Toast.makeText(this, "You already have a pending request for this cashbook.", Toast.LENGTH_LONG).show();
+                                    resetButton();
+                                    return;
+                                }
+                                // All good — submit the request
+                                String bookName = bookDoc.getString("name");
+                                String ownerId  = bookDoc.getString("ownerId");
+                                submitPendingRequest(bookId, userId, bookName, ownerId);
+                            })
+                            .addOnFailureListener(e -> { Toast.makeText(this, "Error checking request: " + e.getMessage(), Toast.LENGTH_LONG).show(); resetButton(); });
+                    })
+                    .addOnFailureListener(e -> { Toast.makeText(this, "Failed to verify cashbook: " + e.getMessage(), Toast.LENGTH_LONG).show(); resetButton(); });
+            })
+            .addOnFailureListener(e -> {
+                Log.e(TAG, "Join request failed", e);
+                Toast.makeText(this, "Failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                resetButton();
+            });
     }
 
-    private void showRolePickerDialog(String bookId, String userId, String bookName) {
-        String displayName = bookName != null ? bookName : "this cashbook";
+    // ─── Step 2: Write pending request + notify admin ──────────────────────────
 
-        // Build a custom dialog with two clear options
-        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
-        builder.setTitle("Join \"" + displayName + "\"");
-        builder.setMessage("Choose your role in this cashbook:\n\n"
-            + "🔍  Viewer — Can see all entries but cannot add or edit.\n\n"
-            + "✏️  Editor — Can add and edit cash entries.");
+    private void submitPendingRequest(String bookId, String userId, String bookName, String ownerId) {
+        String displayName = auth.getCurrentUser().getDisplayName();
+        String email       = auth.getCurrentUser().getEmail();
+        if (displayName == null || displayName.isEmpty()) displayName = email;
 
-        builder.setPositiveButton("✏️  Join as Editor", (dialog, which) -> {
-            joinWithRole(bookId, userId, "EDITOR");
-        });
-        builder.setNegativeButton("🔍  Join as Viewer", (dialog, which) -> {
-            joinWithRole(bookId, userId, "VIEWER");
-        });
-        builder.setNeutralButton("Cancel", (dialog, which) -> resetButton());
-        builder.setCancelable(false);
-        builder.show();
-    }
+        Map<String, Object> pending = new HashMap<>();
+        pending.put("displayName", displayName);
+        pending.put("email",       email != null ? email : "");
+        pending.put("status",      "PENDING");
+        pending.put("requestedAt", System.currentTimeMillis());
 
-    private void joinWithRole(String bookId, String userId, String role) {
+        String finalDisplayName = displayName;
         db.collection("cashbooks").document(bookId)
-                .update("members." + userId, role)
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(this, "Joined as " + role + "! Welcome aboard.", Toast.LENGTH_LONG).show();
-                    finish();
-                })
-                .addOnFailureListener(e -> {
-                    android.util.Log.e(TAG, "Failed to join ledger", e);
-                    Toast.makeText(this, "Failed to join: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                    resetButton();
-                });
+            .collection("pendingMembers").document(userId)
+            .set(pending)
+            .addOnSuccessListener(aVoid -> {
+                // Notify the admin
+                if (ownerId != null) {
+                    UserProfileHelper.sendJoinRequestNotification(db, ownerId, finalDisplayName,
+                            bookName != null ? bookName : "a cashbook");
+                }
+                showSuccessScreen(bookName);
+            })
+            .addOnFailureListener(e -> {
+                Toast.makeText(this, "Failed to send request: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                resetButton();
+            });
+    }
+
+    // ─── Step 3: Show "waiting for admin" screen ───────────────────────────────
+
+    private void showSuccessScreen(String bookName) {
+        if (layoutCodeInput != null) layoutCodeInput.setVisibility(View.GONE);
+        if (layoutSuccess   != null) layoutSuccess.setVisibility(View.VISIBLE);
+        if (txtSuccessBook  != null) {
+            txtSuccessBook.setText("Your request to join \"" +
+                    (bookName != null ? bookName : "the cashbook") +
+                    "\" has been sent.\n\nThe admin will review your request and assign your role.");
+        }
     }
 
     private void resetButton() {
         btnJoin.setEnabled(true);
-        btnJoin.setText("JOIN LEDGER");
+        btnJoin.setText("SEND JOIN REQUEST");
     }
 
     @Override
@@ -165,5 +199,4 @@ public class JoinGroupActivity extends AppCompatActivity {
         super.finish();
         com.example.frienddebt.utils.AnimationHelper.applyFinishTransition(this);
     }
-
 }

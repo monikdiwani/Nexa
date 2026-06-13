@@ -4,8 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background_primary"
-    >
+    android:background="@color/background_primary">
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
@@ -20,85 +19,155 @@
             app:titleTextColor="@color/text_primary" />
     </com.google.android.material.appbar.AppBarLayout>
 
-    <LinearLayout
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:padding="24dp"
-        android:gravity="center_horizontal"
+        android:fillViewport="true"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-        <TextView
-            android:layout_width="80dp"
-            android:layout_height="80dp"
-            android:background="@drawable/card_gradient_purple"
-            android:text="🤝"
-            android:textSize="32sp"
-            android:gravity="center"
-            android:layout_marginTop="32dp"
-            android:layout_marginBottom="24dp"
-            android:elevation="4dp"/>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Join your friends"
-            android:textSize="28sp"
-            android:textStyle="bold"
-            android:textColor="@color/text_primary"
-            android:layout_marginBottom="12dp"/>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Enter the 6-character invite code shared by the group owner to instantly join and view expenses."
-            android:textSize="15sp"
-            android:lineSpacingExtra="4dp"
-            android:textColor="@color/text_secondary"
-            android:gravity="center"
-            android:layout_marginBottom="40dp"/>
-
-        <com.google.android.material.textfield.TextInputLayout
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="32dp"
-            app:boxBackgroundColor="@color/primary_surface"
-            app:boxCornerRadiusTopStart="16dp"
-            app:boxCornerRadiusTopEnd="16dp"
-            app:boxCornerRadiusBottomStart="16dp"
-            app:boxCornerRadiusBottomEnd="16dp"
-            app:boxStrokeWidth="0dp"
-            app:boxStrokeWidthFocused="0dp"
-            app:hintEnabled="false">
+            android:orientation="vertical"
+            android:padding="24dp"
+            android:gravity="center_horizontal">
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/edtInviteCode"
-                android:layout_width="match_parent"
-                android:layout_height="64dp"
-                android:hint="Invite Code (e.g. 0F3ZKE)"
-                android:textColorHint="@color/text_hint"
-                android:inputType="textCapCharacters"
-                android:letterSpacing="0.2"
+            <!-- Hero icon -->
+            <TextView
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:background="@drawable/card_gradient_purple"
+                android:text="🤝"
+                android:textSize="32sp"
                 android:gravity="center"
-                android:paddingTop="0dp"
-                android:paddingBottom="0dp"
-                android:textSize="22sp"
+                android:layout_marginTop="32dp"
+                android:layout_marginBottom="24dp"
+                android:elevation="4dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Join your friends"
+                android:textSize="28sp"
                 android:textStyle="bold"
-                android:textColor="@color/text_primary"/>
-        </com.google.android.material.textfield.TextInputLayout>
+                android:textColor="@color/text_primary"
+                android:layout_marginBottom="12dp"/>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnJoinGroup"
-            android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:text="Join Group"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            app:cornerRadius="16dp"
-            app:backgroundTint="@color/primary"
-            android:textColor="@color/text_primary"
-            android:stateListAnimator="@null"
-            android:elevation="8dp"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Enter the 6-character invite code shared by the group owner. Your request will be reviewed by the admin who will assign your role."
+                android:textSize="15sp"
+                android:lineSpacingExtra="4dp"
+                android:textColor="@color/text_secondary"
+                android:gravity="center"
+                android:layout_marginBottom="40dp"/>
 
-    </LinearLayout>
+            <!-- ══════════════════════════════════════════════ -->
+            <!-- CODE INPUT PANEL (shown initially)             -->
+            <!-- ══════════════════════════════════════════════ -->
+            <LinearLayout
+                android:id="@+id/layoutCodeInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="visible">
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="32dp"
+                    app:boxBackgroundColor="@color/primary_surface"
+                    app:boxCornerRadiusTopStart="16dp"
+                    app:boxCornerRadiusTopEnd="16dp"
+                    app:boxCornerRadiusBottomStart="16dp"
+                    app:boxCornerRadiusBottomEnd="16dp"
+                    app:boxStrokeWidth="0dp"
+                    app:boxStrokeWidthFocused="0dp"
+                    app:hintEnabled="false">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/edtInviteCode"
+                        android:layout_width="match_parent"
+                        android:layout_height="64dp"
+                        android:hint="Invite Code (e.g. 0F3ZKE)"
+                        android:textColorHint="@color/text_hint"
+                        android:inputType="textCapCharacters"
+                        android:letterSpacing="0.2"
+                        android:gravity="center"
+                        android:paddingTop="0dp"
+                        android:paddingBottom="0dp"
+                        android:textSize="22sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary"/>
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnJoinGroup"
+                    android:layout_width="match_parent"
+                    android:layout_height="60dp"
+                    android:text="SEND JOIN REQUEST"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    app:cornerRadius="16dp"
+                    app:backgroundTint="@color/primary"
+                    android:textColor="@color/text_primary"
+                    android:stateListAnimator="@null"/>
+
+            </LinearLayout>
+
+            <!-- ══════════════════════════════════════════════ -->
+            <!-- SUCCESS PANEL (shown after request is sent)    -->
+            <!-- ══════════════════════════════════════════════ -->
+            <LinearLayout
+                android:id="@+id/layoutSuccess"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:visibility="gone"
+                android:background="@drawable/card_bg"
+                android:padding="24dp">
+
+                <TextView
+                    android:layout_width="64dp"
+                    android:layout_height="64dp"
+                    android:text="✅"
+                    android:textSize="32sp"
+                    android:gravity="center"
+                    android:layout_marginBottom="16dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Request Sent!"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginBottom="12dp"/>
+
+                <TextView
+                    android:id="@+id/txtSuccessBook"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Your request has been sent. The admin will review and assign your role."
+                    android:textSize="14sp"
+                    android:textColor="@color/text_secondary"
+                    android:gravity="center"
+                    android:lineSpacingExtra="4dp"
+                    android:layout_marginBottom="24dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⏳  Waiting for admin approval"
+                    android:textSize="13sp"
+                    android:textColor="@color/text_hint"
+                    android:gravity="center"/>
+
+            </LinearLayout>
+
+        </LinearLayout>
+    </ScrollView>
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
