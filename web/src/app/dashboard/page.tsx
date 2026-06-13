@@ -37,6 +37,8 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [notesCount, setNotesCount] = useState(0);
+  const [booksCount, setBooksCount] = useState(0);
   const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
@@ -88,7 +90,19 @@ export default function DashboardPage() {
       }
     );
 
-    return () => { tUnsub(); rUnsub(); };
+    // Notes count
+    const nUnsub = onSnapshot(
+      query(collection(db, "users", uid, "notes")),
+      (snap) => setNotesCount(snap.docs.filter(d => !d.data().isDeleted && !d.data().isArchived).length)
+    );
+
+    // Cashbooks count
+    const bUnsub = onSnapshot(
+      query(collection(db, "cashbooks"), where(`members.${uid}`, "!=", null)),
+      (snap) => setBooksCount(snap.size)
+    );
+
+    return () => { tUnsub(); rUnsub(); nUnsub(); bUnsub(); };
   }, [user]);
 
   const now = Date.now();
@@ -163,10 +177,10 @@ export default function DashboardPage() {
           title="Reminders" count={upcomingReminders.length} label="upcoming" />
         <QuickCard to="/dashboard/notes" icon={StickyNote}
           gradient="linear-gradient(135deg,#FFA726,#E65100)"
-          title="Notes" count={0} label="total" />
+          title="Notes" count={notesCount} label="total" />
         <QuickCard to="/dashboard/money" icon={DollarSign}
           gradient="linear-gradient(135deg,#7C83F7,#5C6BC0)"
-          title="Money" count={0} label="books" />
+          title="Money" count={booksCount} label="books" />
       </motion.div>
 
       {/* Two column layout */}
