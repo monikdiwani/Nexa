@@ -24,16 +24,20 @@ import com.example.frienddebt.model.CashbookEntry;
 import com.example.frienddebt.model.DebtEdge;
 import com.example.frienddebt.model.LedgerBook;
 import com.example.frienddebt.utils.StatusBarUtil;
+import com.example.frienddebt.utils.UserProfileHelper;
+
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+
 
 public class SettleUpActivity extends AppCompatActivity {
 
@@ -50,6 +54,9 @@ public class SettleUpActivity extends AppCompatActivity {
     private LedgerBook selectedLedger;
     private List<DebtEdge> suggestedSettlements = new ArrayList<>();
     private SettlementAdapter adapter;
+    // Cache of uid → real display name for this settle-up session
+    private Map<String, String> nameMap = new HashMap<>();
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -140,22 +147,38 @@ public class SettleUpActivity extends AppCompatActivity {
 
     private void runDebtSimplification(List<CashbookEntry> entries) {
         suggestedSettlements = DebtSimplifier.simplifyDebts(entries);
-        adapter.notifyDataSetChanged();
-        rvSettlements.scheduleLayoutAnimation();
 
         if (suggestedSettlements.isEmpty()) {
             txtSettledUp.setVisibility(View.VISIBLE);
             rvSettlements.setVisibility(View.GONE);
-        } else {
+            return;
+        }
+
+        // Collect all UIDs and resolve their names before showing the list
+        List<String> allUids = new ArrayList<>();
+        for (DebtEdge edge : suggestedSettlements) {
+            if (!allUids.contains(edge.getFrom())) allUids.add(edge.getFrom());
+            if (!allUids.contains(edge.getTo()))   allUids.add(edge.getTo());
+        }
+
+        UserProfileHelper.resolveNames(db, allUids, resolved -> {
+            nameMap.clear();
+            nameMap.putAll(resolved);
+            // "You" for current user
+            if (currentUserId != null) nameMap.put(currentUserId, "You");
+            adapter.notifyDataSetChanged();
+            rvSettlements.scheduleLayoutAnimation();
             txtSettledUp.setVisibility(View.GONE);
             rvSettlements.setVisibility(View.VISIBLE);
-        }
+        });
     }
 
     private void markAsPaid(DebtEdge edge) {
+        String fromName = nameMap.getOrDefault(edge.getFrom(), "User");
+        String toName   = nameMap.getOrDefault(edge.getTo(),   "User");
         new AlertDialog.Builder(this)
                 .setTitle("Confirm Settlement")
-                .setMessage("Record a payment of ₹" + String.format(Locale.getDefault(), "%.2f", edge.getAmount()) + " from " + resolveName(edge.getFrom()) + " to " + resolveName(edge.getTo()) + "?")
+                .setMessage("Record a payment of ₹" + String.format(Locale.getDefault(), "%.2f", edge.getAmount()) + " from " + fromName + " to " + toName + "?")
                 .setPositiveButton("Confirm", (dialog, which) -> processPayment(edge))
                 .setNegativeButton("Cancel", null)
                 .show();
@@ -203,9 +226,9 @@ public class SettleUpActivity extends AppCompatActivity {
     }
 
     private String resolveName(String userId) {
+        if (nameMap.containsKey(userId)) return nameMap.get(userId);
         if (userId.equals(currentUserId)) return "You";
-        // Simple fallback until a full users collection resolver is built
-        return "User (" + userId.substring(0, 4) + ")";
+        return "User (" + userId.substring(0, Math.min(4, userId.length())) + ")";
     }
 
     private class SettlementAdapter extends RecyclerView.Adapter<SettlementAdapter.ViewHolder> {
@@ -220,13 +243,9 @@ public class SettleUpActivity extends AppCompatActivity {
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             DebtEdge edge = suggestedSettlements.get(position);
-
-            holder.txtDebtor.setText(resolveName(edge.getFrom()));
-            holder.txtCreditor.setText(resolveName(edge.getTo()));
+            holder.txtDebtor.setText(nameMap.getOrDefault(edge.getFrom(), "User"));
+            holder.txtCreditor.setText(nameMap.getOrDefault(edge.getTo(), "User"));
             holder.txtAmount.setText(String.format(Locale.getDefault(), "₹%.2f", edge.getAmount()));
-
-            // Only allow the person who owes the money (or the receiver) to mark it as paid ideally.
-            // For now, anyone in the group can mark a settlement.
             holder.btnMarkPaid.setOnClickListener(v -> markAsPaid(edge));
         }
 
