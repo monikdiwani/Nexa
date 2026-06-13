@@ -355,7 +355,7 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
         // Batch-fetch real display names then render via RecyclerView
         UserProfileHelper.resolveNames(db, allUids, nameMap -> {
             if (txtOutstandingTotal != null) {
-                txtOutstandingTotal.setText(₹ + String.format(Locale.getDefault(), "%.2f", outstandingTotal) + " total outstanding");
+                txtOutstandingTotal.setText("\u20b9" + String.format(Locale.getDefault(), "%.2f", outstandingTotal) + " total outstanding");
             }
 
             rvDebtEdges.setLayoutManager(new LinearLayoutManager(this));

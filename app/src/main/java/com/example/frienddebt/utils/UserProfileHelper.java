@@ -2,12 +2,12 @@ package com.example.frienddebt.utils;
 
 import com.google.firebase.firestore.FieldPath;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.messaging.FirebaseMessaging;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 
 /**
  * Utility for saving and batch-fetching user display names from Firestore users/{uid}.
@@ -28,15 +28,7 @@ public class UserProfileHelper {
         data.put("displayName", displayName != null && !displayName.isEmpty() ? displayName : "Nexa User");
         data.put("email", email != null ? email : "");
         data.put("updatedAt", System.currentTimeMillis());
-
-        // Also grab the FCM token and save it for push notifications
-        FirebaseMessaging.getInstance().getToken().addOnSuccessListener(token -> {
-            if (token != null) data.put("fcmToken", token);
-            db.collection("users").document(uid).set(data, com.google.firebase.firestore.SetOptions.merge());
-        }).addOnFailureListener(e -> {
-            // Save without FCM token if unavailable
-            db.collection("users").document(uid).set(data, com.google.firebase.firestore.SetOptions.merge());
-        });
+        db.collection("users").document(uid).set(data, com.google.firebase.firestore.SetOptions.merge());
     }
 
     /**
