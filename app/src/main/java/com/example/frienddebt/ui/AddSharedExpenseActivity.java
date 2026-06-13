@@ -138,9 +138,29 @@ public class AddSharedExpenseActivity extends AppCompatActivity {
                     adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
                     spinnerLedger.setAdapter(adapter);
 
+                    String preselectedBookId = getIntent().getStringExtra("BOOK_ID");
+                    int preselectedIndex = -1;
+
+                    if (preselectedBookId != null) {
+                        for (int i = 0; i < sharedLedgers.size(); i++) {
+                            if (sharedLedgers.get(i).getId().equals(preselectedBookId)) {
+                                preselectedIndex = i;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (preselectedIndex != -1) {
+                        spinnerLedger.setSelection(preselectedIndex);
+                        spinnerLedger.setEnabled(false); // Lock it so they can't change it if launched from a specific group
+                        selectedLedger = sharedLedgers.get(preselectedIndex);
+                        loadMembersForLedger(selectedLedger);
+                    }
+
                     spinnerLedger.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                         @Override
                         public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                            if (preselectedBookId != null) return; // Prevent double-loading
                             selectedLedger = sharedLedgers.get(position);
                             loadMembersForLedger(selectedLedger);
                         }

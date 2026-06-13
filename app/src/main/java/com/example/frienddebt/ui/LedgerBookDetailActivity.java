@@ -152,6 +152,12 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
             popup.getMenu().add(0, 1, 0, "Cash Counter");
             popup.getMenu().add(0, 2, 0, "Export PDF Report");
             popup.getMenu().add(0, 4, 0, "View Activity Log");
+
+            // We determine if it's a shared group by checking if the owner role is present, or if there's a userRole (which usually means shared)
+            // A better way is checking if 'members' exists, but we can just show these options inside any ledger for now and AddSharedExpenseActivity will handle the rest.
+            popup.getMenu().add(0, 10, 0, "Add Shared Expense");
+            popup.getMenu().add(0, 11, 0, "Settle Up Debts");
+
             // Feature 21: Only ADMIN/OWNER can share invite code or manage members
             if ("ADMIN".equalsIgnoreCase(userRole) || "OWNER".equalsIgnoreCase(userRole)) {
                 popup.getMenu().add(0, 3, 0, "Share Invite Code");
@@ -163,7 +169,7 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                 popup.getMenu().add(0, 8, 0, pendingLabel);
                 popup.getMenu().add(0, 5, 0, "Rename Cashbook");
                 popup.getMenu().add(0, 6, 0, "Delete Cashbook");
-            } else {
+            } else if ("VIEWER".equalsIgnoreCase(userRole) || "EDITOR".equalsIgnoreCase(userRole)) {
                 // Non-admin members can leave the group
                 popup.getMenu().add(0, 9, 0, "Leave Group");
             }
@@ -236,12 +242,23 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                         // Leave Group (non-admin only)
                         showLeaveGroupDialog();
                         return true;
+                    case 10:
+                        Intent splitIntent = new Intent(this, AddSharedExpenseActivity.class);
+                        splitIntent.putExtra("BOOK_ID", bookId);
+                        startActivity(splitIntent);
+                        return true;
+                    case 11:
+                        Intent settleIntent = new Intent(this, SettleUpActivity.class);
+                        settleIntent.putExtra("BOOK_ID", bookId);
+                        startActivity(settleIntent);
+                        return true;
                     default:
                         return false;
                 }
             });
             popup.show();
         });
+
 
         // Role check — EDITOR and ADMIN can add entries
         if ("VIEWER".equalsIgnoreCase(userRole)) {
