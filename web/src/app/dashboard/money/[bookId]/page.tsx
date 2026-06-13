@@ -4,14 +4,14 @@ import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
 import {
   doc, onSnapshot, collection, query, orderBy,
-  addDoc, updateDoc, deleteDoc, increment
+  addDoc, updateDoc, deleteDoc, increment, getDoc
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { motion, AnimatePresence } from "framer-motion";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft, Plus, TrendingUp, TrendingDown, Copy, Check,
-  Trash2, Filter, Loader2, Users, DollarSign, ChevronDown, Shield, Eye, Pencil, X
+  Trash2, Filter, Loader2, Users, DollarSign, Shield, Eye, Pencil, X, Search
 } from "lucide-react";
 
 interface LedgerBook {
@@ -48,8 +48,10 @@ export default function LedgerDetailPage() {
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
   const [filterType, setFilterType] = useState("ALL");
+  const [search, setSearch] = useState("");
   const [showMembersPanel, setShowMembersPanel] = useState(false);
   const [roleUpdating, setRoleUpdating] = useState<string | null>(null);
+  const [memberNames, setMemberNames] = useState<Record<string, string>>({});
   const [form, setForm] = useState({
     date: new Date().toISOString().split("T")[0],
     particulars: "", type: "CASH_IN", medium: "CASH",
@@ -70,6 +72,29 @@ export default function LedgerDetailPage() {
     );
     return () => { bookUnsub(); entriesUnsub(); };
   }, [user, bookId]);
+
+  // Resolve member UIDs to display names
+  useEffect(() => {
+    if (!book?.members) return;
+    const uids = Object.keys(book.members).filter(uid => uid !== user?.uid);
+    if (uids.length === 0) return;
+    const newNames: Record<string, string> = {};
+    Promise.all(
+      uids.map(async (uid) => {
+        try {
+          const snap = await getDoc(doc(db, "users", uid));
+          if (snap.exists()) {
+            const data = snap.data() as any;
+            newNames[uid] = data.displayName || data.name || data.email || `User (${uid.slice(0,6)})`;
+          } else {
+            newNames[uid] = `User (${uid.slice(0,6)})`;
+          }
+        } catch {
+          newNames[uid] = `User (${uid.slice(0,6)})`;
+        }
+      })
+    ).then(() => setMemberNames(newNames));
+  }, [book?.members, user?.uid]);
 
   const myRole = book?.members?.[user?.uid ?? ""] ?? "VIEWER";
   const isAdmin = myRole === "ADMIN";
@@ -149,7 +174,24 @@ export default function LedgerDetailPage() {
     });
   };
 
-  const filtered = entries.filter(e => filterType === "ALL" || e.type === filterType);
+  const filtered = entries.filter(e => {
+    const matchesType = filterType === "ALL" || e.type === filterType;
+    const matchesSearch = !search || e.particulars.toLowerCase().includes(search.toLowerCase()) ||
+      e.note?.toLowerCase().includes(search.toLowerCase()) ||
+      e.category?.toLowerCase().includes(search.toLowerCase());
+    return matchesType && matchesSearch;
+  });
+
+  // Compute running balance (newest to oldest = subtract/add as we go from total)
+  const runningBalances: Record<string, number> = {};
+  let running = (book?.netBalance ?? 0);
+  // entries are ordered newest first
+  entries.forEach(e => {
+    runningBalances[e.id] = running;
+    // go backwards: subtract what this entry contributed
+    running = e.type === "CASH_IN" ? running - e.amount : running + e.amount;
+  });
+
   const fmt = (n: number) => `₹${Math.abs(n).toLocaleString("en-IN", { minimumFractionDigits: 0 })}`;
 
   const memberCount = book ? Object.keys(book.members ?? {}).length : 0;
@@ -221,15 +263,17 @@ export default function LedgerDetailPage() {
                 {Object.entries(book.members ?? {}).map(([uid, role]) => {
                   const RoleIcon = ROLE_ICONS[role] ?? Eye;
                   const isSelf = uid === user?.uid;
+                  const displayName = isSelf ? (user?.displayName || "You") : (memberNames[uid] || `User (${uid.slice(0,6)})`);
+                  const nameInitials = displayName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0,2);
                   return (
                     <div key={uid} className="flex items-center gap-3 p-3 rounded-xl"
                       style={{ background: "var(--bg)" }}>
                       <div className="w-8 h-8 rounded-lg nexa-gradient flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                        {uid.slice(0, 2).toUpperCase()}
+                        {nameInitials || uid.slice(0,2).toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold truncate" style={{ color: "var(--text-primary)" }}>
-                          {isSelf ? "You" : `Member (${uid.slice(0, 8)}...)`}
+                          {isSelf ? `${displayName} (You)` : displayName}
                         </p>
                         <div className="flex items-center gap-1 mt-0.5">
                           <RoleIcon size={11} style={{ color: ROLE_COLORS[role] }} />
@@ -354,7 +398,19 @@ export default function LedgerDetailPage() {
         )}
       </AnimatePresence>
 
-      {/* Filter */}
+      {/* Search + Filter */}
+      <div className="relative mb-3">
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-hint)" }} />
+        <input value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="Search entries..." className="input pl-9 pr-8 text-sm" />
+        {search && (
+          <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 btn-icon" style={{ padding: "2px" }}>
+            <X size={13} />
+          </button>
+        )}
+      </div>
+
+      {/* Filter chips */}
       <div className="flex items-center gap-2 mb-4 flex-wrap">
         <Filter size={14} style={{ color: "var(--text-hint)" }} />
         {["ALL", "CASH_IN", "CASH_OUT"].map(f => (
@@ -367,6 +423,7 @@ export default function LedgerDetailPage() {
         ))}
         <span className="ml-auto text-xs" style={{ color: "var(--text-hint)" }}>{filtered.length} entries</span>
       </div>
+
 
       {/* Entries list */}
       {loading ? (
@@ -420,6 +477,11 @@ export default function LedgerDetailPage() {
                   <p className="font-bold text-sm" style={{ color: entry.type === "CASH_IN" ? "var(--positive)" : "var(--negative)" }}>
                     {entry.type === "CASH_IN" ? "+" : "-"}{fmt(entry.amount)}
                   </p>
+                  {runningBalances[entry.id] !== undefined && (
+                    <p className="text-xs mt-0.5" style={{ color: "var(--text-hint)" }}>
+                      bal: {runningBalances[entry.id] >= 0 ? "" : "-"}{fmt(runningBalances[entry.id])}
+                    </p>
+                  )}
                 </div>
 
                 {/* Delete — EDITOR can delete their own; ADMIN can delete any */}
