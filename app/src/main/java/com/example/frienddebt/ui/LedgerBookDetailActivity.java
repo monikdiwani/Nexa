@@ -313,15 +313,30 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
         containerDebtSummary.setVisibility(View.VISIBLE);
         layoutDebtEdges.removeAllViews();
 
+        // Collect all unique UIDs from the edges
+        List<String> allUids = new ArrayList<>();
         for (com.example.frienddebt.model.DebtEdge edge : edges) {
-            TextView txtEdge = new TextView(this);
-            String fromName = edge.getFrom().equals(auth.getCurrentUser().getUid()) ? "You" : "User (" + edge.getFrom().substring(0, 4) + ")";
-            String toName = edge.getTo().equals(auth.getCurrentUser().getUid()) ? "You" : "User (" + edge.getTo().substring(0, 4) + ")";
-            txtEdge.setText(fromName + " owes " + toName + " ₹" + String.format(Locale.getDefault(), "%.2f", edge.getAmount()));
-            txtEdge.setTextColor(getResources().getColor(R.color.text_primary));
-            txtEdge.setPadding(0, 4, 0, 4);
-            layoutDebtEdges.addView(txtEdge);
+            if (!allUids.contains(edge.getFrom())) allUids.add(edge.getFrom());
+            if (!allUids.contains(edge.getTo()))   allUids.add(edge.getTo());
         }
+
+        String currentUid = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : "";
+
+        // Batch-fetch real display names then render
+        UserProfileHelper.resolveNames(db, allUids, nameMap -> {
+            layoutDebtEdges.removeAllViews();
+            for (com.example.frienddebt.model.DebtEdge edge : edges) {
+                String fromName = edge.getFrom().equals(currentUid) ? "You" : nameMap.getOrDefault(edge.getFrom(), "User");
+                String toName   = edge.getTo().equals(currentUid)   ? "You" : nameMap.getOrDefault(edge.getTo(), "User");
+
+                TextView txtEdge = new TextView(this);
+                txtEdge.setText(fromName + " owes " + toName + " ₹" + String.format(Locale.getDefault(), "%.2f", edge.getAmount()));
+                txtEdge.setTextColor(getResources().getColor(R.color.text_primary));
+                txtEdge.setTextSize(14f);
+                txtEdge.setPadding(0, 6, 0, 6);
+                layoutDebtEdges.addView(txtEdge);
+            }
+        });
     }
 
     private void updateBookBalances(double totalIn, double totalOut) {
