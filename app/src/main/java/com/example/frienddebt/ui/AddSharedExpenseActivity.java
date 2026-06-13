@@ -55,6 +55,12 @@ public class AddSharedExpenseActivity extends AppCompatActivity {
     
     // Map of UserID to Exact Amount input field
     private Map<String, TextInputEditText> exactAmountInputs = new HashMap<>();
+    private Map<String, android.widget.CheckBox> optOutCheckboxes = new HashMap<>();
+    
+    private boolean isEditMode = false;
+    private boolean isDuplicateMode = false;
+    private String entryId = null;
+    private com.example.frienddebt.model.CashbookEntry existingEntry = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -83,9 +89,15 @@ public class AddSharedExpenseActivity extends AppCompatActivity {
 
         btnBack.setOnClickListener(v -> finish());
 
-    
+        isEditMode = getIntent().getBooleanExtra("IS_EDIT_MODE", false);
+        isDuplicateMode = getIntent().getBooleanExtra("IS_DUPLICATE_MODE", false);
+        entryId = getIntent().getStringExtra("ENTRY_ID");
 
-    
+        if (isEditMode) {
+            btnSaveExpense.setText("Update Expense");
+            TextView title = findViewById(R.id.txtHeaderTitle);
+            if (title != null) title.setText("Edit Shared Expense");
+        }
 
         rgSplitMethod.setOnCheckedChangeListener((group, checkedId) -> {
             if (checkedId == R.id.rbEqually) {
@@ -198,8 +210,13 @@ public class AddSharedExpenseActivity extends AppCompatActivity {
             int myIndex = memberIds.indexOf(currentUserId);
             if (myIndex != -1) spinnerPaidBy.setSelection(myIndex);
 
-            if (!rbEqually.isChecked()) {
+            if (!rbEqually.isChecked() || isEditMode || isDuplicateMode) {
                 buildDynamicSplitUI(rgSplitMethod.getCheckedRadioButtonId());
+                if (entryId != null && (isEditMode || isDuplicateMode)) {
+                    loadEntryDetails();
+                }
+            } else {
+                buildDynamicSplitUI(R.id.rbEqually);
             }
         });
     }
@@ -207,6 +224,9 @@ public class AddSharedExpenseActivity extends AppCompatActivity {
     private void buildDynamicSplitUI(int checkedId) {
         containerSplits.removeAllViews();
         exactAmountInputs.clear();
+        optOutCheckboxes.clear();
+
+        boolean showInput = (checkedId != R.id.rbEqually);
 
         String hint = "0.00";
         if (checkedId == R.id.rbPercent) hint = "0 %";
@@ -219,7 +239,12 @@ public class AddSharedExpenseActivity extends AppCompatActivity {
             LinearLayout row = new LinearLayout(this);
             row.setOrientation(LinearLayout.HORIZONTAL);
             row.setPadding(0, 16, 0, 16);
+            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
 
+            android.widget.CheckBox cbOpt = new android.widget.CheckBox(this);
+            cbOpt.setChecked(true); // By default, everyone is included
+            cbOpt.setButtonTintList(android.content.res.ColorStateList.valueOf(getResources().getColor(R.color.primary)));
+            
             TextView txtName = new TextView(this);
             txtName.setText(uName);
             txtName.setTextSize(16f);
@@ -232,18 +257,87 @@ public class AddSharedExpenseActivity extends AppCompatActivity {
             etSplitInput.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
             LinearLayout.LayoutParams inputParams = new LinearLayout.LayoutParams(dpToPx(120), LinearLayout.LayoutParams.WRAP_CONTENT);
             etSplitInput.setLayoutParams(inputParams);
+            etSplitInput.setVisibility(showInput ? View.VISIBLE : View.GONE);
 
+            cbOpt.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                if (showInput) {
+                    etSplitInput.setEnabled(isChecked);
+                    if (!isChecked) etSplitInput.setText("");
+                }
+            });
+
+            row.addView(cbOpt);
             row.addView(txtName);
             row.addView(etSplitInput);
             containerSplits.addView(row);
 
             exactAmountInputs.put(uId, etSplitInput);
+            optOutCheckboxes.put(uId, cbOpt);
         }
     }
 
     private int dpToPx(int dp) {
         float density = getResources().getDisplayMetrics().density;
         return Math.round((float) dp * density);
+    }
+
+    private void loadEntryDetails() {
+        if (selectedLedger == null || entryId == null) return;
+        db.collection("cashbooks").document(selectedLedger.getId()).collection("entries").document(entryId)
+            .get().addOnSuccessListener(doc -> {
+                if (!doc.exists()) return;
+                existingEntry = com.example.frienddebt.model.CashbookEntry.fromDocument(doc);
+                etTitle.setText(existingEntry.getCategory());
+                etAmount.setText(String.valueOf(existingEntry.getAmount()));
+                
+                // Set Paid By
+                int payerIdx = memberIds.indexOf(existingEntry.getPaidBy());
+                if (payerIdx != -1) spinnerPaidBy.setSelection(payerIdx);
+
+                // Load Splits
+                Map<String, Double> splits = existingEntry.getSplits();
+                if (splits != null && !splits.isEmpty()) {
+                    boolean isEqual = true;
+                    // Check if it was equally split
+                    double expectedSplit = existingEntry.getAmount() / splits.size();
+                    for (Double amt : splits.values()) {
+                        if (Math.abs(amt - expectedSplit) > 0.05) { isEqual = false; break; }
+                    }
+
+                    if (isEqual && "EQUALLY".equals(existingEntry.getSplitMethod())) {
+                        rbEqually.setChecked(true);
+                        // Uncheck anyone not in the splits
+                        for (String uId : memberIds) {
+                            android.widget.CheckBox cb = optOutCheckboxes.get(uId);
+                            if (cb != null) {
+                                cb.setChecked(splits.containsKey(uId));
+                            }
+                        }
+                    } else {
+                        if ("PERCENT".equals(existingEntry.getSplitMethod())) rbPercent.setChecked(true);
+                        else if ("SHARES".equals(existingEntry.getSplitMethod())) rbShares.setChecked(true);
+                        else rbExact.setChecked(true);
+                        
+                        // Wait for RadioButton listener to rebuild UI if needed
+                        // Populate exact values or percentages
+                        for (String uId : memberIds) {
+                            android.widget.CheckBox cb = optOutCheckboxes.get(uId);
+                            TextInputEditText input = exactAmountInputs.get(uId);
+                            if (splits.containsKey(uId)) {
+                                if (cb != null) cb.setChecked(true);
+                                if (input != null && input.getVisibility() == View.VISIBLE) {
+                                    // If we stored original percentages or shares, we'd load those. But we only store exact double amounts in the model.
+                                    // We will just show the exact amounts and force exact mode if we don't have the ratio.
+                                    // To keep it simple, we just write the amount.
+                                    input.setText(String.format(java.util.Locale.getDefault(), "%.2f", splits.get(uId)));
+                                }
+                            } else {
+                                if (cb != null) cb.setChecked(false);
+                            }
+                        }
+                    }
+                }
+            });
     }
 
     private void saveExpense() {
@@ -271,14 +365,29 @@ public class AddSharedExpenseActivity extends AppCompatActivity {
         Map<String, Double> splits = new HashMap<>();
 
         if (rbEqually.isChecked()) {
-            double splitAmount = totalAmount / memberIds.size();
+            List<String> optedInMembers = new ArrayList<>();
             for (String uid : memberIds) {
+                android.widget.CheckBox cb = optOutCheckboxes.get(uid);
+                if (cb != null && cb.isChecked()) {
+                    optedInMembers.add(uid);
+                }
+            }
+            if (optedInMembers.isEmpty()) {
+                Toast.makeText(this, "At least one person must be included in the split", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            double splitAmount = totalAmount / optedInMembers.size();
+            for (String uid : optedInMembers) {
                 splits.put(uid, splitAmount);
             }
         } else {
             double sumInput = 0;
             Map<String, Double> inputVals = new HashMap<>();
             for (Map.Entry<String, TextInputEditText> entry : exactAmountInputs.entrySet()) {
+                String uId = entry.getKey();
+                android.widget.CheckBox cb = optOutCheckboxes.get(uId);
+                if (cb == null || !cb.isChecked()) continue; // Skip opted-out members
+                
                 String val = entry.getValue().getText().toString();
                 if (!val.isEmpty()) {
                     try {
@@ -287,7 +396,7 @@ public class AddSharedExpenseActivity extends AppCompatActivity {
                             Toast.makeText(this, "Negative values are not allowed", Toast.LENGTH_SHORT).show();
                             return;
                         }
-                        inputVals.put(entry.getKey(), valDouble);
+                        inputVals.put(uId, valDouble);
                         sumInput += valDouble;
                     } catch (Exception ignored) {}
                 }
@@ -318,24 +427,35 @@ public class AddSharedExpenseActivity extends AppCompatActivity {
             }
         }
 
+        if (splits.isEmpty()) {
+            Toast.makeText(this, "Split cannot be empty", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         btnSaveExpense.setEnabled(false);
 
-        String entryId = UUID.randomUUID().toString();
-        CashbookEntry entry = new CashbookEntry(
-                entryId,
+        String newEntryId = (this.entryId != null && isEditMode) ? this.entryId : java.util.UUID.randomUUID().toString();
+        long date = (existingEntry != null && isEditMode) ? existingEntry.getDate() : System.currentTimeMillis();
+        long createdAt = (existingEntry != null && isEditMode) ? existingEntry.getCreatedAt() : System.currentTimeMillis();
+        String createdBy = (existingEntry != null && isEditMode) ? existingEntry.getCreatedBy() : currentUserId;
+        String createdByName = (existingEntry != null && isEditMode) ? existingEntry.getCreatedByName() : "";
+
+        com.example.frienddebt.model.CashbookEntry entry = new com.example.frienddebt.model.CashbookEntry(
+                newEntryId,
                 selectedLedger.getId(),
-                System.currentTimeMillis(),
+                date,
                 title,
                 "EXPENSE",
                 "CASH",
                 totalAmount,
                 "Shared",
                 "",
-                System.currentTimeMillis()
+                createdAt
         );
-        entry.setCreatedBy(currentUserId);
+        entry.setCreatedBy(createdBy);
+        entry.setCreatedByName(createdByName);
         entry.setPaidBy(payerId);
-        String splitMethodStr = "EQUAL";
+        String splitMethodStr = "EQUALLY";
         if (rbExact.isChecked()) splitMethodStr = "EXACT";
         else if (rbPercent.isChecked()) splitMethodStr = "PERCENT";
         else if (rbShares.isChecked()) splitMethodStr = "SHARES";
@@ -344,13 +464,13 @@ public class AddSharedExpenseActivity extends AppCompatActivity {
         entry.setSplits(splits);
 
         final double finalTotalAmount = totalAmount;
+        final double oldAmount = (existingEntry != null && isEditMode) ? existingEntry.getAmount() : 0.0;
 
         db.collection("cashbooks").document(selectedLedger.getId())
-                .collection("entries").document(entryId)
+                .collection("entries").document(newEntryId)
                 .set(entry.toFirestoreMap())
                 .addOnSuccessListener(aVoid -> {
-                    // Update ledger totals (this is a simplified logic. Real split logic updates member balances)
-                    updateLedgerTotals(selectedLedger.getId(), finalTotalAmount);
+                    updateLedgerTotals(selectedLedger.getId(), oldAmount, finalTotalAmount);
                 })
                 .addOnFailureListener(e -> {
                     btnSaveExpense.setEnabled(true);
@@ -358,17 +478,23 @@ public class AddSharedExpenseActivity extends AppCompatActivity {
                 });
     }
 
-    private void updateLedgerTotals(String bookId, double amount) {
+    private void updateLedgerTotals(String bookId, double oldAmount, double newAmount) {
+        if (Math.abs(oldAmount - newAmount) < 0.01) {
+            Toast.makeText(this, isEditMode ? "Expense updated" : "Expense added", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+        
         db.collection("cashbooks").document(bookId)
                 .get()
                 .addOnSuccessListener(doc -> {
                     if (doc.exists()) {
-                        LedgerBook book = LedgerBook.fromDocument(doc);
-                        double newTotal = book.getTotalCashOut() + amount;
+                        com.example.frienddebt.model.LedgerBook book = com.example.frienddebt.model.LedgerBook.fromDocument(doc);
+                        double newTotal = book.getTotalCashOut() - oldAmount + newAmount;
                         db.collection("cashbooks").document(bookId)
                                 .update("totalCashOut", newTotal)
                                 .addOnSuccessListener(aVoid -> {
-                                    Toast.makeText(this, "Expense added", Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(this, isEditMode ? "Expense updated" : "Expense added", Toast.LENGTH_SHORT).show();
                                     finish();
                                 });
                     }

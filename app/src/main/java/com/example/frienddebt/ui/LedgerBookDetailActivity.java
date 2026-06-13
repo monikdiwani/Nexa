@@ -66,7 +66,9 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
     private String userRole;
     private String searchQuery = "";
     private Map<String, Double> runningBalances = new HashMap<>();
-    private int pendingCount = 0; // live count of pending join requests
+    private int pendingCount = 0;
+    private ListenerRegistration pendingListener;
+    private boolean isSharedGroup = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -266,11 +268,55 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
         } else {
             com.example.frienddebt.utils.SpringAnimationUtil.applySpringEffect(fabAddEntry);
             fabAddEntry.setOnClickListener(v -> {
-                Intent intent = new Intent(LedgerBookDetailActivity.this, AddCashbookEntryActivity.class);
-                intent.putExtra("BOOK_ID", bookId);
-                startActivity(intent);
+                if (isSharedGroup) {
+                    showAddEntryBottomSheet(bookId);
+                } else {
+                    Intent intent = new Intent(LedgerBookDetailActivity.this, AddCashbookEntryActivity.class);
+                    intent.putExtra("BOOK_ID", bookId);
+                    startActivity(intent);
+                }
             });
         }
+    }
+
+    private void showAddEntryBottomSheet(String bId) {
+        com.google.android.material.bottomsheet.BottomSheetDialog bottomSheetDialog = new com.google.android.material.bottomsheet.BottomSheetDialog(this);
+        View sheetView = getLayoutInflater().inflate(R.layout.bottom_sheet_money_actions, null);
+
+        // Hide the universal actions that don't apply here
+        sheetView.findViewById(R.id.btnActionCreateLedger).setVisibility(View.GONE);
+        sheetView.findViewById(R.id.btnActionJoinLedger).setVisibility(View.GONE);
+
+        sheetView.findViewById(R.id.btnActionAddIncome).setOnClickListener(v1 -> {
+            bottomSheetDialog.dismiss();
+            Intent intent = new Intent(LedgerBookDetailActivity.this, AddCashbookEntryActivity.class);
+            intent.putExtra("BOOK_ID", bId);
+            startActivity(intent);
+        });
+
+        sheetView.findViewById(R.id.btnActionAddExpense).setOnClickListener(v2 -> {
+            bottomSheetDialog.dismiss();
+            Intent intent = new Intent(LedgerBookDetailActivity.this, AddCashbookEntryActivity.class);
+            intent.putExtra("BOOK_ID", bId);
+            startActivity(intent);
+        });
+
+        sheetView.findViewById(R.id.btnActionAddSharedExpense).setOnClickListener(v3 -> {
+            bottomSheetDialog.dismiss();
+            Intent splitIntent = new Intent(LedgerBookDetailActivity.this, AddSharedExpenseActivity.class);
+            splitIntent.putExtra("BOOK_ID", bId);
+            startActivity(splitIntent);
+        });
+
+        sheetView.findViewById(R.id.btnActionSettleUp).setOnClickListener(v4 -> {
+            bottomSheetDialog.dismiss();
+            Intent settleIntent = new Intent(LedgerBookDetailActivity.this, SettleUpActivity.class);
+            settleIntent.putExtra("BOOK_ID", bId);
+            startActivity(settleIntent);
+        });
+
+        bottomSheetDialog.setContentView(sheetView);
+        bottomSheetDialog.show();
     }
 
     @Override
@@ -337,7 +383,8 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                     // Run Debt Simplification
                     db.collection("cashbooks").document(bookId).get().addOnSuccessListener(doc -> {
                         com.example.frienddebt.model.LedgerBook book = com.example.frienddebt.model.LedgerBook.fromDocument(doc);
-                        if (book.getMembers() != null && book.getMembers().size() > 1) {
+                        isSharedGroup = (book.getMembers() != null && book.getMembers().size() > 1);
+                        if (isSharedGroup) {
                             List<com.example.frienddebt.model.DebtEdge> edges = com.example.frienddebt.dsa.DebtSimplifier.simplifyDebts(allEntries);
                             updateDebtSummary(edges);
                         } else {
@@ -826,13 +873,15 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                             intent.putExtra("LINKED_TITLE", prefix + " ₹" + entry.getAmount() + " - " + name);
                             startActivity(intent);
                         } else if ("Edit Transaction".equals(selected)) {
-                            Intent intent = new Intent(LedgerBookDetailActivity.this, AddCashbookEntryActivity.class);
+                            boolean isShared = "EXPENSE".equals(entry.getType()) && entry.getSplits() != null && !entry.getSplits().isEmpty();
+                            Intent intent = new Intent(LedgerBookDetailActivity.this, isShared ? AddSharedExpenseActivity.class : AddCashbookEntryActivity.class);
                             intent.putExtra("BOOK_ID", bookId);
                             intent.putExtra("ENTRY_ID", entry.getId());
                             intent.putExtra("IS_EDIT_MODE", true);
                             startActivity(intent);
                         } else if ("Duplicate Transaction".equals(selected)) {
-                            Intent intent = new Intent(LedgerBookDetailActivity.this, AddCashbookEntryActivity.class);
+                            boolean isShared = "EXPENSE".equals(entry.getType()) && entry.getSplits() != null && !entry.getSplits().isEmpty();
+                            Intent intent = new Intent(LedgerBookDetailActivity.this, isShared ? AddSharedExpenseActivity.class : AddCashbookEntryActivity.class);
                             intent.putExtra("BOOK_ID", bookId);
                             intent.putExtra("ENTRY_ID", entry.getId());
                             intent.putExtra("IS_DUPLICATE_MODE", true);
