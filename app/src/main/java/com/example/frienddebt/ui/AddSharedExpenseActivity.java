@@ -21,6 +21,8 @@ import com.example.frienddebt.R;
 import com.example.frienddebt.model.CashbookEntry;
 import com.example.frienddebt.model.LedgerBook;
 import com.example.frienddebt.utils.StatusBarUtil;
+import com.example.frienddebt.utils.UserProfileHelper;
+
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -154,29 +156,32 @@ public class AddSharedExpenseActivity extends AppCompatActivity {
         exactAmountInputs.clear();
         containerSplits.removeAllViews();
 
-        if (ledger.getMembers() != null) {
-            for (Map.Entry<String, String> entry : ledger.getMembers().entrySet()) {
-                memberIds.add(entry.getKey());
-                // In a real app we would resolve IDs to Display Names from a "users" collection.
-                // For now, we will just use the role or a shortened ID if it's not the current user.
-                String displayName = entry.getKey().equals(currentUserId) ? "Me" : "User (" + entry.getKey().substring(0, 4) + ")";
-                memberNames.add(displayName);
+        if (ledger.getMembers() == null || ledger.getMembers().isEmpty()) return;
+
+        List<String> uids = new ArrayList<>(ledger.getMembers().keySet());
+
+        // Batch-fetch real display names before building the UI
+        UserProfileHelper.resolveNames(com.google.firebase.firestore.FirebaseFirestore.getInstance(), uids, nameMap -> {
+            memberIds.clear();
+            memberNames.clear();
+            for (String uid : uids) {
+                memberIds.add(uid);
+                String name = uid.equals(currentUserId) ? "Me" : nameMap.getOrDefault(uid, "User");
+                memberNames.add(name);
             }
-        }
 
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, memberNames);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerPaidBy.setAdapter(adapter);
-        
-        // Select 'Me' by default if present
-        int myIndex = memberIds.indexOf(currentUserId);
-        if (myIndex != -1) {
-            spinnerPaidBy.setSelection(myIndex);
-        }
+            ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, memberNames);
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            spinnerPaidBy.setAdapter(adapter);
 
-        if (!rbEqually.isChecked()) {
-            buildDynamicSplitUI(rgSplitMethod.getCheckedRadioButtonId());
-        }
+            // Select 'Me' by default if present
+            int myIndex = memberIds.indexOf(currentUserId);
+            if (myIndex != -1) spinnerPaidBy.setSelection(myIndex);
+
+            if (!rbEqually.isChecked()) {
+                buildDynamicSplitUI(rgSplitMethod.getCheckedRadioButtonId());
+            }
+        });
     }
 
     private void buildDynamicSplitUI(int checkedId) {
