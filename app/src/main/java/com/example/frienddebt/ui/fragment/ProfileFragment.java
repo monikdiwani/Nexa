@@ -85,17 +85,10 @@ public class ProfileFragment extends Fragment {
     private static final String KEY_EVENING_DIGEST = "evening_digest";
     private static final String KEY_APP_LOCK = "app_lock_enabled";
 
-    @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_profile, container, false);
-
-        auth = FirebaseAuth.getInstance();
-        sp = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-
-        txtProfileInitials = view.findViewById(R.id.txtProfileInitials);
-        imgProfilePicture = view.findViewById(R.id.imgProfilePicture);
-
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        
         // Register photo pickers
         smsPermissionLauncher = registerForActivityResult(
             new androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions(),
@@ -132,6 +125,18 @@ public class ProfileFragment extends Fragment {
             new androidx.activity.result.contract.ActivityResultContracts.TakePicture(),
             success -> { /* Uri already set in pendingPhotoUri */ }
         );
+    }
+
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        View view = inflater.inflate(R.layout.fragment_profile, container, false);
+
+        auth = FirebaseAuth.getInstance();
+        sp = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+
+        txtProfileInitials = view.findViewById(R.id.txtProfileInitials);
+        imgProfilePicture = view.findViewById(R.id.imgProfilePicture);
 
         txtProfileName = view.findViewById(R.id.txtProfileName);
         txtProfileEmail = view.findViewById(R.id.txtProfileEmail);
