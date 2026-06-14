@@ -122,9 +122,11 @@ public class CashbookFragment extends Fragment {
                     for (DocumentSnapshot doc : snapshots) {
                         LedgerBook book = LedgerBook.fromDocument(doc);
                         
-                        // Apply filter
-                        if ("PERSONAL".equals(filter) && "GROUP".equals(book.getType())) continue;
-                        if ("SHARED".equals(filter) && !"GROUP".equals(book.getType())) continue;
+                        // Apply filter (support legacy ledgers without 'type' field)
+                        boolean isGroup = "GROUP".equals(book.getType()) || (book.getMembers() != null && book.getMembers().size() > 1);
+                        
+                        if ("PERSONAL".equals(filter) && isGroup) continue;
+                        if ("SHARED".equals(filter) && !isGroup) continue;
 
                         ledgerBooks.add(book);
                     }
@@ -166,7 +168,8 @@ public class CashbookFragment extends Fragment {
             String role = book.getMembers() != null ? book.getMembers().get(userId) : "Unknown";
             holder.txtRole.setText("Role: " + role);
             
-            if ("GROUP".equals(book.getType())) {
+            boolean isGroup = "GROUP".equals(book.getType()) || (book.getMembers() != null && book.getMembers().size() > 1);
+            if (isGroup) {
                 // Shared Group
                 Double myBal = book.getBalances() != null ? book.getBalances().get(userId) : 0.0;
                 if (myBal == null) myBal = 0.0;

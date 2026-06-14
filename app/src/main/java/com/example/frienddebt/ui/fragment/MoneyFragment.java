@@ -178,7 +178,7 @@ public class MoneyFragment extends Fragment {
                     
                     for (com.google.firebase.firestore.DocumentSnapshot doc : snapshots) {
                         LedgerBook book = LedgerBook.fromDocument(doc);
-                        boolean isShared = book.getMembers() != null && book.getMembers().size() > 1;
+                        boolean isShared = "GROUP".equals(book.getType()) || (book.getMembers() != null && book.getMembers().size() > 1);
 
                         // Filter by tab
                         if (selectedTab == 0 && isShared) continue;   // Personal only
@@ -218,7 +218,8 @@ public class MoneyFragment extends Fragment {
         
         for (com.google.firebase.firestore.DocumentSnapshot bookDoc : bookDocs) {
             LedgerBook book = LedgerBook.fromDocument(bookDoc);
-            if (book.getMembers() != null && book.getMembers().size() > 1) {
+            boolean isShared = "GROUP".equals(book.getType()) || (book.getMembers() != null && book.getMembers().size() > 1);
+            if (isShared) {
                 sharedBooks.add(book);
             }
             tasks.add(db.collection("cashbooks").document(book.getId()).collection("entries").get());
