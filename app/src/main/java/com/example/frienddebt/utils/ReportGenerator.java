@@ -22,7 +22,7 @@ import java.util.Locale;
 
 public class ReportGenerator {
 
-    public static Uri generatePdfReport(Context context, String bookName, List<CashbookEntry> entries) {
+    public static Uri generatePdfReport(Context context, String bookName, List<CashbookEntry> entries, java.util.Map<String, String> resolvedUserNames, String currentUserId) {
         PdfDocument pdfDocument = new PdfDocument();
         Paint paint = new Paint();
         Paint titlePaint = new Paint();
@@ -64,7 +64,7 @@ public class ReportGenerator {
         for (CashbookEntry entry : entries) {
             if ("CASH_IN".equals(entry.getType())) {
                 totalIn += entry.getAmount();
-            } else {
+            } else if (!"SETTLEMENT".equalsIgnoreCase(entry.getType())) {
                 totalOut += entry.getAmount();
             }
         }
@@ -78,6 +78,13 @@ public class ReportGenerator {
             canvas.drawText(dateSdf.format(new Date(entry.getDate())), 50, y, paint);
             
             String particulars = entry.getParticulars();
+            if ("SETTLEMENT".equalsIgnoreCase(entry.getType()) && resolvedUserNames != null) {
+                 String payer = resolvedUserNames.getOrDefault(entry.getPaidBy(), "Someone");
+                 String receiver = resolvedUserNames.getOrDefault(entry.getContactName(), "Someone");
+                 if (currentUserId != null && currentUserId.equals(entry.getPaidBy())) payer = "You";
+                 if (currentUserId != null && currentUserId.equals(entry.getContactName())) receiver = "You";
+                 particulars = payer + " paid " + receiver;
+            }
             if (particulars != null && particulars.length() > 25) {
                 particulars = particulars.substring(0, 22) + "...";
             }
@@ -87,6 +94,10 @@ public class ReportGenerator {
                 paint.setColor(Color.parseColor("#4CAF50")); // Green
                 canvas.drawText("IN", 350, y, paint);
                 canvas.drawText("+" + entry.getAmount(), 450, y, paint);
+            } else if ("SETTLEMENT".equalsIgnoreCase(entry.getType())) {
+                paint.setColor(Color.parseColor("#2196F3")); // Blue
+                canvas.drawText("SETTLE", 350, y, paint);
+                canvas.drawText("₹" + entry.getAmount(), 450, y, paint);
             } else {
                 paint.setColor(Color.parseColor("#F44336")); // Red
                 canvas.drawText("OUT", 350, y, paint);

@@ -198,7 +198,7 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                             Toast.makeText(this, "No entries to export", Toast.LENGTH_SHORT).show();
                             return true;
                         }
-                        android.net.Uri pdfUri = com.example.frienddebt.utils.ReportGenerator.generatePdfReport(this, bookName, allEntries);
+                        android.net.Uri pdfUri = com.example.frienddebt.utils.ReportGenerator.generatePdfReport(this, bookName, allEntries, resolvedUserNames, auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : null);
                         if (pdfUri != null) {
                             Intent shareIntent = new Intent(Intent.ACTION_SEND);
                             shareIntent.setType("application/pdf");
