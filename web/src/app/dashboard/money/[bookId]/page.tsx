@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft, Plus, TrendingUp, TrendingDown, Copy, Check,
-  Trash2, Filter, Loader2, Users, DollarSign, Shield, Eye, Pencil, X, Search
+  Trash2, Filter, Loader2, Users, DollarSign, Shield, Eye, Pencil, X, Search, Download, Calculator
 } from "lucide-react";
 
 interface LedgerBook {
@@ -55,7 +55,8 @@ export default function LedgerDetailPage() {
   const [form, setForm] = useState({
     date: new Date().toISOString().split("T")[0],
     particulars: "", type: "CASH_IN", medium: "CASH",
-    amount: "", category: "Other", note: ""
+    amount: "", category: "Other", note: "",
+    isRecurring: false, recurringPattern: "MONTHLY"
   });
 
   useEffect(() => {
@@ -114,7 +115,7 @@ export default function LedgerDetailPage() {
       createdByName: user.displayName ?? user.email ?? "Unknown",
       createdAt: Date.now(), lastModifiedAt: Date.now(),
       billImageUrl: null, contactName: null, contactPhone: null,
-      isRecurring: false, recurringPattern: null,
+      isRecurring: form.isRecurring, recurringPattern: form.isRecurring ? form.recurringPattern : null,
     });
 
     const delta = form.type === "CASH_IN" ? amt : -amt;
@@ -131,7 +132,7 @@ export default function LedgerDetailPage() {
       amount: amt, timestamp: Date.now(), details: form.note
     });
 
-    setForm({ date: new Date().toISOString().split("T")[0], particulars: "", type: "CASH_IN", medium: "CASH", amount: "", category: "Other", note: "" });
+    setForm({ date: new Date().toISOString().split("T")[0], particulars: "", type: "CASH_IN", medium: "CASH", amount: "", category: "Other", note: "", isRecurring: false, recurringPattern: "MONTHLY" });
     setShowForm(false);
     setSaving(false);
   };
@@ -187,6 +188,26 @@ export default function LedgerDetailPage() {
     await updateDoc(doc(db, "cashbooks", bookId), {
       [`members.${uid}`]: deleteField()
     });
+  };
+
+  const exportCSV = () => {
+    const header = ["Date", "Particulars", "Type", "Medium", "Amount", "Category", "Note", "Created By"];
+    const rows = entries.map(e => [
+      new Date(e.date).toLocaleDateString("en-IN"),
+      `"${e.particulars.replace(/"/g, '""')}"`,
+      e.type, e.medium, e.amount.toString(), e.category,
+      `"${(e.note || "").replace(/"/g, '""')}"`,
+      `"${(e.createdByName || "").replace(/"/g, '""')}"`
+    ]);
+    const csvContent = [header, ...rows].map(row => row.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `${book?.name?.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'ledger'}_export.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const filtered = entries.filter(e => {
@@ -260,6 +281,12 @@ export default function LedgerDetailPage() {
               <Trash2 size={15} /> Delete
             </button>
           )}
+          <button onClick={() => router.push(`/dashboard/money/${bookId}/cash-counter`)} className="btn btn-ghost btn-sm flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
+            <Calculator size={15} /> Cash Counter
+          </button>
+          <button onClick={exportCSV} className="btn btn-ghost btn-sm flex items-center gap-1.5" style={{ color: "var(--primary)" }}>
+            <Download size={15} /> Export
+          </button>
           {canEdit && (
             <button onClick={() => setShowForm(!showForm)} className="btn btn-primary btn-sm">
               <Plus size={15} /> Add Entry
@@ -407,6 +434,22 @@ export default function LedgerDetailPage() {
               <input value={form.note} onChange={e => setForm({ ...form, note: e.target.value })}
                 placeholder="Note (optional)" className="input" />
 
+              <div className="flex items-center gap-3 py-2">
+                <label className="flex items-center gap-2 cursor-pointer text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+                  <input type="checkbox" checked={form.isRecurring} onChange={e => setForm({ ...form, isRecurring: e.target.checked })}
+                    className="w-4 h-4 rounded" style={{ accentColor: "var(--primary)" }} />
+                  Make this recurring
+                </label>
+                {form.isRecurring && (
+                  <select value={form.recurringPattern} onChange={e => setForm({ ...form, recurringPattern: e.target.value })} className="input text-sm flex-1">
+                    <option value="DAILY">Daily</option>
+                    <option value="WEEKLY">Weekly</option>
+                    <option value="MONTHLY">Monthly</option>
+                    <option value="YEARLY">Yearly</option>
+                  </select>
+                )}
+              </div>
+
               <div className="flex gap-2">
                 <button type="submit" disabled={saving} className="btn btn-primary btn-sm">
                   {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Save Entry
@@ -422,7 +465,7 @@ export default function LedgerDetailPage() {
       <div className="relative mb-3">
         <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-hint)" }} />
         <input value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="Search entries..." className="input pl-9 pr-8 text-sm" />
+          placeholder="Search entries..." className="input pr-8 text-sm" style={{ paddingLeft: "36px" }} />
         {search && (
           <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 btn-icon" style={{ padding: "2px" }}>
             <X size={13} />
@@ -484,6 +527,11 @@ export default function LedgerDetailPage() {
                     </span>
                     <span className="text-xs font-medium" style={{ color: "var(--text-hint)" }}>{entry.medium}</span>
                     <span className="text-xs" style={{ color: "var(--text-hint)" }}>{entry.category}</span>
+                    {entry.isRecurring && (
+                      <span className="text-xs font-semibold px-1.5 py-0.5 rounded-md" style={{ background: "rgba(92,107,192,0.12)", color: "var(--primary)" }}>
+                        ↻ {entry.recurringPattern}
+                      </span>
+                    )}
                     {/* Feature 20: Show who added */}
                     {entry.createdByName && (
                       <span className="text-xs flex items-center gap-0.5" style={{ color: "var(--text-hint)" }}>

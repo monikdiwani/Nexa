@@ -147,10 +147,10 @@ export default function DashboardPage() {
         <div className="absolute -bottom-8 right-16 w-28 h-28 rounded-full opacity-8"
           style={{ background: "white" }} />
         <div className="relative z-10">
-          <p className="text-white text-xl font-bold mb-1">
+          <p className="text-white text-xl font-bold mb-1" style={{ color: "white" }}>
             {getGreeting(user?.displayName ?? "there")}
           </p>
-          <p className="text-sm" style={{ color: "rgba(255,255,255,0.75)" }}>
+          <p className="text-sm" style={{ color: "rgba(255,255,255,0.85)" }}>
             {pendingTasks.length > 0
               ? `You have ${pendingTasks.length} pending task${pendingTasks.length > 1 ? "s" : ""} today`
               : "All tasks done! Great work 🎉"}
