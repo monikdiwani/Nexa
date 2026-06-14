@@ -4,7 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
 import {
   doc, onSnapshot, collection, query, orderBy,
-  addDoc, updateDoc, deleteDoc, increment, getDoc
+  addDoc, updateDoc, deleteDoc, increment, getDoc, writeBatch, getDocs
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { motion, AnimatePresence } from "framer-motion";
@@ -147,6 +147,21 @@ export default function LedgerDetailPage() {
     });
   };
 
+  const deleteBook = async () => {
+    if (!isAdmin || !window.confirm(`Are you sure you want to permanently delete '${book?.name}' and all its entries?`)) return;
+    try {
+      const batch = writeBatch(db);
+      const entriesSnap = await getDocs(collection(db, "cashbooks", bookId, "entries"));
+      entriesSnap.forEach(docSnap => batch.delete(docSnap.ref));
+      batch.delete(doc(db, "cashbooks", bookId));
+      await batch.commit();
+      router.push("/dashboard/money");
+    } catch (e) {
+      console.error("Error deleting book:", e);
+      alert("Failed to delete the cashbook.");
+    }
+  };
+
   // Feature 21 — Only ADMIN can copy/share invite code
   const copyCode = () => {
     if (!book || !isAdmin) return;
@@ -238,6 +253,11 @@ export default function LedgerDetailPage() {
             <button onClick={() => setShowMembersPanel(!showMembersPanel)}
               className="btn btn-ghost btn-sm flex items-center gap-1.5">
               <Users size={15} /> {memberCount}
+            </button>
+          )}
+          {isAdmin && (
+            <button onClick={deleteBook} className="btn btn-ghost btn-sm flex items-center gap-1.5" style={{ color: "var(--negative)" }}>
+              <Trash2 size={15} /> Delete
             </button>
           )}
           {canEdit && (

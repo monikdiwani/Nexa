@@ -163,49 +163,90 @@ public class MoneyFragment extends Fragment {
         if (auth == null || auth.getCurrentUser() == null || db == null) return;
         String userId = auth.getCurrentUser().getUid();
 
-        // Determine filter based on selected tab
         int selectedTab = tabLayoutMoney != null ? tabLayoutMoney.getSelectedTabPosition() : 2;
-        // 0=Personal, 1=Shared, 2=All
 
         db.collection("cashbooks")
                 .whereNotEqualTo("members." + userId, null)
                 .addSnapshotListener((snapshots, e) -> {
+                    if (e != null) {
+                        android.util.Log.e("MoneyFragment", "Error loading ledgers", e);
+                        return;
+                    }
                     if (snapshots == null || !isAdded()) return;
 
-                    double totalNet = 0;
-                    double totalCashIn = 0;
-                    double totalCashOut = 0;
-                    
-                    for (com.google.firebase.firestore.DocumentSnapshot doc : snapshots) {
-                        LedgerBook book = LedgerBook.fromDocument(doc);
-                        boolean isShared = "GROUP".equals(book.getType()) || (book.getMembers() != null && book.getMembers().size() > 1);
+                    db.collection("cashbooks")
+                            .whereEqualTo("ownerId", userId)
+                            .get()
+                            .addOnCompleteListener(ownedTask -> {
+                                if (!isAdded()) return;
 
-                        // Filter by tab
-                        if (selectedTab == 0 && isShared) continue;   // Personal only
-                        if (selectedTab == 1 && !isShared) continue;  // Shared only
+                                double totalNet = 0;
+                                double totalCashIn = 0;
+                                double totalCashOut = 0;
+                                
+                                java.util.Set<String> seenIds = new java.util.HashSet<>();
+                                java.util.List<com.google.firebase.firestore.DocumentSnapshot> allBookDocs = new java.util.ArrayList<>();
 
-                        if (isShared) {
-                            Double myBal = book.getBalances() != null ? book.getBalances().get(userId) : 0.0;
-                            if (myBal == null) myBal = 0.0;
-                            totalNet += myBal;
-                            
-                            // For a shared group, we can roughly map positive balance to Income, negative to Expense
-                            if (myBal > 0) totalCashIn += myBal;
-                            else if (myBal < 0) totalCashOut += Math.abs(myBal);
-                        } else {
-                            Double in = doc.getDouble("totalCashIn");
-                            Double out = doc.getDouble("totalCashOut");
-                            if (in != null) totalCashIn += in;
-                            if (out != null) totalCashOut += out;
-                            totalNet += ((in != null ? in : 0) - (out != null ? out : 0));
-                        }
-                    }
+                                // Process member cashbooks
+                                for (com.google.firebase.firestore.DocumentSnapshot doc : snapshots) {
+                                    seenIds.add(doc.getId());
+                                    allBookDocs.add(doc);
+                                    
+                                    LedgerBook book = LedgerBook.fromDocument(doc);
+                                    boolean isShared = "GROUP".equals(book.getType()) || (book.getMembers() != null && book.getMembers().size() > 1);
 
-                    txtNetBalance.setText(String.format(Locale.getDefault(), "₹%.2f", totalNet));
-                    txtMoneyIn.setText(String.format(Locale.getDefault(), "₹%.0f", totalCashIn));
-                    txtMoneyOut.setText(String.format(Locale.getDefault(), "₹%.0f", totalCashOut));
+                                    if (selectedTab == 0 && isShared) continue;
+                                    if (selectedTab == 1 && !isShared) continue;
 
-                    loadDeepInsights(snapshots.getDocuments());
+                                    if (isShared) {
+                                        Double myBal = book.getBalances() != null ? book.getBalances().get(userId) : 0.0;
+                                        if (myBal == null) myBal = 0.0;
+                                        totalNet += myBal;
+                                        if (myBal > 0) totalCashIn += myBal;
+                                        else if (myBal < 0) totalCashOut += Math.abs(myBal);
+                                    } else {
+                                        Double in = doc.getDouble("totalCashIn");
+                                        Double out = doc.getDouble("totalCashOut");
+                                        if (in != null) totalCashIn += in;
+                                        if (out != null) totalCashOut += out;
+                                        totalNet += ((in != null ? in : 0) - (out != null ? out : 0));
+                                    }
+                                }
+
+                                // Process owned legacy cashbooks
+                                if (ownedTask.isSuccessful() && ownedTask.getResult() != null) {
+                                    for (com.google.firebase.firestore.DocumentSnapshot doc : ownedTask.getResult()) {
+                                        if (seenIds.contains(doc.getId())) continue;
+                                        allBookDocs.add(doc);
+                                        
+                                        LedgerBook book = LedgerBook.fromDocument(doc);
+                                        boolean isShared = "GROUP".equals(book.getType()) || (book.getMembers() != null && book.getMembers().size() > 1);
+
+                                        if (selectedTab == 0 && isShared) continue;
+                                        if (selectedTab == 1 && !isShared) continue;
+
+                                        if (isShared) {
+                                            Double myBal = book.getBalances() != null ? book.getBalances().get(userId) : 0.0;
+                                            if (myBal == null) myBal = 0.0;
+                                            totalNet += myBal;
+                                            if (myBal > 0) totalCashIn += myBal;
+                                            else if (myBal < 0) totalCashOut += Math.abs(myBal);
+                                        } else {
+                                            Double in = doc.getDouble("totalCashIn");
+                                            Double out = doc.getDouble("totalCashOut");
+                                            if (in != null) totalCashIn += in;
+                                            if (out != null) totalCashOut += out;
+                                            totalNet += ((in != null ? in : 0) - (out != null ? out : 0));
+                                        }
+                                    }
+                                }
+
+                                txtNetBalance.setText(String.format(Locale.getDefault(), "₹%.2f", totalNet));
+                                txtMoneyIn.setText(String.format(Locale.getDefault(), "₹%.0f", totalCashIn));
+                                txtMoneyOut.setText(String.format(Locale.getDefault(), "₹%.0f", totalCashOut));
+
+                                loadDeepInsights(allBookDocs);
+                            });
                 });
     }
 

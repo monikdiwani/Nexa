@@ -117,30 +117,56 @@ public class CashbookFragment extends Fragment {
         booksListener = db.collection("cashbooks")
                 .whereNotEqualTo("members." + userId, null)
                 .addSnapshotListener((snapshots, e) -> {
-                    if (snapshots == null) return;
-                    ledgerBooks.clear();
-                    for (DocumentSnapshot doc : snapshots) {
-                        LedgerBook book = LedgerBook.fromDocument(doc);
-                        
-                        // Apply filter (support legacy ledgers without 'type' field)
-                        boolean isGroup = "GROUP".equals(book.getType()) || (book.getMembers() != null && book.getMembers().size() > 1);
-                        
-                        if ("PERSONAL".equals(filter) && isGroup) continue;
-                        if ("SHARED".equals(filter) && !isGroup) continue;
+                    if (e != null) {
+                        android.util.Log.e("CashbookFragment", "Error loading ledgers", e);
+                        return;
+                    }
+                    if (snapshots == null || !isAdded()) return;
+                    
+                    db.collection("cashbooks")
+                            .whereEqualTo("ownerId", userId)
+                            .get()
+                            .addOnCompleteListener(ownedTask -> {
+                                if (!isAdded()) return;
+                                ledgerBooks.clear();
+                                java.util.Set<String> seenIds = new java.util.HashSet<>();
 
-                        ledgerBooks.add(book);
-                    }
-                    
-                    adapter.notifyDataSetChanged();
-                    rvLedgerBooks.scheduleLayoutAnimation();
-                    
-                    if (ledgerBooks.isEmpty()) {
-                        txtEmptyBooks.setVisibility(View.VISIBLE);
-                        rvLedgerBooks.setVisibility(View.GONE);
-                    } else {
-                        txtEmptyBooks.setVisibility(View.GONE);
-                        rvLedgerBooks.setVisibility(View.VISIBLE);
-                    }
+                                // Process member cashbooks
+                                for (DocumentSnapshot doc : snapshots) {
+                                    seenIds.add(doc.getId());
+                                    LedgerBook book = LedgerBook.fromDocument(doc);
+                                    boolean isGroup = "GROUP".equals(book.getType()) || (book.getMembers() != null && book.getMembers().size() > 1);
+                                    if ("PERSONAL".equals(filter) && isGroup) continue;
+                                    if ("SHARED".equals(filter) && !isGroup) continue;
+                                    ledgerBooks.add(book);
+                                }
+
+                                // Process owned legacy cashbooks
+                                if (ownedTask.isSuccessful() && ownedTask.getResult() != null) {
+                                    for (DocumentSnapshot doc : ownedTask.getResult()) {
+                                        if (seenIds.contains(doc.getId())) continue;
+                                        LedgerBook book = LedgerBook.fromDocument(doc);
+                                        boolean isGroup = "GROUP".equals(book.getType()) || (book.getMembers() != null && book.getMembers().size() > 1);
+                                        if ("PERSONAL".equals(filter) && isGroup) continue;
+                                        if ("SHARED".equals(filter) && !isGroup) continue;
+                                        ledgerBooks.add(book);
+                                    }
+                                }
+
+                                // Sort by latest
+                                java.util.Collections.sort(ledgerBooks, (a, b) -> Long.compare(b.getCreatedAt(), a.getCreatedAt()));
+
+                                adapter.notifyDataSetChanged();
+                                rvLedgerBooks.scheduleLayoutAnimation();
+                                
+                                if (ledgerBooks.isEmpty()) {
+                                    txtEmptyBooks.setVisibility(View.VISIBLE);
+                                    rvLedgerBooks.setVisibility(View.GONE);
+                                } else {
+                                    txtEmptyBooks.setVisibility(View.GONE);
+                                    rvLedgerBooks.setVisibility(View.VISIBLE);
+                                }
+                            });
                 });
     }
 
@@ -282,10 +308,23 @@ public class CashbookFragment extends Fragment {
                 .setTitle("Delete Cashbook")
                 .setMessage("Are you sure you want to permanently delete '" + book.getName() + "' and all its entries? This cannot be undone.")
                 .setPositiveButton("Delete", (dialog, which) -> {
-                    db.collection("cashbooks").document(book.getId())
-                            .delete()
-                            .addOnSuccessListener(aVoid -> {
-                                android.widget.Toast.makeText(requireContext(), "Cashbook deleted", android.widget.Toast.LENGTH_SHORT).show();
+                    db.collection("cashbooks").document(book.getId()).collection("entries")
+                            .get()
+                            .addOnSuccessListener(queryDocumentSnapshots -> {
+                                com.google.firebase.firestore.WriteBatch batch = db.batch();
+                                for (DocumentSnapshot doc : queryDocumentSnapshots) {
+                                    batch.delete(doc.getReference());
+                                }
+                                batch.delete(db.collection("cashbooks").document(book.getId()));
+                                batch.commit().addOnSuccessListener(aVoid -> {
+                                    if (isAdded()) {
+                                        android.widget.Toast.makeText(requireContext(), "Cashbook deleted", android.widget.Toast.LENGTH_SHORT).show();
+                                    }
+                                }).addOnFailureListener(e -> {
+                                    if (isAdded()) {
+                                        android.widget.Toast.makeText(requireContext(), "Failed to delete cashbook", android.widget.Toast.LENGTH_SHORT).show();
+                                    }
+                                });
                             });
                 })
                 .setNegativeButton("Cancel", null)

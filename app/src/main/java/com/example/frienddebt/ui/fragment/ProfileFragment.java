@@ -880,79 +880,72 @@ public class ProfileFragment extends Fragment {
                 .setTitle("Delete Account")
                 .setMessage("Are you absolutely sure you want to delete your account? This will permanently erase all your data from our servers. This action cannot be undone.")
                 .setPositiveButton("Delete", (dialog, which) -> {
-                    Toast.makeText(requireContext(), "Deleting account...", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), "Deleting account data... This may take a moment.", Toast.LENGTH_LONG).show();
                     String uid = user.getUid();
                     
                     com.google.firebase.firestore.FirebaseFirestore firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance();
-                    com.google.firebase.firestore.WriteBatch batch = firestore.batch();
                     
-                    // Fetch and delete tasks
-                    firestore.collection("users").document(uid).collection("tasks").get()
-                        .addOnSuccessListener(tasksSnap -> {
-                            for (com.google.firebase.firestore.DocumentSnapshot doc : tasksSnap.getDocuments()) {
-                                batch.delete(doc.getReference());
-                            }
-                            
-                            // Fetch and delete notes
-                            firestore.collection("users").document(uid).collection("notes").get()
-                                .addOnSuccessListener(notesSnap -> {
-                                    for (com.google.firebase.firestore.DocumentSnapshot doc : notesSnap.getDocuments()) {
-                                        batch.delete(doc.getReference());
-                                    }
+                    deleteCollection(firestore.collection("users").document(uid).collection("tasks"), () -> {
+                        deleteCollection(firestore.collection("users").document(uid).collection("notes"), () -> {
+                            deleteCollection(firestore.collection("users").document(uid).collection("reminders"), () -> {
+                                deleteCollection(firestore.collection("users").document(uid).collection("budgets"), () -> {
                                     
-                                    // Fetch and delete reminders
-                                    firestore.collection("users").document(uid).collection("reminders").get()
-                                        .addOnSuccessListener(remindersSnap -> {
-                                            for (com.google.firebase.firestore.DocumentSnapshot doc : remindersSnap.getDocuments()) {
-                                                batch.delete(doc.getReference());
-                                            }
+                                    firestore.collection("cashbooks").whereNotEqualTo("members." + uid, null).get()
+                                        .addOnSuccessListener(cashbooksSnap -> {
+                                            java.util.List<com.google.android.gms.tasks.Task<Void>> cashbookTasks = new java.util.ArrayList<>();
                                             
-                                            // Fetch and delete budgets
-                                            firestore.collection("users").document(uid).collection("budgets").get()
-                                                .addOnSuccessListener(budgetsSnap -> {
-                                                    for (com.google.firebase.firestore.DocumentSnapshot doc : budgetsSnap.getDocuments()) {
-                                                        batch.delete(doc.getReference());
-                                                    }
-                                                    
-                                                    // Clean up cashbooks
-                                                    firestore.collection("cashbooks")
-                                                        .whereNotEqualTo("members." + uid, null)
-                                                        .get()
-                                                        .addOnSuccessListener(cashbooksSnap -> {
-                                                            for (com.google.firebase.firestore.DocumentSnapshot bookDoc : cashbooksSnap.getDocuments()) {
-                                                                java.util.Map<String, Object> members = (java.util.Map<String, Object>) bookDoc.get("members");
-                                                                if (members != null && members.size() <= 1 && uid.equals(bookDoc.getString("ownerId"))) {
-                                                                    batch.delete(bookDoc.getReference());
-                                                                } else {
-                                                                    batch.update(bookDoc.getReference(), "members." + uid, com.google.firebase.firestore.FieldValue.delete());
+                                            for (com.google.firebase.firestore.DocumentSnapshot bookDoc : cashbooksSnap.getDocuments()) {
+                                                java.util.Map<String, Object> members = (java.util.Map<String, Object>) bookDoc.get("members");
+                                                if (members != null && members.size() <= 1 && uid.equals(bookDoc.getString("ownerId"))) {
+                                                    // Delete entries subcollection first
+                                                    cashbookTasks.add(firestore.collection("cashbooks").document(bookDoc.getId()).collection("entries").get()
+                                                        .continueWithTask(task -> {
+                                                            com.google.firebase.firestore.WriteBatch cbBatch = firestore.batch();
+                                                            if (task.isSuccessful() && task.getResult() != null) {
+                                                                for (com.google.firebase.firestore.DocumentSnapshot entryDoc : task.getResult().getDocuments()) {
+                                                                    cbBatch.delete(entryDoc.getReference());
                                                                 }
                                                             }
-                                                            
-                                                            // Delete parent user doc
-                                                            batch.delete(firestore.collection("users").document(uid));
-                                                            
-                                                            // Commit batch
-                                                            batch.commit().addOnCompleteListener(batchTask -> {
-                                                                // Delete Firebase Auth user
-                                                                user.delete().addOnCompleteListener(task1 -> {
-                                                                    if (task1.isSuccessful()) {
-                                                                        sp.edit().remove("user_id").apply();
-                                                                        Intent intent = new Intent(requireActivity(), Login.class);
-                                                                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                                                                        startActivity(intent);
-                                                                        requireActivity().finish();
-                                                                    } else {
-                                                                        Toast.makeText(requireContext(), "Failed to delete account. You may need to re-authenticate first.", Toast.LENGTH_LONG).show();
-                                                                    }
-                                                                });
-                                                            });
-                                                        });
+                                                            cbBatch.delete(bookDoc.getReference());
+                                                            return cbBatch.commit();
+                                                        }));
+                                                } else {
+                                                    cashbookTasks.add(bookDoc.getReference().update("members." + uid, com.google.firebase.firestore.FieldValue.delete()));
+                                                }
+                                            }
+                                            
+                                            com.google.android.gms.tasks.Tasks.whenAll(cashbookTasks).addOnCompleteListener(allCbTask -> {
+                                                firestore.collection("users").document(uid).delete().addOnCompleteListener(deleteUserTask -> {
+                                                    user.delete().addOnCompleteListener(authUserTask -> {
+                                                        if (authUserTask.isSuccessful()) {
+                                                            sp.edit().remove("user_id").apply();
+                                                            Intent intent = new Intent(requireActivity(), Login.class);
+                                                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                                                            if (isAdded()) startActivity(intent);
+                                                            if (getActivity() != null) getActivity().finish();
+                                                        } else {
+                                                            if (isAdded()) Toast.makeText(requireContext(), "Failed to delete account. Re-authenticate first.", Toast.LENGTH_LONG).show();
+                                                        }
+                                                    });
                                                 });
+                                            });
                                         });
                                 });
+                            });
                         });
+                    });
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
+    }
+
+    private void deleteCollection(com.google.firebase.firestore.CollectionReference collection, Runnable onComplete) {
+        collection.get().addOnSuccessListener(snap -> {
+            com.google.firebase.firestore.WriteBatch batch = com.google.firebase.firestore.FirebaseFirestore.getInstance().batch();
+            for (com.google.firebase.firestore.DocumentSnapshot doc : snap.getDocuments()) {
+                batch.delete(doc.getReference());
+            }
+            batch.commit().addOnCompleteListener(task -> onComplete.run());
+        }).addOnFailureListener(e -> onComplete.run());
     }
 }
