@@ -968,6 +968,9 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
         private void showActionDialog(CashbookEntry entry) {
             boolean isUdhaar = entry.getContactName() != null && !entry.getContactName().isEmpty();
             List<String> options = new ArrayList<>();
+            if (entry.getBillImageUrl() != null && !entry.getBillImageUrl().isEmpty()) {
+                options.add("View Receipt");
+            }
             if (isUdhaar) options.add("Send WhatsApp Reminder");
             options.add("Create App Reminder");
             if (!"SETTLEMENT".equals(entry.getType())) {
@@ -980,7 +983,11 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                     .setTitle("Transaction Options")
                     .setItems(options.toArray(new String[0]), (dialog, which) -> {
                         String selected = options.get(which);
-                        if ("Send WhatsApp Reminder".equals(selected)) {
+                        if ("View Receipt".equals(selected)) {
+                            Intent intent = new Intent(Intent.ACTION_VIEW);
+                            intent.setData(android.net.Uri.parse(entry.getBillImageUrl()));
+                            startActivity(intent);
+                        } else if ("Send WhatsApp Reminder".equals(selected)) {
                             // Send Reminder
                             com.example.frienddebt.utils.WhatsAppReminderUtil.sendUdhaarReminder(
                                     LedgerBookDetailActivity.this,

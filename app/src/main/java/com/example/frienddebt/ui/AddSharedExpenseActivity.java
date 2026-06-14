@@ -62,6 +62,27 @@ public class AddSharedExpenseActivity extends AppCompatActivity {
     private String entryId = null;
     private com.example.frienddebt.model.CashbookEntry existingEntry = null;
 
+    private android.widget.ImageView ivReceiptPreview;
+    private android.widget.TextView txtReceiptName;
+    private android.widget.ImageButton btnRemoveReceipt;
+    private android.widget.LinearLayout btnAttachReceipt;
+    private android.net.Uri selectedReceiptUri = null;
+    private String uploadedReceiptUrl = null;
+
+    private final androidx.activity.result.ActivityResultLauncher<android.content.Intent> pickImageLauncher = registerForActivityResult(
+            new androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    selectedReceiptUri = result.getData().getData();
+                    if (selectedReceiptUri != null) {
+                        ivReceiptPreview.setImageURI(selectedReceiptUri);
+                        txtReceiptName.setText("Receipt attached");
+                        btnRemoveReceipt.setVisibility(View.VISIBLE);
+                    }
+                }
+            }
+    );
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -87,7 +108,26 @@ public class AddSharedExpenseActivity extends AppCompatActivity {
         containerSplits = findViewById(R.id.containerSplits);
         btnSaveExpense = findViewById(R.id.btnSaveExpense);
 
+        ivReceiptPreview = findViewById(R.id.ivReceiptPreview);
+        txtReceiptName = findViewById(R.id.txtReceiptName);
+        btnRemoveReceipt = findViewById(R.id.btnRemoveReceipt);
+        btnAttachReceipt = findViewById(R.id.btnAttachReceipt);
+
         btnBack.setOnClickListener(v -> finish());
+        
+        btnAttachReceipt.setOnClickListener(v -> {
+            android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_GET_CONTENT);
+            intent.setType("image/*");
+            pickImageLauncher.launch(intent);
+        });
+        
+        btnRemoveReceipt.setOnClickListener(v -> {
+            selectedReceiptUri = null;
+            uploadedReceiptUrl = null;
+            ivReceiptPreview.setImageResource(android.R.drawable.ic_menu_camera);
+            txtReceiptName.setText("Attach a photo of the bill");
+            btnRemoveReceipt.setVisibility(View.GONE);
+        });
 
         isEditMode = getIntent().getBooleanExtra("IS_EDIT_MODE", false);
         isDuplicateMode = getIntent().getBooleanExtra("IS_DUPLICATE_MODE", false);
@@ -469,7 +509,32 @@ public class AddSharedExpenseActivity extends AppCompatActivity {
 
         final double finalTotalAmount = totalAmount;
         final double oldAmount = (existingEntry != null && isEditMode) ? existingEntry.getAmount() : 0.0;
+        final String entryTitle = title;
 
+        if (selectedReceiptUri != null) {
+            btnSaveExpense.setText("Uploading receipt...");
+            com.google.firebase.storage.StorageReference storageRef = com.google.firebase.storage.FirebaseStorage.getInstance().getReference();
+            com.google.firebase.storage.StorageReference receiptRef = storageRef.child("receipts/" + System.currentTimeMillis() + ".jpg");
+            
+            receiptRef.putFile(selectedReceiptUri)
+                .addOnSuccessListener(taskSnapshot -> {
+                    receiptRef.getDownloadUrl().addOnSuccessListener(uri -> {
+                        entry.setBillImageUrl(uri.toString());
+                        finalizeSaveExpense(entry, oldAmount, finalTotalAmount, entryTitle, newEntryId);
+                    });
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Failed to upload receipt", Toast.LENGTH_SHORT).show();
+                    // Save anyway without new receipt if it fails
+                    finalizeSaveExpense(entry, oldAmount, finalTotalAmount, entryTitle, newEntryId);
+                });
+        } else {
+            if (uploadedReceiptUrl != null) entry.setBillImageUrl(uploadedReceiptUrl);
+            finalizeSaveExpense(entry, oldAmount, finalTotalAmount, entryTitle, newEntryId);
+        }
+    }
+
+    private void finalizeSaveExpense(com.example.frienddebt.model.CashbookEntry entry, double oldAmount, double finalTotalAmount, String title, String newEntryId) {
         db.collection("cashbooks").document(selectedLedger.getId())
                 .collection("entries").document(newEntryId)
                 .set(entry.toFirestoreMap())
@@ -486,12 +551,15 @@ public class AddSharedExpenseActivity extends AppCompatActivity {
                         actionType,
                         currentUserId,
                         actorName,
-                        detailMsg,
-                        System.currentTimeMillis()
+                        title,
+                        finalTotalAmount,
+                        "EXPENSE",
+                        System.currentTimeMillis(),
+                        detailMsg
                     );
                     db.collection("cashbooks").document(selectedLedger.getId())
                         .collection("logs").document(audit.getId())
-                        .set(audit.toMap());
+                        .set(audit.toFirestoreMap());
 
                     updateLedgerTotals(selectedLedger.getId(), oldAmount, finalTotalAmount);
                 })
