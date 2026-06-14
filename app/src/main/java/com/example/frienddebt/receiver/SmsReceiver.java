@@ -26,6 +26,9 @@ public class SmsReceiver extends BroadcastReceiver {
     private static final Pattern AMOUNT_PATTERN =
             Pattern.compile("(?i)(?:Rs\\.?|INR|₹)\\s*([0-9,]+\\.?[0-9]*)");
 
+    public static final String KEY_DEFAULT_LEDGER_ID = "sms_default_ledger_id";
+    public static final String KEY_DEFAULT_LEDGER_NAME = "sms_default_ledger_name";
+
     /** Check whether SMS auto-add is enabled (default: false — user must opt-in). */
     public static boolean isSmsAutoAddEnabled(Context context) {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -35,6 +38,24 @@ public class SmsReceiver extends BroadcastReceiver {
     public static void setSmsAutoAddEnabled(Context context, boolean enabled) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .edit().putBoolean(KEY_SMS_ENABLED, enabled).apply();
+    }
+
+    public static String getDefaultLedgerId(Context context) {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getString(KEY_DEFAULT_LEDGER_ID, null);
+    }
+
+    public static String getDefaultLedgerName(Context context) {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getString(KEY_DEFAULT_LEDGER_NAME, "Not Selected");
+    }
+
+    public static void setDefaultLedger(Context context, String ledgerId, String ledgerName) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putString(KEY_DEFAULT_LEDGER_ID, ledgerId)
+                .putString(KEY_DEFAULT_LEDGER_NAME, ledgerName)
+                .apply();
     }
 
     @Override
@@ -102,7 +123,23 @@ public class SmsReceiver extends BroadcastReceiver {
     private void saveTransaction(Context context, String userId, String sender,
                                  String message, String type, double amount) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
+        
+        String defaultId = getDefaultLedgerId(context);
+        if (defaultId != null) {
+            db.collection("cashbooks").document(defaultId).get().addOnSuccessListener(doc -> {
+                if (doc.exists()) {
+                    processSaveTransaction(context, db, defaultId, sender, message, type, amount);
+                } else {
+                    fallbackSaveTransaction(context, db, userId, sender, message, type, amount);
+                }
+            }).addOnFailureListener(e -> fallbackSaveTransaction(context, db, userId, sender, message, type, amount));
+        } else {
+            fallbackSaveTransaction(context, db, userId, sender, message, type, amount);
+        }
+    }
 
+    private void fallbackSaveTransaction(Context context, FirebaseFirestore db, String userId, String sender,
+                                         String message, String type, double amount) {
         db.collection("cashbooks")
           .whereEqualTo("ownerId", userId)
           .limit(1)
@@ -111,54 +148,57 @@ public class SmsReceiver extends BroadcastReceiver {
               if (!queryDocumentSnapshots.isEmpty()) {
                   QueryDocumentSnapshot doc =
                           (QueryDocumentSnapshot) queryDocumentSnapshots.getDocuments().get(0);
-                  String bookId = doc.getId();
-
-                  String entryId = db.collection("cashbooks")
-                          .document(bookId).collection("entries").document().getId();
-                  long timestamp = System.currentTimeMillis();
-
-                  CashbookEntry entry = new CashbookEntry(
-                          entryId, bookId, timestamp,
-                          "Auto-added from SMS: " + sender,
-                          type, "BANK", amount, "Other", message, timestamp);
-
-                  // Run a batch to add the entry and update ledger balances atomically
-                  com.google.firebase.firestore.WriteBatch batch = db.batch();
-                  
-                  // 1. Add Entry
-                  batch.set(
-                      db.collection("cashbooks").document(bookId).collection("entries").document(entryId), 
-                      entry.toFirestoreMap()
-                  );
-                  
-                  // 2. Update Ledger Balances
-                  com.google.firebase.firestore.DocumentReference bookRef = db.collection("cashbooks").document(bookId);
-                  if ("CASH_IN".equals(type)) {
-                      batch.update(bookRef, "totalCashIn", com.google.firebase.firestore.FieldValue.increment(amount));
-                      batch.update(bookRef, "netBalance", com.google.firebase.firestore.FieldValue.increment(amount));
-                  } else {
-                      batch.update(bookRef, "totalCashOut", com.google.firebase.firestore.FieldValue.increment(amount));
-                      batch.update(bookRef, "netBalance", com.google.firebase.firestore.FieldValue.increment(-amount));
-                  }
-
-                  batch.commit()
-                    .addOnSuccessListener(aVoid -> {
-                        Log.d(TAG, "SMS transaction saved: ₹" + amount);
-                        // 🔔 Confirmation notification
-                        String title = "Transaction Auto-Added";
-                        String body  = String.format("₹%.2f %s detected and added to your ledger.",
-                                amount, "CASH_OUT".equals(type) ? "spent" : "received");
-                        NotificationHelper.showNotification(
-                                context,
-                                NotificationHelper.CHANNEL_SUMMARIES_ID,
-                                ("sms_" + entryId).hashCode(),
-                                title, body, null, null, null, null, null);
-                    })
-                    .addOnFailureListener(e -> Log.e(TAG, "Failed to save SMS transaction", e));
+                  processSaveTransaction(context, db, doc.getId(), sender, message, type, amount);
               } else {
                   Log.d(TAG, "No cashbook found for SMS auto-add.");
               }
           })
           .addOnFailureListener(e -> Log.e(TAG, "Failed to fetch cashbook for SMS", e));
+    }
+
+    private void processSaveTransaction(Context context, FirebaseFirestore db, String bookId, String sender,
+                                        String message, String type, double amount) {
+        String entryId = db.collection("cashbooks")
+                .document(bookId).collection("entries").document().getId();
+        long timestamp = System.currentTimeMillis();
+
+        CashbookEntry entry = new CashbookEntry(
+                entryId, bookId, timestamp,
+                "Auto-added from SMS: " + sender,
+                type, "BANK", amount, "Other", message, timestamp);
+
+        // Run a batch to add the entry and update ledger balances atomically
+        com.google.firebase.firestore.WriteBatch batch = db.batch();
+        
+        // 1. Add Entry
+        batch.set(
+            db.collection("cashbooks").document(bookId).collection("entries").document(entryId), 
+            entry.toFirestoreMap()
+        );
+        
+        // 2. Update Ledger Balances
+        com.google.firebase.firestore.DocumentReference bookRef = db.collection("cashbooks").document(bookId);
+        if ("CASH_IN".equals(type)) {
+            batch.update(bookRef, "totalCashIn", com.google.firebase.firestore.FieldValue.increment(amount));
+            batch.update(bookRef, "netBalance", com.google.firebase.firestore.FieldValue.increment(amount));
+        } else {
+            batch.update(bookRef, "totalCashOut", com.google.firebase.firestore.FieldValue.increment(amount));
+            batch.update(bookRef, "netBalance", com.google.firebase.firestore.FieldValue.increment(-amount));
+        }
+
+        batch.commit()
+          .addOnSuccessListener(aVoid -> {
+              Log.d(TAG, "SMS transaction saved: ₹" + amount);
+              // 🔔 Confirmation notification
+              String title = "Transaction Auto-Added";
+              String body  = String.format("₹%.2f %s detected and added to your ledger.",
+                      amount, "CASH_OUT".equals(type) ? "spent" : "received");
+              NotificationHelper.showNotification(
+                      context,
+                      NotificationHelper.CHANNEL_SUMMARIES_ID,
+                      ("sms_" + entryId).hashCode(),
+                      title, body, null, null, null, null, null);
+          })
+          .addOnFailureListener(e -> Log.e(TAG, "Failed to save SMS transaction", e));
     }
 }

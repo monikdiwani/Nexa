@@ -69,8 +69,9 @@ public class ProfileFragment extends Fragment {
     private LinearLayout rowChangePassword;
     private SwitchCompat switchDarkMode, switchMorningDigest, switchEveningDigest, switchAppLock;
     private Button btnLogout, btnDeleteAccount;
-    private LinearLayout rowExportData, rowNotificationSettings, rowBatteryOptimization;
+    private LinearLayout rowExportData, rowNotificationSettings, rowBatteryOptimization, rowSmsDefaultLedger;
     private androidx.appcompat.widget.SwitchCompat switchSmsAutoAdd;
+    private TextView txtDefaultSmsLedger;
 
     private TextView btnAbout, btnFAQ, btnPrivacyPolicy;
 
@@ -148,6 +149,8 @@ public class ProfileFragment extends Fragment {
         rowNotificationSettings = view.findViewById(R.id.rowNotificationSettings);
         rowBatteryOptimization = view.findViewById(R.id.rowBatteryOptimization);
         switchSmsAutoAdd = view.findViewById(R.id.switchSmsAutoAdd);
+        rowSmsDefaultLedger = view.findViewById(R.id.rowSmsDefaultLedger);
+        txtDefaultSmsLedger = view.findViewById(R.id.txtDefaultSmsLedger);
         btnAbout = view.findViewById(R.id.btnAbout);
         btnFAQ = view.findViewById(R.id.btnFAQ);
         btnPrivacyPolicy = view.findViewById(R.id.btnPrivacyPolicy);
@@ -182,6 +185,61 @@ public class ProfileFragment extends Fragment {
                 } else {
                     SmsReceiver.setSmsAutoAddEnabled(requireContext(), false);
                 }
+            });
+        }
+
+        // SMS Default Ledger selection
+        if (rowSmsDefaultLedger != null && txtDefaultSmsLedger != null) {
+            txtDefaultSmsLedger.setText(SmsReceiver.getDefaultLedgerName(requireContext()));
+            
+            rowSmsDefaultLedger.setOnClickListener(v -> {
+                FirebaseUser user = auth.getCurrentUser();
+                if (user == null) return;
+                
+                FirebaseFirestore.getInstance().collection("cashbooks")
+                    .whereEqualTo("ownerId", user.getUid())
+                    .get()
+                    .addOnSuccessListener(snapshots -> {
+                        java.util.List<com.example.frienddebt.model.LedgerBook> personalBooks = new java.util.ArrayList<>();
+                        for (com.google.firebase.firestore.DocumentSnapshot doc : snapshots) {
+                            String type = doc.getString("type");
+                            Object membersObj = doc.get("members");
+                            int membersSize = membersObj instanceof java.util.Map ? ((java.util.Map) membersObj).size() : 0;
+                            boolean isGroup = "GROUP".equals(type) || membersSize > 1;
+                            
+                            if (!isGroup) {
+                                personalBooks.add(com.example.frienddebt.model.LedgerBook.fromDocument(doc));
+                            }
+                        }
+                        
+                        if (personalBooks.isEmpty()) {
+                            Toast.makeText(requireContext(), "No personal cashbooks found.", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        
+                        String[] names = new String[personalBooks.size()];
+                        int checkedItem = -1;
+                        String currentId = SmsReceiver.getDefaultLedgerId(requireContext());
+                        
+                        for (int i = 0; i < personalBooks.size(); i++) {
+                            names[i] = personalBooks.get(i).getName();
+                            if (personalBooks.get(i).getId().equals(currentId)) {
+                                checkedItem = i;
+                            }
+                        }
+                        
+                        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                            .setTitle("Select Default SMS Ledger")
+                            .setSingleChoiceItems(names, checkedItem, (dialog, which) -> {
+                                com.example.frienddebt.model.LedgerBook selected = personalBooks.get(which);
+                                SmsReceiver.setDefaultLedger(requireContext(), selected.getId(), selected.getName());
+                                txtDefaultSmsLedger.setText(selected.getName());
+                                dialog.dismiss();
+                                Toast.makeText(requireContext(), "Default SMS Ledger updated", Toast.LENGTH_SHORT).show();
+                            })
+                            .setNegativeButton("Cancel", null)
+                            .show();
+                    });
             });
         }
 
