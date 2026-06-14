@@ -70,6 +70,9 @@ public class LedgerBook implements Serializable {
     public Map<String, String> getMembers() { return members; }
     public void setMembers(Map<String, String> members) { this.members = members; }
 
+    public Map<String, Double> getBalances() { return balances; }
+    public void setBalances(Map<String, Double> balances) { this.balances = balances; }
+
     public static LedgerBook fromDocument(DocumentSnapshot doc) {
         LedgerBook book = new LedgerBook();
         book.setId(doc.getId());
@@ -88,6 +91,20 @@ public class LedgerBook implements Serializable {
         } else {
             book.setMembers(new HashMap<>());
         }
+
+        Object balancesObj = doc.get("balances");
+        if (balancesObj instanceof Map) {
+            Map<String, Double> bMap = new HashMap<>();
+            for (Map.Entry<?, ?> entry : ((Map<?, ?>) balancesObj).entrySet()) {
+                if (entry.getValue() instanceof Number) {
+                    bMap.put(entry.getKey().toString(), ((Number) entry.getValue()).doubleValue());
+                }
+            }
+            book.setBalances(bMap);
+        } else {
+            book.setBalances(new HashMap<>());
+        }
+
         return book;
     }
 
@@ -102,6 +119,7 @@ public class LedgerBook implements Serializable {
         map.put("totalCashOut", totalCashOut);
         map.put("netBalance", netBalance);
         map.put("members", members);
+        map.put("balances", balances);
         return map;
     }
 }

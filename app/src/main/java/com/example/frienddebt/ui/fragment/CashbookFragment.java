@@ -167,16 +167,35 @@ public class CashbookFragment extends Fragment {
             String role = book.getMembers() != null ? book.getMembers().get(userId) : "Unknown";
             holder.txtRole.setText("Role: " + role);
             
-            holder.txtTotalIn.setText(String.format(Locale.getDefault(), "₹%.2f", book.getTotalCashIn()));
-            holder.txtTotalOut.setText(String.format(Locale.getDefault(), "₹%.2f", book.getTotalCashOut()));
-            holder.txtNetBalance.setText(String.format(Locale.getDefault(), "₹%.2f", book.getNetBalance()));
-            
-            if (book.getNetBalance() < 0) {
-                holder.txtNetBalance.setTextColor(getResources().getColor(R.color.accent_negative));
-            } else if (book.getNetBalance() > 0) {
-                holder.txtNetBalance.setTextColor(getResources().getColor(R.color.accent_positive));
+            if (book.getMembers() != null && book.getMembers().size() > 1) {
+                // Shared Group
+                Double myBal = book.getBalances() != null ? book.getBalances().get(userId) : 0.0;
+                if (myBal == null) myBal = 0.0;
+                
+                holder.txtTotalIn.setText("-"); // Hide total in since it's confusing for shared
+                holder.txtTotalOut.setText(String.format(Locale.getDefault(), "₹%.2f", book.getTotalCashOut())); // Group Spending
+                holder.txtNetBalance.setText(String.format(Locale.getDefault(), "₹%.2f", myBal)); // My Balance
+                
+                if (myBal < 0) {
+                    holder.txtNetBalance.setTextColor(getResources().getColor(R.color.accent_negative));
+                } else if (myBal > 0) {
+                    holder.txtNetBalance.setTextColor(getResources().getColor(R.color.accent_positive));
+                } else {
+                    holder.txtNetBalance.setTextColor(getResources().getColor(R.color.text_primary));
+                }
             } else {
-                holder.txtNetBalance.setTextColor(getResources().getColor(R.color.text_primary));
+                // Personal
+                holder.txtTotalIn.setText(String.format(Locale.getDefault(), "₹%.2f", book.getTotalCashIn()));
+                holder.txtTotalOut.setText(String.format(Locale.getDefault(), "₹%.2f", book.getTotalCashOut()));
+                holder.txtNetBalance.setText(String.format(Locale.getDefault(), "₹%.2f", book.getNetBalance()));
+                
+                if (book.getNetBalance() < 0) {
+                    holder.txtNetBalance.setTextColor(getResources().getColor(R.color.accent_negative));
+                } else if (book.getNetBalance() > 0) {
+                    holder.txtNetBalance.setTextColor(getResources().getColor(R.color.accent_positive));
+                } else {
+                    holder.txtNetBalance.setTextColor(getResources().getColor(R.color.text_primary));
+                }
             }
 
             if (holder.btnLedgerOptions != null) {

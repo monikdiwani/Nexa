@@ -387,9 +387,6 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                         runningBalances.put(entryObj.getId(), rb);
                     }
                     
-                    // Update Book balances in background
-                    updateBookBalances(totalIn, totalOut);
-                    
                     applyFilter();
                     
                     // Run Debt Simplification
@@ -398,12 +395,15 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                     db.collection("cashbooks").document(bookId).get().addOnSuccessListener(doc -> {
                         com.example.frienddebt.model.LedgerBook book = com.example.frienddebt.model.LedgerBook.fromDocument(doc);
                         isSharedGroup = (book.getMembers() != null && book.getMembers().size() > 1);
+                        Map<String, Double> memberBalances = null;
+                        
                         if (isSharedGroup) {
                             if (txtCashInLabel != null) txtCashInLabel.setText("My Balance");
                             if (txtCashOutLabel != null) txtCashOutLabel.setText("Group Spending");
 
                             List<com.example.frienddebt.model.DebtEdge> edges = com.example.frienddebt.dsa.DebtSimplifier.simplifyDebts(allEntries);
                             updateDebtSummary(edges, allEntries);
+                            memberBalances = com.example.frienddebt.dsa.DebtSimplifier.calculateNetBalances(allEntries);
 
                             double myBalance = 0;
                             String currentUid = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : "";
@@ -424,6 +424,10 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                             containerDebtSummary.setVisibility(View.GONE);
                             updateBalances(finalTotalIn, finalTotalOut);
                         }
+                        
+                        // Update Book balances in background
+                        updateBookBalances(finalTotalIn, finalTotalOut, memberBalances);
+
                         if (adapter != null) adapter.notifyDataSetChanged();
 
                         // Fetch names for all participants to render nice labels
@@ -663,9 +667,15 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                 Toast.makeText(this, "Failed: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
 
-    private void updateBookBalances(double totalIn, double totalOut) {
-        db.collection("cashbooks").document(bookId)
-            .update("totalCashIn", totalIn, "totalCashOut", totalOut, "netBalance", totalIn - totalOut);
+    private void updateBookBalances(double totalIn, double totalOut, Map<String, Double> balances) {
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("totalCashIn", totalIn);
+        updates.put("totalCashOut", totalOut);
+        updates.put("netBalance", totalIn - totalOut);
+        if (balances != null) {
+            updates.put("balances", balances);
+        }
+        db.collection("cashbooks").document(bookId).update(updates);
     }
 
     private void updateBalances(double totalIn, double totalOut) {
@@ -988,8 +998,15 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                     }
                 } else {
                     holder.txtCategory.setText(category);
-                    holder.txtAmount.setText(String.format(Locale.getDefault(), "₹%.2f", entry.getAmount()));
-                    holder.txtAmount.setTextColor(getResources().getColor(R.color.text_primary));
+                    String prefix = "";
+                    int colorRes = R.color.text_primary;
+                    if ("CASH_IN".equalsIgnoreCase(entry.getType())) {
+                        prefix = "+"; colorRes = R.color.accent_positive;
+                    } else if ("CASH_OUT".equalsIgnoreCase(entry.getType())) {
+                        prefix = "-"; colorRes = R.color.accent_negative;
+                    }
+                    holder.txtAmount.setText(String.format(Locale.getDefault(), "%s₹%.2f", prefix, entry.getAmount()));
+                    holder.txtAmount.setTextColor(getResources().getColor(colorRes));
                 }
                 
                 String mediumText = "CASH".equalsIgnoreCase(entry.getMedium()) ? "💵 Cash" : "🏦 Bank";

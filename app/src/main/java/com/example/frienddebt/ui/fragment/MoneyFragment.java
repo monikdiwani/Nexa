@@ -172,27 +172,38 @@ public class MoneyFragment extends Fragment {
                 .addSnapshotListener((snapshots, e) -> {
                     if (snapshots == null || !isAdded()) return;
 
-                    double cashIn = 0, cashOut = 0;
+                    double totalNet = 0;
+                    double totalCashIn = 0;
+                    double totalCashOut = 0;
+                    
                     for (com.google.firebase.firestore.DocumentSnapshot doc : snapshots) {
-                        boolean isShared = false;
-                        java.util.Map<String, Object> members = (java.util.Map<String, Object>) doc.get("members");
-                        if (members != null && members.size() > 1) isShared = true;
+                        LedgerBook book = LedgerBook.fromDocument(doc);
+                        boolean isShared = book.getMembers() != null && book.getMembers().size() > 1;
 
                         // Filter by tab
                         if (selectedTab == 0 && isShared) continue;   // Personal only
                         if (selectedTab == 1 && !isShared) continue;  // Shared only
-                        // selectedTab == 2 = All, no filter
 
-                        Double in = doc.getDouble("totalCashIn");
-                        Double out = doc.getDouble("totalCashOut");
-                        if (in != null) cashIn += in;
-                        if (out != null) cashOut += out;
+                        if (isShared) {
+                            Double myBal = book.getBalances() != null ? book.getBalances().get(userId) : 0.0;
+                            if (myBal == null) myBal = 0.0;
+                            totalNet += myBal;
+                            
+                            // For a shared group, we can roughly map positive balance to Income, negative to Expense
+                            if (myBal > 0) totalCashIn += myBal;
+                            else if (myBal < 0) totalCashOut += Math.abs(myBal);
+                        } else {
+                            Double in = doc.getDouble("totalCashIn");
+                            Double out = doc.getDouble("totalCashOut");
+                            if (in != null) totalCashIn += in;
+                            if (out != null) totalCashOut += out;
+                            totalNet += ((in != null ? in : 0) - (out != null ? out : 0));
+                        }
                     }
 
-                    double net = cashIn - cashOut;
-                    txtNetBalance.setText(String.format(Locale.getDefault(), "₹%.2f", net));
-                    txtMoneyIn.setText(String.format(Locale.getDefault(), "₹%.0f", cashIn));
-                    txtMoneyOut.setText(String.format(Locale.getDefault(), "₹%.0f", cashOut));
+                    txtNetBalance.setText(String.format(Locale.getDefault(), "₹%.2f", totalNet));
+                    txtMoneyIn.setText(String.format(Locale.getDefault(), "₹%.0f", totalCashIn));
+                    txtMoneyOut.setText(String.format(Locale.getDefault(), "₹%.0f", totalCashOut));
 
                     loadDeepInsights(snapshots.getDocuments());
                 });
