@@ -560,6 +560,13 @@ public class AddSharedExpenseActivity extends AppCompatActivity {
                     db.collection("cashbooks").document(selectedLedger.getId())
                         .collection("logs").document(audit.getId())
                         .set(audit.toFirestoreMap());
+                        
+                    // Send Notifications to participants
+                    for (String uid : memberIds) {
+                        if (!uid.equals(currentUserId)) {
+                            UserProfileHelper.sendExpenseNotification(db, uid, actorName, title, finalTotalAmount, selectedLedger.getName());
+                        }
+                    }
 
                     updateLedgerTotals(selectedLedger.getId(), oldAmount, finalTotalAmount);
                 })

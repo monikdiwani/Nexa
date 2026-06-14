@@ -95,4 +95,19 @@ public class UserProfileHelper {
                 .collection("pending")
                 .add(notification);
     }
+
+    public static void sendExpenseNotification(FirebaseFirestore db, String targetUid,
+                                               String actorName, String title, double amount, String bookName) {
+        Map<String, Object> notification = new HashMap<>();
+        notification.put("type", "NEW_EXPENSE");
+        notification.put("title", "New Expense in " + bookName + " 💸");
+        notification.put("body", actorName + " added \"" + title + "\" for ₹" + String.format(java.util.Locale.getDefault(), "%.2f", amount));
+        notification.put("targetUid", targetUid);
+        notification.put("createdAt", System.currentTimeMillis());
+        notification.put("read", false);
+
+        db.collection("notifications").document(targetUid)
+                .collection("pending")
+                .add(notification);
+    }
 }
