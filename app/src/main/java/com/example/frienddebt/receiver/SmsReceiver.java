@@ -22,9 +22,9 @@ public class SmsReceiver extends BroadcastReceiver {
     private static final String PREFS_NAME = "NexaSmsPrefs";
     public  static final String KEY_SMS_ENABLED = "sms_auto_add_enabled";
 
-    // Regex to find amounts like Rs 100, INR 50.50, Rs. 500, etc.
+    // Regex to find amounts like Rs 100, INR 50.50, Rs. 500, ₹500, etc.
     private static final Pattern AMOUNT_PATTERN =
-            Pattern.compile("(?i)(?:Rs\\.?|INR)\\s*([0-9,]+\\.?[0-9]*)");
+            Pattern.compile("(?i)(?:Rs\\.?|INR|₹)\\s*([0-9,]+\\.?[0-9]*)");
 
     /** Check whether SMS auto-add is enabled (default: false — user must opt-in). */
     public static boolean isSmsAutoAddEnabled(Context context) {
@@ -78,9 +78,9 @@ public class SmsReceiver extends BroadcastReceiver {
     }
 
     private String detectTransactionType(String msg) {
-        if (msg.contains("debited") || msg.contains("spent") || msg.contains("paid")) {
+        if (msg.contains("debited") || msg.contains("spent") || msg.contains("paid") || msg.contains("deducted") || msg.contains("withdrawn")) {
             return "CASH_OUT";
-        } else if (msg.contains("credited") || msg.contains("received")) {
+        } else if (msg.contains("credited") || msg.contains("received") || msg.contains("added")) {
             return "CASH_IN";
         }
         return null;
@@ -122,9 +122,26 @@ public class SmsReceiver extends BroadcastReceiver {
                           "Auto-added from SMS: " + sender,
                           type, "BANK", amount, "Other", message, timestamp);
 
-                  db.collection("cashbooks").document(bookId)
-                    .collection("entries").document(entryId)
-                    .set(entry.toFirestoreMap())
+                  // Run a batch to add the entry and update ledger balances atomically
+                  com.google.firebase.firestore.WriteBatch batch = db.batch();
+                  
+                  // 1. Add Entry
+                  batch.set(
+                      db.collection("cashbooks").document(bookId).collection("entries").document(entryId), 
+                      entry.toFirestoreMap()
+                  );
+                  
+                  // 2. Update Ledger Balances
+                  com.google.firebase.firestore.DocumentReference bookRef = db.collection("cashbooks").document(bookId);
+                  if ("CASH_IN".equals(type)) {
+                      batch.update(bookRef, "totalCashIn", com.google.firebase.firestore.FieldValue.increment(amount));
+                      batch.update(bookRef, "netBalance", com.google.firebase.firestore.FieldValue.increment(amount));
+                  } else {
+                      batch.update(bookRef, "totalCashOut", com.google.firebase.firestore.FieldValue.increment(amount));
+                      batch.update(bookRef, "netBalance", com.google.firebase.firestore.FieldValue.increment(-amount));
+                  }
+
+                  batch.commit()
                     .addOnSuccessListener(aVoid -> {
                         Log.d(TAG, "SMS transaction saved: ₹" + amount);
                         // 🔔 Confirmation notification

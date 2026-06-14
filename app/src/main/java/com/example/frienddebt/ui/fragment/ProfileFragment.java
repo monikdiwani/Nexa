@@ -62,6 +62,7 @@ public class ProfileFragment extends Fragment {
     private ImageView imgProfilePicture;
     private androidx.activity.result.ActivityResultLauncher<Intent> galleryLauncher;
     private androidx.activity.result.ActivityResultLauncher<Uri> cameraLauncher;
+    private androidx.activity.result.ActivityResultLauncher<String[]> smsPermissionLauncher;
     private Uri pendingPhotoUri = null;
 
     private TextView btnEditProfile, txtPasswordHint, txtLoginProvider;
@@ -94,6 +95,27 @@ public class ProfileFragment extends Fragment {
         imgProfilePicture = view.findViewById(R.id.imgProfilePicture);
 
         // Register photo pickers
+        smsPermissionLauncher = registerForActivityResult(
+            new androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions(),
+            result -> {
+                Boolean receiveGranted = result.getOrDefault(android.Manifest.permission.RECEIVE_SMS, false);
+                Boolean readGranted = result.getOrDefault(android.Manifest.permission.READ_SMS, false);
+                if (Boolean.TRUE.equals(receiveGranted) && Boolean.TRUE.equals(readGranted)) {
+                    SmsReceiver.setSmsAutoAddEnabled(requireContext(), true);
+                    if (switchSmsAutoAdd != null) switchSmsAutoAdd.setChecked(true);
+                    new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                            .setTitle("SMS Auto-Add Enabled")
+                            .setMessage("Nexa will detect bank SMS messages and auto-add transactions to your default ledger. You can disable this anytime.")
+                            .setPositiveButton("Got it", null)
+                            .show();
+                } else {
+                    SmsReceiver.setSmsAutoAddEnabled(requireContext(), false);
+                    if (switchSmsAutoAdd != null) switchSmsAutoAdd.setChecked(false);
+                    Toast.makeText(requireContext(), "SMS permissions are required to automate transactions.", Toast.LENGTH_LONG).show();
+                }
+            }
+        );
+
         galleryLauncher = registerForActivityResult(
             new androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult(),
             result -> {
@@ -138,15 +160,27 @@ public class ProfileFragment extends Fragment {
 
         // SMS auto-add toggle
         if (switchSmsAutoAdd != null) {
+            switchSmsAutoAdd.setOnCheckedChangeListener(null);
             switchSmsAutoAdd.setChecked(SmsReceiver.isSmsAutoAddEnabled(requireContext()));
+            
             switchSmsAutoAdd.setOnCheckedChangeListener((btn, checked) -> {
-                SmsReceiver.setSmsAutoAddEnabled(requireContext(), checked);
                 if (checked) {
-                    new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-                            .setTitle("SMS Auto-Add Enabled")
-                            .setMessage("Nexa will detect bank SMS messages and auto-add transactions to your default ledger. You can disable this anytime.")
-                            .setPositiveButton("Got it", null)
-                            .show();
+                    if (androidx.core.content.ContextCompat.checkSelfPermission(requireContext(), android.Manifest.permission.RECEIVE_SMS) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                        SmsReceiver.setSmsAutoAddEnabled(requireContext(), true);
+                        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                                .setTitle("SMS Auto-Add Enabled")
+                                .setMessage("Nexa will detect bank SMS messages and auto-add transactions to your default ledger. You can disable this anytime.")
+                                .setPositiveButton("Got it", null)
+                                .show();
+                    } else {
+                        btn.setChecked(false); // Revert visually until granted
+                        smsPermissionLauncher.launch(new String[]{
+                            android.Manifest.permission.RECEIVE_SMS,
+                            android.Manifest.permission.READ_SMS
+                        });
+                    }
+                } else {
+                    SmsReceiver.setSmsAutoAddEnabled(requireContext(), false);
                 }
             });
         }
