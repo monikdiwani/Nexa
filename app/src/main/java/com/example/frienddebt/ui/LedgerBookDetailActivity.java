@@ -635,8 +635,30 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
 
         db.collection("cashbooks").document(bookId).collection("entries")
             .document(entryId).set(data)
-            .addOnSuccessListener(aVoid ->
-                Toast.makeText(this, "Settlement recorded! ✅", Toast.LENGTH_SHORT).show())
+            .addOnSuccessListener(aVoid -> {
+                String actorName = auth.getCurrentUser() != null ? auth.getCurrentUser().getDisplayName() : "Unknown User";
+                if (actorName == null || actorName.isEmpty()) actorName = "Nexa User";
+                String logId = db.collection("cashbooks").document(bookId).collection("logs").document().getId();
+                String logDetails = actorName + " settled ₹" + String.format(Locale.getDefault(), "%.2f", edge.getAmount()) + " from " + fromName + " to " + toName;
+
+                com.example.frienddebt.model.AuditLog audit = new com.example.frienddebt.model.AuditLog(
+                        logId, bookId, "SETTLE", auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : "", actorName, "Settlement", edge.getAmount(), "SETTLEMENT", System.currentTimeMillis(), logDetails
+                );
+                db.collection("cashbooks").document(bookId).collection("logs").document(logId).set(audit.toFirestoreMap())
+                        .addOnCompleteListener(task -> {
+                            com.google.android.material.snackbar.Snackbar snackbar = com.google.android.material.snackbar.Snackbar.make(
+                                findViewById(android.R.id.content), 
+                                "Settlement recorded! ✅", 
+                                com.google.android.material.snackbar.Snackbar.LENGTH_LONG
+                            );
+                            snackbar.setAction("UNDO", v -> {
+                                db.collection("cashbooks").document(bookId).collection("entries").document(entryId).delete();
+                                db.collection("cashbooks").document(bookId).collection("logs").document(logId).delete();
+                                Toast.makeText(this, "Settlement Undone", Toast.LENGTH_SHORT).show();
+                            });
+                            snackbar.show();
+                        });
+            })
             .addOnFailureListener(e ->
                 Toast.makeText(this, "Failed: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }

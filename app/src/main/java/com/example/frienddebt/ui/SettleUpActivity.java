@@ -240,7 +240,17 @@ public class SettleUpActivity extends AppCompatActivity {
                     );
                     db.collection("cashbooks").document(selectedLedger.getId()).collection("logs").document(logId).set(audit.toFirestoreMap())
                             .addOnCompleteListener(task -> {
-                                Toast.makeText(this, "Settlement Recorded!", Toast.LENGTH_SHORT).show();
+                                com.google.android.material.snackbar.Snackbar snackbar = com.google.android.material.snackbar.Snackbar.make(
+                                    findViewById(android.R.id.content), 
+                                    "Settlement Recorded!", 
+                                    com.google.android.material.snackbar.Snackbar.LENGTH_LONG
+                                );
+                                snackbar.setAction("UNDO", v -> {
+                                    db.collection("cashbooks").document(selectedLedger.getId()).collection("entries").document(entryId).delete();
+                                    db.collection("cashbooks").document(selectedLedger.getId()).collection("logs").document(logId).delete();
+                                    Toast.makeText(this, "Settlement Undone", Toast.LENGTH_SHORT).show();
+                                });
+                                snackbar.show();
                             });
                 });
     }
