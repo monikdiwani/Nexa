@@ -474,6 +474,25 @@ public class AddSharedExpenseActivity extends AppCompatActivity {
                 .collection("entries").document(newEntryId)
                 .set(entry.toFirestoreMap())
                 .addOnSuccessListener(aVoid -> {
+                    // Create AuditLog
+                    String actionType = isEditMode ? "UPDATE" : "CREATE";
+                    String detailMsg = isEditMode ? "Updated shared expense: " + title : "Added shared expense: " + title;
+                    String actorName = auth.getCurrentUser() != null ? auth.getCurrentUser().getDisplayName() : "Unknown User";
+                    if (actorName == null || actorName.isEmpty()) actorName = "Nexa User";
+                    
+                    com.example.frienddebt.model.AuditLog audit = new com.example.frienddebt.model.AuditLog(
+                        java.util.UUID.randomUUID().toString(),
+                        selectedLedger.getId(),
+                        actionType,
+                        currentUserId,
+                        actorName,
+                        detailMsg,
+                        System.currentTimeMillis()
+                    );
+                    db.collection("cashbooks").document(selectedLedger.getId())
+                        .collection("logs").document(audit.getId())
+                        .set(audit.toMap());
+
                     updateLedgerTotals(selectedLedger.getId(), oldAmount, finalTotalAmount);
                 })
                 .addOnFailureListener(e -> {
