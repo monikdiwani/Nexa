@@ -20,6 +20,7 @@ public class LedgerBook implements Serializable {
     private double netBalance;
 
     private Map<String, String> members; // map of userId to Role (e.g., "ADMIN", "VIEWER")
+    private Map<String, Double> balances; // map of userId to personal Net Balance for shared ledgers
 
     public LedgerBook() {
         // Default constructor required for Firestore
