@@ -1,10 +1,10 @@
 "use client";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState, useCallback } from "react";
-import { collection, query, orderBy, onSnapshot, addDoc, deleteDoc, updateDoc, doc } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, addDoc, deleteDoc, updateDoc, doc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, StickyNote, Trash2, Pin, PinOff, Search, X, Archive, Pencil, Save } from "lucide-react";
+import { Plus, StickyNote, Trash2, Pin, PinOff, Search, X, Archive, Pencil, Save, FolderPlus } from "lucide-react";
 
 interface Note {
   id: string; title: string; content: string; colorCode: string;
@@ -44,6 +44,7 @@ export default function NotesPage() {
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState("ALL");
   const [search, setSearch] = useState("");
+  const [customFolders, setCustomFolders] = useState<string[]>(["Personal", "Work"]);
   const [form, setForm] = useState({ title: "", content: "", colorCode: "#FFFFFF", folder: "Personal" });
 
   // Note detail/edit modal
@@ -53,11 +54,26 @@ export default function NotesPage() {
 
   useEffect(() => {
     if (!user) return;
+    
+    // Fetch custom folders
+    const unsubFolders = onSnapshot(doc(db, "users", user.uid, "settings", "custom_folders"), (snap) => {
+      if (snap.exists() && snap.data()?.folders) {
+        setCustomFolders(snap.data().folders);
+      } else {
+        setCustomFolders(["Personal", "Work"]);
+      }
+    });
+
     const q = query(collection(db, "users", user.uid, "notes"), orderBy("createdAt", "desc"));
-    return onSnapshot(q, snap => {
+    const unsubNotes = onSnapshot(q, snap => {
       setNotes(snap.docs.map(d => ({ id: d.id, ...d.data() } as Note)));
       setLoading(false);
     });
+
+    return () => {
+      unsubFolders();
+      unsubNotes();
+    };
   }, [user]);
 
   const openNote = useCallback((note: Note) => {
@@ -123,8 +139,7 @@ export default function NotesPage() {
   const FILTERS = [
     { id: "ALL", label: "All" },
     { id: "PINNED", label: "📌 Pinned" },
-    { id: "PERSONAL", label: "Personal" },
-    { id: "WORK", label: "Work" },
+    ...customFolders.map(f => ({ id: f, label: f })),
     { id: "ARCHIVED", label: "Archive" },
   ];
 
@@ -133,8 +148,7 @@ export default function NotesPage() {
     if (search) return n.title.toLowerCase().includes(search.toLowerCase()) || n.content.toLowerCase().includes(search.toLowerCase());
     if (filter === "PINNED") return n.isPinned && !n.isArchived;
     if (filter === "ARCHIVED") return n.isArchived;
-    if (filter === "PERSONAL") return n.folder === "Personal" && !n.isArchived;
-    if (filter === "WORK") return n.folder === "Work" && !n.isArchived;
+    if (filter !== "ALL") return n.folder === filter && !n.isArchived;
     return !n.isArchived;
   });
 
@@ -161,7 +175,7 @@ export default function NotesPage() {
       <div className="relative mb-4">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-hint)" }} />
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search notes..."
-          className="input pl-9 pr-9" />
+          className="input pr-9" style={{ paddingLeft: "36px" }} />
         {search && (
           <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 btn-icon" style={{ padding: "2px" }}>
             <X size={14} />
@@ -199,9 +213,20 @@ export default function NotesPage() {
                 </div>
                 <div className="ml-auto">
                   <label className="text-xs font-semibold mb-2 block" style={{ color: "var(--text-secondary)" }}>FOLDER</label>
-                  <select value={form.folder} onChange={e => setForm({ ...form, folder: e.target.value })} className="input text-sm" style={{ width: "auto" }}>
-                    <option>Personal</option>
-                    <option>Work</option>
+                  <select value={form.folder} onChange={e => {
+                    if (e.target.value === "__NEW__") {
+                      const newFolder = prompt("Enter new folder name:");
+                      if (newFolder && newFolder.trim() !== "") {
+                        const updatedFolders = [...new Set([...customFolders, newFolder.trim()])];
+                        setDoc(doc(db, "users", user!.uid, "settings", "custom_folders"), { folders: updatedFolders }, { merge: true })
+                        setForm({ ...form, folder: newFolder.trim() });
+                      }
+                    } else {
+                      setForm({ ...form, folder: e.target.value });
+                    }
+                  }} className="input text-sm" style={{ width: "auto" }}>
+                    {customFolders.map(f => <option key={f} value={f}>{f}</option>)}
+                    <option value="__NEW__">+ New Folder</option>
                   </select>
                 </div>
               </div>
@@ -375,10 +400,21 @@ export default function NotesPage() {
                           }} />
                       ))}
                     </div>
-                    <select value={editForm.folder} onChange={e => setEditForm({ ...editForm, folder: e.target.value })}
+                    <select value={editForm.folder} onChange={e => {
+                      if (e.target.value === "__NEW__") {
+                        const newFolder = prompt("Enter new folder name:");
+                        if (newFolder && newFolder.trim() !== "") {
+                          const updatedFolders = [...new Set([...customFolders, newFolder.trim()])];
+                          setDoc(doc(db, "users", user!.uid, "settings", "custom_folders"), { folders: updatedFolders }, { merge: true });
+                          setEditForm({ ...editForm, folder: newFolder.trim() });
+                        }
+                      } else {
+                        setEditForm({ ...editForm, folder: e.target.value });
+                      }
+                    }}
                       className="input text-xs ml-auto" style={{ width: "auto", padding: "4px 10px" }}>
-                      <option>Personal</option>
-                      <option>Work</option>
+                      {customFolders.map(f => <option key={f} value={f}>{f}</option>)}
+                      <option value="__NEW__">+ New Folder</option>
                     </select>
                   </div>
 

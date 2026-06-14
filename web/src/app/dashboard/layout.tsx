@@ -8,9 +8,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, DollarSign, StickyNote, CheckSquare,
   Bell, BarChart2, Settings, Menu, X, ChevronRight,
-  Sun, Moon, LogOut, Search
+  Sun, Moon, LogOut, Search, PieChart
 } from "lucide-react";
 import { useReminderAlerts } from "@/hooks/useReminderAlerts";
+import NetworkBanner from "@/components/NetworkBanner";
+import GlobalSearch from "@/components/GlobalSearch";
 
 const NAV = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -18,6 +20,7 @@ const NAV = [
   { href: "/dashboard/notes", icon: StickyNote, label: "Notes" },
   { href: "/dashboard/tasks", icon: CheckSquare, label: "Tasks" },
   { href: "/dashboard/reminders", icon: Bell, label: "Reminders" },
+  { href: "/dashboard/budgets", icon: PieChart, label: "Budgets" },
   { href: "/dashboard/reports", icon: BarChart2, label: "Reports" },
   { href: "/dashboard/settings", icon: Settings, label: "Settings" },
 ];
@@ -28,6 +31,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const [dark, setDark] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   // 🔔 Reminder alarm — runs across all dashboard pages
   useReminderAlerts();
@@ -95,6 +99,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: "var(--bg)" }}>
+      <NetworkBanner />
+      <AnimatePresence>
+        {searchOpen && <GlobalSearch onClose={() => setSearchOpen(false)} />}
+      </AnimatePresence>
 
       {/* ── Desktop Sidebar ── */}
       <aside className="hidden md:flex flex-col w-60 flex-shrink-0 border-r"
@@ -230,6 +238,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           {/* Right actions */}
           <div className="flex items-center gap-1">
+            <button onClick={() => setSearchOpen(true)} className="btn-icon">
+              <Search size={18} />
+            </button>
             <button onClick={toggleDark} className="btn-icon hidden md:flex">
               {dark ? <Sun size={18} /> : <Moon size={18} />}
             </button>

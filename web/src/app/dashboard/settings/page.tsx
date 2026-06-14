@@ -91,7 +91,7 @@ export default function SettingsPage() {
             <div className="relative flex-1">
               <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{color:"var(--text-hint)"}}/>
               <input value={name} onChange={e=>setName(e.target.value)}
-                className="input pl-9" placeholder="Your name" />
+                className="input" style={{ paddingLeft: "36px" }} placeholder="Your name" />
             </div>
             <button type="submit" disabled={saving} className="btn btn-primary btn-sm flex-shrink-0">
               {saving ? <Loader2 size={14} className="animate-spin"/> : saved ? <Check size={14}/> : "Save"}
