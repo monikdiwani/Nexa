@@ -146,34 +146,6 @@ export default function LandingPage() {
             </p>
           </motion.div>
 
-          {/* Hero visual */}
-          <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}
-            className="mt-14 relative">
-            <div className="rounded-2xl border overflow-hidden shadow-2xl mx-auto max-w-3xl"
-              style={{ background: "var(--surface)", borderColor: "var(--divider)" }}>
-              {/* Fake browser bar */}
-              <div className="flex items-center gap-2 px-4 py-3 border-b" style={{ background: "var(--bg)", borderColor: "var(--divider)" }}>
-                <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-red-400" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-400" />
-                  <div className="w-3 h-3 rounded-full bg-green-400" />
-                </div>
-                <div className="flex-1 mx-4 h-6 rounded-md flex items-center px-3 text-xs" style={{ background: "var(--surface)", color: "var(--text-hint)" }}>
-                  nexa.web.app/dashboard
-                </div>
-              </div>
-              {/* Mock dashboard */}
-              <div className="p-5" style={{ background: "var(--bg)" }}>
-                <div className="h-8 rounded-xl mb-4 nexa-gradient opacity-80" />
-                <div className="grid grid-cols-3 gap-3 mb-4">
-                  {[1,2,3].map(i => <div key={i} className="h-16 rounded-xl" style={{ background: "var(--surface)" }} />)}
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  {[1,2,3,4].map(i => <div key={i} className="h-12 rounded-xl" style={{ background: "var(--surface)" }} />)}
-                </div>
-              </div>
-            </div>
-          </motion.div>
         </div>
       </section>
 
