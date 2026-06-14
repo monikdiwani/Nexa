@@ -222,7 +222,7 @@ public class HomeFragment extends Fragment {
                                     
                                     String type = doc.getString("type");
                                     Object membersObj = doc.get("members");
-                                    int membersSize = membersObj instanceof Map ? ((Map) membersObj).size() : 0;
+                                    int membersSize = membersObj instanceof java.util.Map ? ((java.util.Map) membersObj).size() : 0;
                                     boolean isGroup = "GROUP".equals(type) || membersSize > 1;
                                     
                                     if (!isGroup) {
@@ -240,7 +240,7 @@ public class HomeFragment extends Fragment {
                                         
                                         String type = doc.getString("type");
                                         Object membersObj = doc.get("members");
-                                        int membersSize = membersObj instanceof Map ? ((Map) membersObj).size() : 0;
+                                        int membersSize = membersObj instanceof java.util.Map ? ((java.util.Map) membersObj).size() : 0;
                                         boolean isGroup = "GROUP".equals(type) || membersSize > 1;
                                         
                                         if (!isGroup) {
