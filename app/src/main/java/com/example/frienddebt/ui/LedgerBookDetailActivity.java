@@ -166,6 +166,7 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
             if ("ADMIN".equalsIgnoreCase(userRole) || "OWNER".equalsIgnoreCase(userRole)) {
                 popup.getMenu().add(0, 3, 0, "Share Invite Code");
                 popup.getMenu().add(0, 7, 0, "Manage Members");
+                popup.getMenu().add(0, 12, 0, "Add Offline Member");
                 // Pending approvals with live count badge
                 String pendingLabel = pendingCount > 0
                     ? "Pending Approvals  (" + pendingCount + ")"
@@ -255,6 +256,9 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                         Intent settleIntent = new Intent(this, SettleUpActivity.class);
                         settleIntent.putExtra("BOOK_ID", bookId);
                         startActivity(settleIntent);
+                        return true;
+                    case 12:
+                        showAddOfflineMemberDialog();
                         return true;
                     default:
                         return false;
@@ -1175,6 +1179,40 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                 });
             })
             .addOnFailureListener(e -> Toast.makeText(this, "Failed to load members: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+    }
+
+    private void showAddOfflineMemberDialog() {
+        android.widget.EditText input = new android.widget.EditText(this);
+        input.setHint("Offline Member Name");
+        
+        new AlertDialog.Builder(this)
+            .setTitle("Add Offline Member")
+            .setView(input)
+            .setPositiveButton("Add", (dialog, which) -> {
+                String name = input.getText().toString().trim();
+                if (name.isEmpty()) return;
+                
+                String fakeUid = "offline_" + System.currentTimeMillis();
+                
+                // 1. Create fake user in users collection
+                java.util.Map<String, Object> fakeUser = new java.util.HashMap<>();
+                fakeUser.put("displayName", name + " (Offline)");
+                fakeUser.put("isOffline", true);
+                
+                db.collection("users").document(fakeUid).set(fakeUser)
+                    .addOnSuccessListener(aVoid -> {
+                        // 2. Add to group
+                        db.collection("cashbooks").document(bookId)
+                            .update("members." + fakeUid, "VIEWER")
+                            .addOnSuccessListener(aVoid2 -> {
+                                Toast.makeText(this, name + " added as offline member", Toast.LENGTH_SHORT).show();
+                            })
+                            .addOnFailureListener(e -> Toast.makeText(this, "Failed to add to group", Toast.LENGTH_SHORT).show());
+                    })
+                    .addOnFailureListener(e -> Toast.makeText(this, "Failed to create user", Toast.LENGTH_SHORT).show());
+            })
+            .setNegativeButton("Cancel", null)
+            .show();
     }
 
     private void showChangeRoleDialog(String targetUid, String currentRole, String displayName) {
