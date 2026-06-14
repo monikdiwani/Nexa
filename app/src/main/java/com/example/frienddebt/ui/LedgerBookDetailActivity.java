@@ -1065,6 +1065,7 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
             if (!"SETTLEMENT".equals(entry.getType())) {
                 options.add("Edit Transaction");
                 options.add("Duplicate Transaction");
+                options.add("Mark as Refunded");
             }
             options.add("Delete Transaction");
 
@@ -1107,6 +1108,36 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                             intent.putExtra("ENTRY_ID", entry.getId());
                             intent.putExtra("IS_DUPLICATE_MODE", true);
                             startActivity(intent);
+                        } else if ("Mark as Refunded".equals(selected)) {
+                            String newEntryId = java.util.UUID.randomUUID().toString();
+                            String newType = "CASH_IN".equals(entry.getType()) ? "CASH_OUT" : "CASH_IN";
+                            
+                            com.example.frienddebt.model.CashbookEntry refundEntry = new com.example.frienddebt.model.CashbookEntry(
+                                newEntryId, bookId, System.currentTimeMillis(),
+                                entry.getParticulars() + " (Refund)",
+                                newType, entry.getMedium(), entry.getAmount(),
+                                entry.getCategory(), entry.getNote(), System.currentTimeMillis()
+                            );
+                            refundEntry.setCreatedBy(auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : "");
+                            
+                            if ("EXPENSE".equals(entry.getType())) {
+                                refundEntry.setType("EXPENSE");
+                                refundEntry.setAmount(-entry.getAmount());
+                                refundEntry.setPaidBy(entry.getPaidBy());
+                                if (entry.getSplits() != null) {
+                                    Map<String, Double> negativeSplits = new HashMap<>();
+                                    for (Map.Entry<String, Double> s : entry.getSplits().entrySet()) {
+                                        negativeSplits.put(s.getKey(), -s.getValue());
+                                    }
+                                    refundEntry.setSplits(negativeSplits);
+                                }
+                            }
+                            
+                            db.collection("cashbooks").document(bookId).collection("entries").document(newEntryId)
+                                .set(refundEntry.toFirestoreMap())
+                                .addOnSuccessListener(aVoid -> {
+                                    Toast.makeText(LedgerBookDetailActivity.this, "Refund Recorded", Toast.LENGTH_SHORT).show();
+                                });
                         } else if ("Delete Transaction".equals(selected)) {
                             // Delete
                             new AlertDialog.Builder(LedgerBookDetailActivity.this)
