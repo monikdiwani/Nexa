@@ -89,17 +89,12 @@ public class MoneyFragment extends Fragment {
 
         sheetView.findViewById(R.id.btnActionAddIncome).setOnClickListener(v -> {
             bottomSheetDialog.dismiss();
-            // Default to personal add cashbook entry (Wait, AddCashbookEntryActivity currently requires BOOK_ID)
-            // Let's just launch CreateLedgerBookActivity if no book is selected, or a ledger selector. 
-            // For now, if the user doesn't pass a BOOK_ID to AddCashbookEntryActivity, it might fail.
-            // Ideally we pass an intent without BOOK_ID and let the activity handle ledger selection, 
-            // or we just toast for now until we build the universal flow.
-            android.widget.Toast.makeText(requireContext(), "Select a ledger first to add income.", android.widget.Toast.LENGTH_SHORT).show();
+            showLedgerPickerForCashbookEntry(true);
         });
 
         sheetView.findViewById(R.id.btnActionAddExpense).setOnClickListener(v -> {
             bottomSheetDialog.dismiss();
-            android.widget.Toast.makeText(requireContext(), "Select a ledger first to add expense.", android.widget.Toast.LENGTH_SHORT).show();
+            showLedgerPickerForCashbookEntry(false);
         });
 
         sheetView.findViewById(R.id.btnActionAddSharedExpense).setOnClickListener(v -> {
@@ -124,6 +119,38 @@ public class MoneyFragment extends Fragment {
 
         bottomSheetDialog.setContentView(sheetView);
         bottomSheetDialog.show();
+    }
+
+    private void showLedgerPickerForCashbookEntry(boolean isIncome) {
+        if (auth.getCurrentUser() == null) return;
+        String userId = auth.getCurrentUser().getUid();
+        db.collection("cashbooks")
+            .whereNotEqualTo("members." + userId, null)
+            .limit(10)
+            .get()
+            .addOnSuccessListener(snapshots -> {
+                if (snapshots.isEmpty()) {
+                    android.widget.Toast.makeText(requireContext(), "Create a ledger first.", android.widget.Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                List<LedgerBook> books = new ArrayList<>();
+                List<String> bookNames = new ArrayList<>();
+                for (com.google.firebase.firestore.DocumentSnapshot doc : snapshots) {
+                    LedgerBook b = LedgerBook.fromDocument(doc);
+                    books.add(b);
+                    bookNames.add(b.getName());
+                }
+                new android.app.AlertDialog.Builder(requireContext())
+                    .setTitle(isIncome ? "Select Ledger for Income" : "Select Ledger for Expense")
+                    .setItems(bookNames.toArray(new String[0]), (dialog, which) -> {
+                        LedgerBook selected = books.get(which);
+                        android.content.Intent intent = new android.content.Intent(requireContext(), com.example.frienddebt.ui.AddCashbookEntryActivity.class);
+                        intent.putExtra("BOOK_ID", selected.getId());
+                        intent.putExtra("BOOK_NAME", selected.getName());
+                        startActivity(intent);
+                    })
+                    .show();
+            });
     }
 
     private void setupTabs() {

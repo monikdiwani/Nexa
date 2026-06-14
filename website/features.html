@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Features - Nexa</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    .feature-item-card {
+      margin-bottom: 24px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <div class="navbar-logo">N</div>
+      <a href="index.html" style="color: white;">Nexa</a>
+    </div>
+    <div class="navbar-nav">
+      <a href="index.html" class="nav-link">Home</a>
+      <a href="features.html" class="nav-link" style="color: white;">Features</a>
+      <a href="download.html" class="nav-link">Download</a>
+    </div>
+    <button class="mobile-menu-btn">☰</button>
+  </nav>
+
+  <!-- Mobile Menu Overlay -->
+  <div class="mobile-nav-overlay">
+    <a href="index.html">Home</a>
+    <a href="features.html">Features</a>
+    <a href="download.html">Download</a>
+    <a href="privacy.html">Privacy Policy</a>
+  </div>
+
+  <div class="sidebar-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <h3 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); margin-bottom: 16px;">Jump to:</h3>
+      <ul class="sidebar-nav">
+        <li><a href="#dashboard" class="active">Home Dashboard</a></li>
+        <li><a href="#money">Money & Finance</a></li>
+        <li><a href="#notes">Smart Notes</a></li>
+        <li><a href="#tasks">Tasks</a></li>
+        <li><a href="#reminders">Reminders & Alarms</a></li>
+        <li><a href="#reports">Reports & Analytics</a></li>
+        <li><a href="#search">Global Search</a></li>
+        <li><a href="#profile">Profile & Settings</a></li>
+      </ul>
+    </aside>
+
+    <!-- Content -->
+    <main class="features-content">
+      <h1 style="font-size: 48px; margin-bottom: 20px;">Complete Feature List</h1>
+      <p style="color: var(--text-secondary); font-size: 18px; margin-bottom: 60px;">Every single feature built into Nexa, documented in detail.</p>
+
+      <!-- SECTION A: HOME DASHBOARD -->
+      <section id="dashboard" class="feature-section">
+        <h2>🏠 Home Dashboard</h2>
+        <div class="grid-2">
+          <div class="feature-item-card"><h4>Time-based greeting</h4><p>Morning/Afternoon/Evening/Night greeting based on local time.</p></div>
+          <div class="feature-item-card"><h4>User name display</h4><p>Shows Firebase Auth display name or email prefix.</p></div>
+          <div class="feature-item-card"><h4>Net balance card</h4><p>Total Cash In minus Cash Out across all ledgers.</p></div>
+          <div class="feature-item-card"><h4>Cash In / Out breakdown</h4><p>Visual breakdown inside the balance card.</p></div>
+          <div class="feature-item-card"><h4>Smart insight message</h4><p>Dynamic AI-like tip based on spending, tasks, and reminders.</p></div>
+          <div class="feature-item-card"><h4>Quick Actions</h4><p>Buttons to instantly go to Money Tab, Add Task, Set Reminder, or View Reports.</p></div>
+          <div class="feature-item-card"><h4>Tasks preview card</h4><p>Shows pending count + next upcoming task title.</p></div>
+          <div class="feature-item-card"><h4>Reminders preview</h4><p>Shows upcoming count + next reminder + trigger time.</p></div>
+          <div class="feature-item-card"><h4>Ledgers preview</h4><p>Displays total ledger count and quick tap to Money tab.</p></div>
+          <div class="feature-item-card"><h4>Global search shortcut</h4><p>Search icon directly from home screen header.</p></div>
+          <div class="feature-item-card"><h4>Real-time listeners</h4><p>Firestore data updates instantly without pull-to-refresh.</p></div>
+          <div class="feature-item-card"><h4>Exit protection</h4><p>Double back-press required to exit the app.</p></div>
+        </div>
+      </section>
+
+      <!-- SECTION B: MONEY & FINANCE -->
+      <section id="money" class="feature-section">
+        <h2>💰 Money & Finance</h2>
+        <div class="grid-2">
+          <div class="feature-item-card"><h4>3-tab view</h4><p>Filter ledgers by Personal, Shared, or All.</p></div>
+          <div class="feature-item-card"><h4>Pending settlements banner</h4><p>Alerts appear when you owe someone in a shared ledger.</p></div>
+          <div class="feature-item-card"><h4>Create Ledger Book</h4><p>Set name, currency, and auto-generates a 6-char invite code.</p></div>
+          <div class="feature-item-card"><h4>Join Ledger</h4><p>Join existing ledgers using the 6-character invite code.</p></div>
+          <div class="feature-item-card"><h4>Filter transactions</h4><p>Filter by medium (All/Cash/Bank) and time (Today/Week/Month).</p></div>
+          <div class="feature-item-card"><h4>Transaction categories</h4><p>9 chips: Sales, Rent, Salary, Office, Personal, Food, Transport, Shopping, Bills.</p></div>
+          <div class="feature-item-card"><h4>Receipt scanner</h4><p>ML Kit OCR extracts vendor name + total amount from photos.</p></div>
+          <div class="feature-item-card"><h4>SMS auto-add</h4><p>Detects bank SMS and auto-logs transactions (if enabled).</p></div>
+          <div class="feature-item-card"><h4>Fair Share Splitting</h4><p>Add shared expenses with EQUAL, PERCENTAGE, or EXACT split methods.</p></div>
+          <div class="feature-item-card"><h4>Debt simplification</h4><p>Greedy algorithm provides minimum payment suggestions.</p></div>
+          <div class="feature-item-card"><h4>WhatsApp reminder</h4><p>Send debt collection reminders directly to WhatsApp.</p></div>
+          <div class="feature-item-card"><h4>Export PDF report</h4><p>Native Android PdfDocument API generation, no external libraries.</p></div>
+          <div class="feature-item-card"><h4>Recurring transactions</h4><p>Auto-creation Daily, Weekly, Monthly, or Yearly.</p></div>
+          <div class="feature-item-card"><h4>Budget tracking</h4><p>Set category limits, see progress with color-coded alerts (Green/Orange/Red).</p></div>
+          <div class="feature-item-card"><h4>Physical cash counter</h4><p>Count denomination coins/notes to calculate total cash on hand.</p></div>
+        </div>
+      </section>
+
+      <!-- SECTION C: SMART NOTES -->
+      <section id="notes" class="feature-section">
+        <h2>📝 Smart Notes</h2>
+        <div class="grid-2">
+          <div class="feature-item-card"><h4>Staggered grid layout</h4><p>Samsung Notes-inspired colorful note card grid.</p></div>
+          <div class="feature-item-card"><h4>Note folders</h4><p>Organize with Personal and Work folders in the left drawer.</p></div>
+          <div class="feature-item-card"><h4>Rich text formatting</h4><p>Bold, Italic, Underline, Strikethrough, Text Alignment.</p></div>
+          <div class="feature-item-card"><h4>Color highlighting</h4><p>Change text color and background highlight colors.</p></div>
+          <div class="feature-item-card"><h4>Checklist mode</h4><p>Convert body to checklist items, each with a clickable checkbox.</p></div>
+          <div class="feature-item-card"><h4>Undo / Redo</h4><p>50-state history stack with 500ms debounce.</p></div>
+          <div class="feature-item-card"><h4>Image attachments</h4><p>Attach images from gallery or snap a photo directly.</p></div>
+          <div class="feature-item-card"><h4>Page styles</h4><p>Canvas-drawn backgrounds: Blank, Lined, Dotted, Grid.</p></div>
+          <div class="feature-item-card"><h4>Set reminder on note</h4><p>Schedules an exact-minute alarm linked to the note.</p></div>
+          <div class="feature-item-card"><h4>Convert to other modules</h4><p>Turn a note into a Task, Reminder, or Cashbook Entry with one tap.</p></div>
+          <div class="feature-item-card"><h4>Multi-select actions</h4><p>Pin, archive, restore, trash, delete forever in batch mode.</p></div>
+          <div class="feature-item-card"><h4>Auto-save</h4><p>Notes auto-save with timestamp tracking.</p></div>
+        </div>
+      </section>
+
+      <!-- SECTION D: TASKS -->
+      <section id="tasks" class="feature-section">
+        <h2>✅ Tasks</h2>
+        <div class="grid-2">
+          <div class="feature-item-card"><h4>Priority sorting</h4><p>Auto-sorts by High (Red) → Medium (Orange) → Low (Green).</p></div>
+          <div class="feature-item-card"><h4>Subtasks</h4><p>Add multiple sub-items, each with its own completion checkbox.</p></div>
+          <div class="feature-item-card"><h4>Important flag</h4><p>Star tasks to mark them as highly important.</p></div>
+          <div class="feature-item-card"><h4>Recurring tasks</h4><p>Set patterns: None, Daily, Weekly, Monthly, Yearly.</p></div>
+          <div class="feature-item-card"><h4>One-tap complete</h4><p>Instant strikethrough animation and color dimming.</p></div>
+          <div class="feature-item-card"><h4>Cross-module link</h4><p>Link a task directly to a Note or Cashbook Entry.</p></div>
+        </div>
+      </section>
+
+      <!-- SECTION E: REMINDERS & ALARMS -->
+      <section id="reminders" class="feature-section">
+        <h2>🔔 Reminders & Alarms</h2>
+        <div class="grid-2">
+          <div class="feature-item-card"><h4>Exact-minute firing</h4><p>Uses AlarmManager.setExactAndAllowWhileIdle() for precision.</p></div>
+          <div class="feature-item-card"><h4>High priority bypass</h4><p>High priority reminders bypass Do Not Disturb with sound/vibration.</p></div>
+          <div class="feature-item-card"><h4>Snooze</h4><p>15-minute delay right from the notification action button.</p></div>
+          <div class="feature-item-card"><h4>Categories</h4><p>Bill, Meeting, Task, Medicine, Shopping, Custom.</p></div>
+          <div class="feature-item-card"><h4>Daily Digests</h4><p>Morning summary at 8 AM, Night review at 9:30 PM via WorkManager.</p></div>
+          <div class="feature-item-card"><h4>Boot Receiver</h4><p>Reschedules ALL alarms automatically after a device restart.</p></div>
+        </div>
+      </section>
+
+      <!-- SECTION F: REPORTS & ANALYTICS -->
+      <section id="reports" class="feature-section">
+        <h2>📊 Reports & Analytics</h2>
+        <div class="grid-2">
+          <div class="feature-item-card"><h4>Custom bar chart</h4><p>Drawn on Android Canvas API. No external libraries used.</p></div>
+          <div class="feature-item-card"><h4>7 and 30-day views</h4><p>Daily bars for week view, weekly buckets for month view.</p></div>
+          <div class="feature-item-card"><h4>Category breakdown</h4><p>LinearProgressIndicators showing % of total spending per category.</p></div>
+          <div class="feature-item-card"><h4>Task completion gauge</h4><p>Circular progress indicator showing productivity.</p></div>
+          <div class="feature-item-card"><h4>Export to PDF</h4><p>Generate native PDF reports with the Android PdfDocument API.</p></div>
+          <div class="feature-item-card"><h4>Financial summary</h4><p>Total In, Total Out, Net Balance, Average Daily Spending.</p></div>
+        </div>
+      </section>
+
+      <!-- SECTION G: GLOBAL SEARCH -->
+      <section id="search" class="feature-section">
+        <h2>🔍 Global Search</h2>
+        <div class="grid-2">
+          <div class="feature-item-card"><h4>Unified search bar</h4><p>Searches across all modules simultaneously in real-time.</p></div>
+          <div class="feature-item-card"><h4>Filter chips</h4><p>Filter results by All / Tasks / Notes / Money / Reminders / Ledgers.</p></div>
+          <div class="feature-item-card"><h4>Direct navigation</h4><p>Tap a result card to jump straight to that specific item.</p></div>
+        </div>
+      </section>
+
+      <!-- SECTION H: PROFILE & SETTINGS -->
+      <section id="profile" class="feature-section">
+        <h2>👤 Profile & Settings</h2>
+        <div class="grid-2">
+          <div class="feature-item-card"><h4>Firebase Storage profile</h4><p>Upload profile picture from camera or gallery.</p></div>
+          <div class="feature-item-card"><h4>Data export</h4><p>Export all tasks, notes, reminders, and cashbook data to CSV.</p></div>
+          <div class="feature-item-card"><h4>Dark mode</h4><p>Applies immediately and persists across launches safely.</p></div>
+          <div class="feature-item-card"><h4>Granular notifications</h4><p>Independent toggles for Reminders, Digest, Tasks, Money, General.</p></div>
+          <div class="feature-item-card"><h4>Security</h4><p>Change password, link Google auth, or completely delete account.</p></div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-grid">
+      <div class="footer-col">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
+          <div class="navbar-logo" style="width: 32px; height: 32px; font-size: 16px;">N</div>
+          <span style="font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; color: white;">Nexa</span>
+        </div>
+        <p style="color: var(--text-secondary); font-size: 14px;">Your life, organized.<br>The ultimate personal daily super app.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="features.html">Features</a></li>
+          <li><a href="download.html">Download</a></li>
+          <li><a href="#">GitHub</a></li>
+          <li><a href="privacy.html">Privacy Policy</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Modules</h4>
+        <ul>
+          <li><a href="#dashboard">Dashboard</a></li>
+          <li><a href="#money">Money</a></li>
+          <li><a href="#notes">Notes</a></li>
+          <li><a href="#tasks">Tasks</a></li>
+          <li><a href="#reminders">Reminders</a></li>
+          <li><a href="#reports">Reports</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Connect</h4>
+        <ul>
+          <li><a href="#">Source Code</a></li>
+          <li style="color: var(--text-muted);">Built with passion</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>&copy; 2025 Nexa · All rights reserved</div>
+      <div>Made with ♥ for Android</div>
+    </div>
+  </footer>
+
+  <script src="js/scroll.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

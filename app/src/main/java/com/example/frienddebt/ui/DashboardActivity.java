@@ -34,6 +34,8 @@ public class DashboardActivity extends AppCompatActivity {
     private FragmentManager fm;
 
     private long lastBackPressTime = 0;
+    private android.widget.TextView tvOfflineIndicator;
+    private android.net.ConnectivityManager.NetworkCallback networkCallback;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,6 +64,9 @@ public class DashboardActivity extends AppCompatActivity {
 
         fm = getSupportFragmentManager();
         BottomNavigationView navView = findViewById(R.id.bottom_navigation);
+        tvOfflineIndicator = findViewById(R.id.tvOfflineIndicator);
+
+        setupNetworkCallback();
 
         if (savedInstanceState == null) {
             homeFragment = new HomeFragment();
@@ -253,6 +258,42 @@ public class DashboardActivity extends AppCompatActivity {
                 })
                 .setNegativeButton("Later", null)
                 .show();
+        }
+    }
+
+    private void setupNetworkCallback() {
+        android.net.ConnectivityManager cm = (android.net.ConnectivityManager) getSystemService(android.content.Context.CONNECTIVITY_SERVICE);
+        if (cm != null) {
+            networkCallback = new android.net.ConnectivityManager.NetworkCallback() {
+                @Override
+                public void onAvailable(@NonNull android.net.Network network) {
+                    runOnUiThread(() -> {
+                        if (tvOfflineIndicator != null) tvOfflineIndicator.setVisibility(android.view.View.GONE);
+                    });
+                    com.google.firebase.firestore.FirebaseFirestore.getInstance().enableNetwork();
+                }
+
+                @Override
+                public void onLost(@NonNull android.net.Network network) {
+                    runOnUiThread(() -> {
+                        if (tvOfflineIndicator != null) tvOfflineIndicator.setVisibility(android.view.View.VISIBLE);
+                    });
+                    com.google.firebase.firestore.FirebaseFirestore.getInstance().disableNetwork();
+                }
+            };
+            android.net.NetworkRequest request = new android.net.NetworkRequest.Builder().build();
+            cm.registerNetworkCallback(request, networkCallback);
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (networkCallback != null) {
+            android.net.ConnectivityManager cm = (android.net.ConnectivityManager) getSystemService(android.content.Context.CONNECTIVITY_SERVICE);
+            if (cm != null) {
+                cm.unregisterNetworkCallback(networkCallback);
+            }
         }
     }
 }

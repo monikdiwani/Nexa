@@ -106,6 +106,7 @@
     <!-- Divider / stroke -->
     <color name="divider">#E5E5EA</color>
     <color name="stroke_light">#D1D1D6</color>
+    <color name="fab_icon_tint">#FFFFFF</color>
 
     <!-- Ripple -->
     <color name="ripple_primary">#1A5C6BC0</color>

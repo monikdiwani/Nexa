@@ -187,7 +187,7 @@
         android:src="@android:drawable/ic_input_add"
         android:contentDescription="Add Task"
         app:backgroundTint="@color/primary"
-        app:tint="@color/white"
+        app:tint="@color/fab_icon_tint"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 

@@ -57,10 +57,13 @@ public class NotesFragment extends Fragment {
 
     // Drawer filter targets
     private TextView drawerAll, drawerPinned, drawerPersonal, drawerWork, drawerArchive, drawerTrash;
+    private TextView drawerNewFolder;
+    private LinearLayout layoutCustomFolders;
 
     private FirebaseFirestore db;
     private FirebaseAuth auth;
     private ListenerRegistration notesListener;
+    private ListenerRegistration foldersListener;
 
     private List<Note> allNotes = new ArrayList<>();
     private List<Object> displayItems = new ArrayList<>(); // String headers + Note objects
@@ -94,6 +97,8 @@ public class NotesFragment extends Fragment {
         drawerWork     = view.findViewById(R.id.drawerWork);
         drawerArchive  = view.findViewById(R.id.drawerArchive);
         drawerTrash    = view.findViewById(R.id.drawerTrash);
+        drawerNewFolder= view.findViewById(R.id.drawerNewFolder);
+        layoutCustomFolders = view.findViewById(R.id.layoutCustomFolders);
 
         setupDrawer();
         setupRecyclerView();
@@ -107,12 +112,14 @@ public class NotesFragment extends Fragment {
     public void onStart() {
         super.onStart();
         loadNotes();
+        loadFolders();
     }
 
     @Override
     public void onStop() {
         super.onStop();
         if (notesListener != null) { notesListener.remove(); notesListener = null; }
+        if (foldersListener != null) { foldersListener.remove(); foldersListener = null; }
     }
 
     // ─── Setup ────────────────────────────────────────────────────────────────
@@ -130,6 +137,27 @@ public class NotesFragment extends Fragment {
         setDrawerItem(drawerWork, "work");
         setDrawerItem(drawerArchive, "archived");
         setDrawerItem(drawerTrash, "trash");
+
+        if (drawerNewFolder != null) {
+            drawerNewFolder.setOnClickListener(v -> {
+                android.widget.EditText et = new android.widget.EditText(requireContext());
+                et.setHint("Folder Name");
+                new android.app.AlertDialog.Builder(requireContext())
+                    .setTitle("New Folder")
+                    .setView(et)
+                    .setPositiveButton("Create", (d, w) -> {
+                        String name = et.getText().toString().trim();
+                        if (!name.isEmpty() && auth.getCurrentUser() != null) {
+                            String autoId = db.collection("users").document(auth.getCurrentUser().getUid())
+                                .collection("noteFolders").document().getId();
+                            java.util.Map<String, Object> map = new java.util.HashMap<>();
+                            map.put("name", name);
+                            db.collection("users").document(auth.getCurrentUser().getUid())
+                                .collection("noteFolders").document(autoId).set(map);
+                        }
+                    }).setNegativeButton("Cancel", null).show();
+            });
+        }
     }
 
     private void setDrawerItem(TextView tv, String filter) {
@@ -257,6 +285,34 @@ public class NotesFragment extends Fragment {
                 });
     }
 
+    public void loadFolders() {
+        if (auth == null || auth.getCurrentUser() == null) return;
+        if (foldersListener != null) foldersListener.remove();
+        foldersListener = db.collection("users").document(auth.getCurrentUser().getUid())
+            .collection("noteFolders")
+            .addSnapshotListener((snapshots, e) -> {
+                if (snapshots == null || layoutCustomFolders == null) return;
+                layoutCustomFolders.removeAllViews();
+                for (DocumentSnapshot doc : snapshots) {
+                    String name = doc.getString("name");
+                    if (name != null) {
+                        TextView tv = new TextView(requireContext());
+                        tv.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(48)));
+                        tv.setText(name);
+                        tv.setTextSize(15f);
+                        tv.setTextColor(getResources().getColor(R.color.text_primary));
+                        tv.setGravity(android.view.Gravity.CENTER_VERTICAL);
+                        tv.setPadding(dpToPx(20), 0, dpToPx(20), 0);
+                        android.util.TypedValue outValue = new android.util.TypedValue();
+                        requireContext().getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outValue, true);
+                        tv.setBackgroundResource(outValue.resourceId);
+                        setDrawerItem(tv, name.toLowerCase());
+                        layoutCustomFolders.addView(tv);
+                    }
+                }
+            });
+    }
+
     private void applyFilter() {
         List<Note> filtered = new ArrayList<>();
         for (Note n : allNotes) {
@@ -266,7 +322,13 @@ public class NotesFragment extends Fragment {
                 case "work":     if ("Work".equalsIgnoreCase(n.getFolder()) && !n.isDeleted() && !n.isArchived()) filtered.add(n); break;
                 case "archived": if (n.isArchived() && !n.isDeleted()) filtered.add(n); break;
                 case "trash":    if (n.isDeleted()) filtered.add(n); break;
-                default:         if (!n.isDeleted() && !n.isArchived()) filtered.add(n); break;
+                default:         
+                    if ("all".equals(activeFilter)) {
+                        if (!n.isDeleted() && !n.isArchived()) filtered.add(n);
+                    } else {
+                        if (activeFilter.equalsIgnoreCase(n.getFolder()) && !n.isDeleted() && !n.isArchived()) filtered.add(n);
+                    }
+                    break;
             }
         }
 
@@ -348,6 +410,11 @@ public class NotesFragment extends Fragment {
         db.collection("users").document(auth.getCurrentUser().getUid())
                 .collection("notes").document(note.getId())
                 .update("isDeleted", false);
+    }
+
+    private int dpToPx(int dp) {
+        if (getContext() == null) return dp;
+        return (int) (dp * getResources().getDisplayMetrics().density);
     }
 
     // ─── Adapter ──────────────────────────────────────────────────────────────
@@ -462,10 +529,6 @@ public class NotesFragment extends Fragment {
 
         @Override
         public int getItemCount() { return displayItems.size(); }
-
-        private int dpToPx(int dp) {
-            return (int) (dp * getResources().getDisplayMetrics().density);
-        }
 
         class NoteViewHolder extends RecyclerView.ViewHolder {
             TextView txtTitle, txtDate, txtPreviewLines;

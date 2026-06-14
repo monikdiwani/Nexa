@@ -54,6 +54,13 @@ public class BudgetAdapter extends RecyclerView.Adapter<BudgetAdapter.BudgetView
         holder.tvSpentAmount.setText(String.format(Locale.getDefault(), "₹%.0f spent", budget.getSpentAmount()));
         holder.tvLimitAmount.setText(String.format(Locale.getDefault(), "of ₹%.0f", budget.getAmountLimit()));
 
+        if (budget.getAmountLimit() <= 0) {
+            holder.pbBudget.setProgress(0);
+            holder.tvRemainingStatus.setText("No limit set");
+            holder.tvRemainingStatus.setTextColor(Color.parseColor("#757575"));
+            return;
+        }
+
         double remaining = budget.getAmountLimit() - budget.getSpentAmount();
         if (remaining < 0) {
             holder.tvRemainingStatus.setText(String.format(Locale.getDefault(), "Over budget by ₹%.0f", Math.abs(remaining)));

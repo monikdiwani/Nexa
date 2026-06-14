@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy - Nexa</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    .privacy-content {
+      color: var(--text-secondary);
+      line-height: 1.8;
+    }
+    .privacy-content h2 {
+      color: var(--text-primary);
+      margin-top: 40px;
+      font-size: 24px;
+    }
+    .privacy-content h3 {
+      color: var(--text-primary);
+      margin-top: 24px;
+      font-size: 18px;
+    }
+    .privacy-content ul {
+      margin-left: 20px;
+      margin-bottom: 20px;
+    }
+    .privacy-content p {
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <div class="navbar-logo">N</div>
+      <a href="index.html" style="color: white;">Nexa</a>
+    </div>
+    <div class="navbar-nav">
+      <a href="index.html" class="nav-link">Home</a>
+      <a href="features.html" class="nav-link">Features</a>
+      <a href="download.html" class="nav-link">Download</a>
+    </div>
+    <button class="mobile-menu-btn">☰</button>
+  </nav>
+
+  <!-- Mobile Menu Overlay -->
+  <div class="mobile-nav-overlay">
+    <a href="index.html">Home</a>
+    <a href="features.html">Features</a>
+    <a href="download.html">Download</a>
+    <a href="privacy.html">Privacy Policy</a>
+  </div>
+
+  <main class="section" style="max-width: 800px; padding-top: 120px;">
+    <h1 style="font-size: 48px; margin-bottom: 10px;">Privacy Policy</h1>
+    <p style="color: var(--text-muted); margin-bottom: 40px;">Last updated: June 2026</p>
+
+    <div class="privacy-content">
+      <h2>1. Introduction</h2>
+      <p>Welcome to Nexa. We respect your privacy and are committed to protecting your personal data. This privacy policy will inform you as to how we look after your personal data when you use the Nexa Android application.</p>
+
+      <h2>2. Data We Collect</h2>
+      <p>When you use Nexa, we collect and store the following types of information to provide our services:</p>
+      <ul>
+        <li><strong>Account Information:</strong> Name, email address, and authentication tokens (via Google Sign-In or Email/Password).</li>
+        <li><strong>Financial Data:</strong> Cashbook entries, ledger names, budget limits, and transaction details.</li>
+        <li><strong>Personal Content:</strong> Tasks, notes, reminders, and custom folders created within the app.</li>
+        <li><strong>Media:</strong> Profile pictures and receipt images uploaded to the platform.</li>
+      </ul>
+
+      <h2>3. How We Use Your Data</h2>
+      <p>Your data is used exclusively to provide the core functionality of the Nexa app:</p>
+      <ul>
+        <li>To sync your tasks, notes, and financial data across your devices in real-time.</li>
+        <li>To send you scheduled reminders and daily digest notifications.</li>
+        <li>To calculate fair share splits in shared ledgers.</li>
+      </ul>
+
+      <h2>4. Firebase Services</h2>
+      <p>Nexa uses Google Firebase as its backend infrastructure. Your data is stored securely using:</p>
+      <ul>
+        <li><strong>Firebase Authentication:</strong> For secure sign-in and account management.</li>
+        <li><strong>Firebase Firestore:</strong> For real-time database storage of your text data.</li>
+        <li><strong>Firebase Storage:</strong> For storing user media (profile photos, receipt scans).</li>
+      </ul>
+      <p>By using Nexa, your data is subject to Google's infrastructure security and privacy policies.</p>
+
+      <h2>5. App Permissions</h2>
+      <p>Nexa may request the following permissions on your Android device:</p>
+      <ul>
+        <li><strong>SMS Permission:</strong> Optional. Used strictly for the auto-add feature to read bank transaction messages. This data is processed locally to extract amounts and is not sent to the server unless you confirm the cashbook entry.</li>
+        <li><strong>Camera & Storage:</strong> For taking profile pictures, attaching images to notes, and scanning receipts with ML Kit OCR.</li>
+        <li><strong>Notifications:</strong> For alarms, reminders, and daily digests.</li>
+      </ul>
+
+      <h2>6. Data Security</h2>
+      <p>Since Nexa is open-source and intended to be connected to your own Firebase project instance, you maintain full control over the database where your information is stored. We do not maintain a centralized database of all Nexa users.</p>
+
+      <h2>7. Data Deletion</h2>
+      <p>You can delete your account and all associated data at any time directly from the Profile & Settings screen within the app. Deleting your account will permanently remove your Auth record, Firestore documents, and Storage files from the connected Firebase project.</p>
+
+      <h2>8. Contact Information</h2>
+      <p>If you have any questions about this privacy policy, please open an issue on the Nexa GitHub repository.</p>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-grid">
+      <div class="footer-col">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
+          <div class="navbar-logo" style="width: 32px; height: 32px; font-size: 16px;">N</div>
+          <span style="font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; color: white;">Nexa</span>
+        </div>
+        <p style="color: var(--text-secondary); font-size: 14px;">Your life, organized.<br>The ultimate personal daily super app.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="features.html">Features</a></li>
+          <li><a href="download.html">Download</a></li>
+          <li><a href="#">GitHub</a></li>
+          <li><a href="privacy.html">Privacy Policy</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Modules</h4>
+        <ul>
+          <li><a href="features.html#dashboard">Dashboard</a></li>
+          <li><a href="features.html#money">Money</a></li>
+          <li><a href="features.html#notes">Notes</a></li>
+          <li><a href="features.html#tasks">Tasks</a></li>
+          <li><a href="features.html#reminders">Reminders</a></li>
+          <li><a href="features.html#reports">Reports</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Connect</h4>
+        <ul>
+          <li><a href="#">Source Code</a></li>
+          <li style="color: var(--text-muted);">Built with passion</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>&copy; 2025 Nexa · All rights reserved</div>
+      <div>Made with ♥ for Android</div>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

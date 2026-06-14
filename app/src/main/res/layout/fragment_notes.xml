@@ -217,6 +217,23 @@
                 android:paddingHorizontal="20dp"
                 android:background="?attr/selectableItemBackground" />
 
+            <LinearLayout
+                android:id="@+id/layoutCustomFolders"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <TextView
+                android:id="@+id/drawerNewFolder"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:text="➕ New Folder"
+                android:textSize="15sp"
+                android:textColor="@color/primary"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="20dp"
+                android:background="?attr/selectableItemBackground" />
+
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"

@@ -63,7 +63,7 @@ public class DataExportHelper {
                                 sanitize(task.getTitle()),
                                 sanitize(task.getDescription() != null ? task.getDescription() : ""),
                                 "-",
-                                sdf.format(new Date(task.getDueDate())),
+                                task.getDueDate() != null ? sdf.format(new Date(task.getDueDate())) : "No due date",
                                 status
                         });
                     }
@@ -82,7 +82,7 @@ public class DataExportHelper {
                                             sanitize(r.getTitle()),
                                             sanitize(r.getMessage() != null ? r.getMessage() : ""),
                                             "-",
-                                            sdf.format(new Date(r.getTriggerTime())),
+                                            r.getTriggerTime() != 0 ? sdf.format(new Date(r.getTriggerTime())) : "No trigger time",
                                             status
                                     });
                                 }

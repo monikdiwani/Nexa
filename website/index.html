@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nexa - Personal Daily Super App</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <div class="navbar-logo">N</div>
+      Nexa
+    </div>
+    <div class="navbar-nav">
+      <a href="features.html" class="nav-link">Features</a>
+      <a href="#modules" class="nav-link">Modules</a>
+      <a href="download.html" class="nav-link">Download</a>
+    </div>
+    <button class="mobile-menu-btn">☰</button>
+    <div style="display: none;" class="desktop-only-btn">
+      <a href="download.html" class="btn-primary" style="padding: 10px 20px;">Get the App</a>
+    </div>
+  </nav>
+
+  <!-- Mobile Menu Overlay -->
+  <div class="mobile-nav-overlay">
+    <a href="features.html">Features</a>
+    <a href="#modules">Modules</a>
+    <a href="download.html">Download</a>
+    <a href="privacy.html">Privacy Policy</a>
+  </div>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-bg-orbs">
+      <div class="hero-orb hero-orb-1"></div>
+      <div class="hero-orb hero-orb-2"></div>
+      <div class="hero-orb hero-orb-3"></div>
+    </div>
+    <canvas id="particle-canvas"></canvas>
+
+    <div class="section-badge" data-animate="fadeInUp">🚀 Personal Daily Super App</div>
+    <h1 data-animate="fadeInUp" data-delay="0.1">Your Life, Organized.<br><span class="gradient-text">Powered by Intelligence.</span></h1>
+    
+    <p class="subtitle" data-animate="fadeInUp" data-delay="0.2">
+      Nexa helps you → <span id="typewriter-text"></span><span class="typewriter-cursor">|</span>
+    </p>
+
+    <div class="hero-ctas" data-animate="fadeInUp" data-delay="0.3">
+      <a href="download.html" class="btn-primary">Download Free</a>
+      <a href="features.html" class="btn-secondary">Explore Features</a>
+    </div>
+    <p style="color: var(--text-muted); font-size: 14px;" data-animate="fadeInUp" data-delay="0.4">Free forever · No ads · Firebase-powered sync</p>
+
+    <!-- Mockup -->
+    <div class="hero-mockup" data-animate="fadeInUp" data-delay="0.5">
+      <div class="hero-mockup-inner">
+        <div class="mockup-header">Good Morning, Monik 👋</div>
+        <div class="mockup-balance">
+          <p style="color: var(--text-secondary); font-size: 14px;">Net Balance</p>
+          <h2 class="gradient-text" style="margin: 5px 0;">₹45,230</h2>
+          <div style="display: flex; justify-content: space-between; font-size: 12px;">
+            <span class="badge-green">IN: ₹55k</span>
+            <span class="badge-red">OUT: ₹9.7k</span>
+          </div>
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+          <div style="flex:1; background: var(--surface-2); height: 60px; border-radius: 12px;"></div>
+          <div style="flex:1; background: var(--surface-2); height: 60px; border-radius: 12px;"></div>
+          <div style="flex:1; background: var(--surface-2); height: 60px; border-radius: 12px;"></div>
+          <div style="flex:1; background: var(--surface-2); height: 60px; border-radius: 12px;"></div>
+        </div>
+        <div class="mockup-row" style="margin-top: 10px;">
+          <div>
+            <strong>Submit project report</strong>
+            <p style="color: var(--text-secondary); font-size: 12px;">Due: Today 5PM</p>
+          </div>
+          <div class="badge-red">HIGH</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats Strip -->
+  <section class="stats-strip">
+    <div class="stat-item" data-animate="fadeInUp" data-delay="0.1">
+      <div class="stat-number">8+</div>
+      <div class="stat-label">Core Modules</div>
+    </div>
+    <div class="stat-item" data-animate="fadeInUp" data-delay="0.2">
+      <div class="stat-number" style="font-size: 32px; margin-top: 15px; margin-bottom: 20px;">Real-time</div>
+      <div class="stat-label">Firebase Sync</div>
+    </div>
+    <div class="stat-item" data-animate="fadeInUp" data-delay="0.3">
+      <div class="stat-number">0</div>
+      <div class="stat-label">Ext. Chart Libs</div>
+    </div>
+    <div class="stat-item" data-animate="fadeInUp" data-delay="0.4">
+      <div class="stat-number">100%</div>
+      <div class="stat-label">Dark Mode</div>
+    </div>
+    <div class="stat-item" data-animate="fadeInUp" data-delay="0.5">
+      <div class="stat-number" style="font-size: 32px; margin-top: 15px; margin-bottom: 20px;">Free</div>
+      <div class="stat-label">Forever, No Ads</div>
+    </div>
+  </section>
+
+  <!-- Features Grid -->
+  <section id="modules" class="section">
+    <div style="text-align: center; margin-bottom: 60px;">
+      <div class="section-badge" data-animate="fadeInUp">WHAT NEXA CAN DO</div>
+      <h2 data-animate="fadeInUp" data-delay="0.1" style="font-size: 48px;">Every tool you need, in one app.</h2>
+      <p data-animate="fadeInUp" data-delay="0.2" style="color: var(--text-secondary); font-size: 18px;">8 powerful modules working together seamlessly.</p>
+    </div>
+
+    <div class="grid-8">
+      <div class="feature-card" data-animate="fadeInUp" data-delay="0.1">
+        <div class="module-icon">🏠</div>
+        <h3>Smart Dashboard</h3>
+        <p>See your balance, tasks, and reminders the moment you open the app. Dynamic greeting and quick actions in one glance.</p>
+        <a href="features.html#dashboard" style="display: inline-block; margin-top: 15px; font-weight: 600;">Learn more →</a>
+      </div>
+      <div class="feature-card" data-animate="fadeInUp" data-delay="0.2">
+        <div class="module-icon">💰</div>
+        <h3>Cashbook & Ledgers</h3>
+        <p>Track cash and bank transactions. Create shared ledgers, set categories, scan receipts with ML, and auto-log bank SMS.</p>
+        <a href="features.html#money" style="display: inline-block; margin-top: 15px; font-weight: 600;">Learn more →</a>
+      </div>
+      <div class="feature-card" data-animate="fadeInUp" data-delay="0.3">
+        <div class="module-icon">🤝</div>
+        <h3>Fair Share Splitting</h3>
+        <p>Add shared expenses and let Nexa's smart debt algorithm calculate who owes whom — with the fewest possible payments.</p>
+        <a href="features.html#money" style="display: inline-block; margin-top: 15px; font-weight: 600;">Learn more →</a>
+      </div>
+      <div class="feature-card" data-animate="fadeInUp" data-delay="0.4">
+        <div class="module-icon">✅</div>
+        <h3>Priority Tasks</h3>
+        <p>Create tasks with subtasks, due dates, priority levels, and recurring patterns. Sort by High → Medium → Low automatically.</p>
+        <a href="features.html#tasks" style="display: inline-block; margin-top: 15px; font-weight: 600;">Learn more →</a>
+      </div>
+      <div class="feature-card" data-animate="fadeInUp" data-delay="0.5">
+        <div class="module-icon">📝</div>
+        <h3>Rich Notes</h3>
+        <p>Format and organize notes. Bold, italic, checklist mode, color coding, images, page styles, and folder organization.</p>
+        <a href="features.html#notes" style="display: inline-block; margin-top: 15px; font-weight: 600;">Learn more →</a>
+      </div>
+      <div class="feature-card" data-animate="fadeInUp" data-delay="0.6">
+        <div class="module-icon">🔔</div>
+        <h3>Precision Reminders</h3>
+        <p>AlarmManager fires to the exact minute. High-priority alarms bypass DND and play alarm sounds. Snooze, repeat, WhatsApp.</p>
+        <a href="features.html#reminders" style="display: inline-block; margin-top: 15px; font-weight: 600;">Learn more →</a>
+      </div>
+      <div class="feature-card" data-animate="fadeInUp" data-delay="0.7">
+        <div class="module-icon">📊</div>
+        <h3>Custom Reports</h3>
+        <p>7 or 30-day spending bar charts drawn directly on Canvas — zero external libs. Category breakdowns and task gauges.</p>
+        <a href="features.html#reports" style="display: inline-block; margin-top: 15px; font-weight: 600;">Learn more →</a>
+      </div>
+      <div class="feature-card" data-animate="fadeInUp" data-delay="0.8">
+        <div class="module-icon">🔍</div>
+        <h3>Universal Search</h3>
+        <p>Search everything — tasks, notes, cashbook entries, reminders, and ledgers — from one unified search bar with type filters.</p>
+        <a href="features.html#search" style="display: inline-block; margin-top: 15px; font-weight: 600;">Learn more →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works -->
+  <section class="section timeline-section">
+    <div class="section-badge" data-animate="fadeInUp">GET STARTED</div>
+    <h2 data-animate="fadeInUp" data-delay="0.1" style="font-size: 40px;">Up and running in 3 steps.</h2>
+    
+    <div class="timeline-grid">
+      <div class="timeline-step" data-animate="fadeInUp" data-delay="0.2">
+        <div class="module-icon">01</div>
+        <h3>Sign Up Free</h3>
+        <p>Create your account with email or Google sign-in. Your data syncs instantly across devices via Firebase.</p>
+      </div>
+      <div class="timeline-step" data-animate="fadeInUp" data-delay="0.4">
+        <div class="module-icon">02</div>
+        <h3>Add Your Life</h3>
+        <p>Log expenses, write notes, set tasks and reminders. Nexa learns your patterns and automates recurring items.</p>
+      </div>
+      <div class="timeline-step" data-animate="fadeInUp" data-delay="0.6">
+        <div class="module-icon">03</div>
+        <h3>Stay Organized</h3>
+        <p>Get morning digests, evening summaries, spending reports, and smart insights to keep your life on track.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Spotlights -->
+  <!-- Spotlight 1 -->
+  <section class="spotlight">
+    <div class="spotlight-content" data-animate="slideInLeft">
+      <div class="section-badge">💰 MONEY & FINANCE</div>
+      <h2>Complete Financial Control</h2>
+      <p style="color: var(--text-secondary); font-size: 18px;">Track every penny effortlessly. From personal cash tracking to complex group splits, Nexa handles the math so you don't have to.</p>
+      <ul class="spotlight-list">
+        <li><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Double-entry Cash & Bank tracking</li>
+        <li><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Smart SMS auto-add from bank messages</li>
+        <li><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> ML Kit receipt scanner</li>
+        <li><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Greedy debt simplification algorithm</li>
+      </ul>
+      <a href="features.html#money" class="btn-primary">See Finance Features →</a>
+    </div>
+    <div class="spotlight-visual" data-animate="slideInRight">
+      <div class="ui-mockup" style="border-color: rgba(99,102,241,0.5); box-shadow: 0 0 40px rgba(99,102,241,0.2);">
+        <div class="mockup-header">Monthly Expenses</div>
+        <div class="mockup-row" style="margin-bottom: 12px;">
+          <div>Groceries <br><span style="color: var(--text-secondary); font-size: 12px;">CASH OUT</span></div>
+          <div style="text-align: right;"><span class="badge-red">₹2,450</span></div>
+        </div>
+        <div class="mockup-row" style="margin-bottom: 12px;">
+          <div>Salary <br><span style="color: var(--text-secondary); font-size: 12px;">CASH IN</span></div>
+          <div style="text-align: right;"><span class="badge-green">₹45,000</span></div>
+        </div>
+        <div class="mockup-row" style="margin-bottom: 20px;">
+          <div>Rent <br><span style="color: var(--text-secondary); font-size: 12px;">CASH OUT</span></div>
+          <div style="text-align: right;"><span class="badge-red">₹12,000</span></div>
+        </div>
+        <h2 class="gradient-text" style="text-align: center; width: 100%;">Net Balance: ₹30,550</h2>
+      </div>
+    </div>
+  </section>
+
+  <!-- Spotlight 2 -->
+  <section class="spotlight reverse">
+    <div class="spotlight-content" data-animate="slideInRight">
+      <div class="section-badge">📝 SMART NOTES</div>
+      <h2>Notes That Think With You</h2>
+      <p style="color: var(--text-secondary); font-size: 18px;">Capture ideas brilliantly. With full rich text, checklist conversion, and cross-module linking, your notes are more than just text.</p>
+      <ul class="spotlight-list">
+        <li><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Rich text & Color highlighting</li>
+        <li><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Page styles: Blank, Lined, Dotted, Grid</li>
+        <li><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Pin, Archive, Trash with soft delete</li>
+        <li><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Convert notes to tasks or expenses</li>
+      </ul>
+      <a href="features.html#notes" class="btn-primary">See Notes Features →</a>
+    </div>
+    <div class="spotlight-visual" data-animate="slideInLeft" style="display: grid; gap: 16px; grid-template-columns: 1fr 1fr;">
+      <div class="ui-mockup" style="background: rgba(253, 230, 138, 0.1); border-color: #FBBF24;">
+        <h4 style="color: #FCD34D;">Meeting Notes</h4>
+        <p style="font-size: 14px; color: var(--text-secondary);">Q2 Review discussion points...</p>
+      </div>
+      <div class="ui-mockup" style="background: rgba(147, 197, 253, 0.1); border-color: #60A5FA; transform: translateY(20px);">
+        <h4 style="color: #93C5FD;">Shopping List</h4>
+        <p style="font-size: 14px; color: var(--text-secondary);">☑ Milk<br>☑ Bread<br>□ Eggs</p>
+      </div>
+      <div class="ui-mockup" style="background: rgba(167, 243, 208, 0.1); border-color: #34D399; grid-column: span 2;">
+        <h4 style="color: #6EE7B7;">Ideas</h4>
+        <p style="font-size: 14px; color: var(--text-secondary);">App feature brainstorm session...</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Spotlight 3 -->
+  <section class="spotlight">
+    <div class="spotlight-content" data-animate="slideInLeft">
+      <div class="section-badge">✅ TASKS & REMINDERS</div>
+      <h2>Never Drop the Ball Again</h2>
+      <p style="color: var(--text-secondary); font-size: 18px;">Stay on top of everything. Combine priority-driven tasks with exact-minute alarms that bypass Do Not Disturb for critical items.</p>
+      <ul class="spotlight-list">
+        <li><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Priority sorting: High → Medium → Low</li>
+        <li><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Subtasks with individual checkboxes</li>
+        <li><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Exact-minute AlarmManager reminders</li>
+        <li><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> WhatsApp payment reminders for debts</li>
+      </ul>
+      <a href="features.html#tasks" class="btn-primary">See Task Features →</a>
+    </div>
+    <div class="spotlight-visual" data-animate="slideInRight">
+      <div class="ui-mockup" style="margin-bottom: 20px;">
+        <div class="mockup-row" style="margin-bottom: 12px; border-left: 4px solid var(--rose);">
+          <div>Submit project report <br><span style="color: var(--text-secondary); font-size: 12px;">Due: Today 5PM</span></div>
+          <span class="badge-red">HIGH</span>
+        </div>
+        <div class="mockup-row" style="margin-bottom: 12px; border-left: 4px solid var(--amber);">
+          <div>Call dentist <br><span style="color: var(--text-secondary); font-size: 12px;">Tomorrow</span></div>
+          <span style="color: var(--amber); background: rgba(245,158,11,0.1); padding: 4px 8px; border-radius: 4px; font-size: 12px;">MEDIUM</span>
+        </div>
+        <div class="mockup-row" style="border-left: 4px solid var(--emerald);">
+          <div>Grocery run <br><span style="color: var(--text-secondary); font-size: 12px;">This week</span></div>
+          <span class="badge-green">LOW</span>
+        </div>
+      </div>
+      <div class="ui-mockup" style="background: rgba(99,102,241,0.1); border-color: var(--primary);">
+        <h4 style="color: var(--primary-light); display: flex; align-items: center; gap: 8px;">
+          <span>🔔</span> Medicine reminder
+        </h4>
+        <p style="font-size: 14px; margin-top: 8px;">Fires in: 2h 15m</p>
+        <div style="margin-top: 12px; display: inline-block; padding: 4px 12px; background: rgba(255,255,255,0.1); border-radius: 100px; font-size: 12px;">Snooze</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Spotlight 4 -->
+  <section class="spotlight reverse">
+    <div class="spotlight-content" data-animate="slideInRight">
+      <div class="section-badge">📊 REPORTS & ANALYTICS</div>
+      <h2>See Where Your Money Goes</h2>
+      <p style="color: var(--text-secondary); font-size: 18px;">Beautiful, native charts drawn directly on Canvas. Understand your spending patterns without relying on clunky third-party libraries.</p>
+      <ul class="spotlight-list">
+        <li><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> 7-day and 30-day spending trends</li>
+        <li><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Custom bar chart drawn on Canvas</li>
+        <li><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Category breakdown with progress bars</li>
+        <li><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Export full reports to PDF</li>
+      </ul>
+      <a href="features.html#reports" class="btn-primary">See Report Features →</a>
+    </div>
+    <div class="spotlight-visual" data-animate="slideInLeft">
+      <div class="ui-mockup">
+        <div style="display: flex; align-items: flex-end; justify-content: space-between; height: 150px; gap: 8px; margin-bottom: 20px;">
+          <div style="width: 100%; height: 30%; background: var(--primary-dark); border-radius: 4px 4px 0 0;"></div>
+          <div style="width: 100%; height: 60%; background: var(--primary); border-radius: 4px 4px 0 0;"></div>
+          <div style="width: 100%; height: 20%; background: var(--primary-dark); border-radius: 4px 4px 0 0;"></div>
+          <div style="width: 100%; height: 80%; background: var(--primary-light); border-radius: 4px 4px 0 0;"></div>
+          <div style="width: 100%; height: 40%; background: var(--primary); border-radius: 4px 4px 0 0;"></div>
+          <div style="width: 100%; height: 90%; background: var(--primary-light); border-radius: 4px 4px 0 0; box-shadow: 0 0 15px var(--primary);"></div>
+          <div style="width: 100%; height: 50%; background: var(--primary); border-radius: 4px 4px 0 0;"></div>
+        </div>
+        <h3 class="gradient-text">₹4,200 spent this week</h3>
+        <p style="color: var(--text-secondary); font-size: 14px;">₹600/day avg · Peak: Saturday</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tech Stack -->
+  <section class="section">
+    <div style="text-align: center; margin-bottom: 60px;">
+      <div class="section-badge" data-animate="fadeInUp">BUILT WITH</div>
+      <h2 data-animate="fadeInUp" data-delay="0.1" style="font-size: 40px;">Solid Technology Foundation</h2>
+      <p data-animate="fadeInUp" data-delay="0.2" style="color: var(--text-secondary); font-size: 18px;">Industry-standard tools, carefully integrated.</p>
+    </div>
+
+    <div class="grid-8">
+      <div class="glass-card" style="text-align: center;" data-animate="scaleIn" data-delay="0.1">
+        <div style="font-size: 40px; margin-bottom: 10px;">🤖</div>
+        <h4>Android (Java 11)</h4>
+        <p style="font-size: 13px; color: var(--text-secondary);">Native performance & APIs.</p>
+      </div>
+      <div class="glass-card" style="text-align: center;" data-animate="scaleIn" data-delay="0.2">
+        <div style="font-size: 40px; margin-bottom: 10px;">🔥</div>
+        <h4>Firebase Firestore</h4>
+        <p style="font-size: 13px; color: var(--text-secondary);">Real-time NoSQL DB.</p>
+      </div>
+      <div class="glass-card" style="text-align: center;" data-animate="scaleIn" data-delay="0.3">
+        <div style="font-size: 40px; margin-bottom: 10px;">🔐</div>
+        <h4>Firebase Auth</h4>
+        <p style="font-size: 13px; color: var(--text-secondary);">Google & Email Sign-in.</p>
+      </div>
+      <div class="glass-card" style="text-align: center;" data-animate="scaleIn" data-delay="0.4">
+        <div style="font-size: 40px; margin-bottom: 10px;">☁️</div>
+        <h4>Firebase Storage</h4>
+        <p style="font-size: 13px; color: var(--text-secondary);">Cloud file storage.</p>
+      </div>
+      <div class="glass-card" style="text-align: center;" data-animate="scaleIn" data-delay="0.5">
+        <div style="font-size: 40px; margin-bottom: 10px;">⚙️</div>
+        <h4>WorkManager</h4>
+        <p style="font-size: 13px; color: var(--text-secondary);">Reliable background jobs.</p>
+      </div>
+      <div class="glass-card" style="text-align: center;" data-animate="scaleIn" data-delay="0.6">
+        <div style="font-size: 40px; margin-bottom: 10px;">⏰</div>
+        <h4>AlarmManager</h4>
+        <p style="font-size: 13px; color: var(--text-secondary);">Exact-minute scheduling.</p>
+      </div>
+      <div class="glass-card" style="text-align: center;" data-animate="scaleIn" data-delay="0.7">
+        <div style="font-size: 40px; margin-bottom: 10px;">👁️</div>
+        <h4>ML Kit OCR</h4>
+        <p style="font-size: 13px; color: var(--text-secondary);">On-device text recognition.</p>
+      </div>
+      <div class="glass-card" style="text-align: center;" data-animate="scaleIn" data-delay="0.8">
+        <div style="font-size: 40px; margin-bottom: 10px;">✨</div>
+        <h4>Material Design 3</h4>
+        <p style="font-size: 13px; color: var(--text-secondary);">Modern UI components.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Download CTA -->
+  <section class="cta-section">
+    <h2 data-animate="fadeInUp" style="font-size: 48px; max-width: 800px; margin: 0 auto;">Start organizing your life today.</h2>
+    <p data-animate="fadeInUp" data-delay="0.1" style="font-size: 20px; color: var(--text-secondary); max-width: 600px; margin: 20px auto 0;">Nexa is completely free. No subscriptions. No ads. Just productivity.</p>
+    
+    <div class="cta-buttons" data-animate="fadeInUp" data-delay="0.2">
+      <a href="download.html" class="btn-primary" style="font-size: 18px; padding: 18px 36px;">⬇ Download App</a>
+      <a href="features.html" class="btn-secondary" style="font-size: 18px; padding: 18px 36px;">View Documentation</a>
+    </div>
+    
+    <p data-animate="fadeInUp" data-delay="0.3" style="margin-top: 40px; color: var(--text-muted);">Android 7.0+ · Firebase Backend · Open Source</p>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-grid">
+      <div class="footer-col">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
+          <div class="navbar-logo" style="width: 32px; height: 32px; font-size: 16px;">N</div>
+          <span style="font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; color: white;">Nexa</span>
+        </div>
+        <p style="color: var(--text-secondary); font-size: 14px;">Your life, organized.<br>The ultimate personal daily super app.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="features.html">Features</a></li>
+          <li><a href="download.html">Download</a></li>
+          <li><a href="#">GitHub</a></li>
+          <li><a href="privacy.html">Privacy Policy</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Modules</h4>
+        <ul>
+          <li><a href="features.html#dashboard">Dashboard</a></li>
+          <li><a href="features.html#money">Money</a></li>
+          <li><a href="features.html#notes">Notes</a></li>
+          <li><a href="features.html#tasks">Tasks</a></li>
+          <li><a href="features.html#reminders">Reminders</a></li>
+          <li><a href="features.html#reports">Reports</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Connect</h4>
+        <ul>
+          <li><a href="#">Source Code</a></li>
+          <li style="color: var(--text-muted);">Built with passion</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>&copy; 2025 Nexa · All rights reserved</div>
+      <div>Made with ♥ for Android</div>
+    </div>
+  </footer>
+
+  <script src="js/typewriter.js"></script>
+  <script src="js/scroll.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

@@ -107,7 +107,7 @@ public class DailySummaryWorker extends Worker {
             }
 
             StringBuilder msg = new StringBuilder();
-            msg.append(String.format(Locale.getDefault(), "• %d tasks pending today\n", pendingTasksCount));
+            msg.append(String.format(Locale.getDefault(), "• %d tasks pending\n", pendingTasksCount));
             msg.append(String.format(Locale.getDefault(), "• ₹%.2f spent this week", weeklySpent));
 
             NotificationHelper.showNotification(

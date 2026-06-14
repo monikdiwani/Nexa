@@ -69,10 +69,39 @@ public class BottomSheetFolderPickerFragment extends BottomSheetDialogFragment {
     }
 
     private void setupFolderSpinner() {
-        String[] folders = {"Personal", "Work", "Study", "Finance", "Ideas", "Shopping", "Travel"};
+        List<String> folders = new ArrayList<>();
+        folders.add("Personal");
+        folders.add("Work");
+        folders.add("Study");
+        folders.add("Finance");
+        folders.add("Ideas");
+        folders.add("Shopping");
+        folders.add("Travel");
+
         ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item, folders);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerFolder.setAdapter(adapter);
+
+        com.google.firebase.auth.FirebaseAuth auth = com.google.firebase.auth.FirebaseAuth.getInstance();
+        if (auth.getCurrentUser() != null) {
+            com.google.firebase.firestore.FirebaseFirestore.getInstance().collection("users")
+                .document(auth.getCurrentUser().getUid())
+                .collection("noteFolders")
+                .get().addOnSuccessListener(snapshots -> {
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : snapshots.getDocuments()) {
+                        String name = doc.getString("name");
+                        if (name != null && !folders.contains(name)) {
+                            folders.add(name);
+                        }
+                    }
+                    adapter.notifyDataSetChanged();
+                    
+                    if (getActivity() instanceof AddEditNoteActivity) {
+                        AddEditNoteActivity activity = (AddEditNoteActivity) getActivity();
+                        setSpinnerSelection(activity.selectedFolder);
+                    }
+                });
+        }
     }
 
     private void setSpinnerSelection(String folder) {

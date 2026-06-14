@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Download - Nexa</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    .setup-card {
+      background: var(--surface-1);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 30px;
+    }
+    .setup-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+    .step-number {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--gradient-card);
+      border: 1px solid var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: var(--primary-light);
+      flex-shrink: 0;
+    }
+    .code-block {
+      background: var(--bg-primary);
+      padding: 16px;
+      border-radius: 8px;
+      font-family: monospace;
+      color: var(--emerald);
+      border: 1px solid var(--border);
+      margin-top: 10px;
+      overflow-x: auto;
+    }
+    .warning-box {
+      background: rgba(245, 158, 11, 0.1);
+      border-left: 4px solid var(--amber);
+      padding: 16px;
+      border-radius: 0 8px 8px 0;
+      margin: 20px 0;
+    }
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+      padding: 20px 0;
+    }
+    .faq-q {
+      font-weight: 600;
+      font-size: 18px;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+    .faq-a {
+      color: var(--text-secondary);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <div class="navbar-logo">N</div>
+      <a href="index.html" style="color: white;">Nexa</a>
+    </div>
+    <div class="navbar-nav">
+      <a href="index.html" class="nav-link">Home</a>
+      <a href="features.html" class="nav-link">Features</a>
+      <a href="download.html" class="nav-link" style="color: white;">Download</a>
+    </div>
+    <button class="mobile-menu-btn">☰</button>
+  </nav>
+
+  <!-- Mobile Menu Overlay -->
+  <div class="mobile-nav-overlay">
+    <a href="index.html">Home</a>
+    <a href="features.html">Features</a>
+    <a href="download.html">Download</a>
+    <a href="privacy.html">Privacy Policy</a>
+  </div>
+
+  <main class="section" style="max-width: 800px; padding-top: 120px;">
+    <div style="text-align: center; margin-bottom: 60px;">
+      <h1 style="font-size: 56px;">Get Nexa on Android</h1>
+      <p style="color: var(--text-secondary); font-size: 18px;">Build and run your own instance of the ultimate personal daily super app.</p>
+    </div>
+
+    <div class="setup-card">
+      <h3 style="margin-bottom: 20px; font-family: 'Space Grotesk';">Requirements</h3>
+      <ul style="list-style-position: inside; color: var(--text-secondary); line-height: 2;">
+        <li>Android 7.0 (API 24) or higher</li>
+        <li>Firebase account (free tier is sufficient)</li>
+        <li>Android Studio (for building)</li>
+        <li>Java 11+</li>
+      </ul>
+    </div>
+
+    <h2 style="margin: 60px 0 30px;">Installation Guide</h2>
+
+    <div class="setup-step">
+      <div class="step-number">1</div>
+      <div>
+        <h4>Clone the repository</h4>
+        <p style="color: var(--text-secondary);">Download the source code to your local machine.</p>
+        <div class="code-block">git clone https://github.com/monikdiwani/Nexa.git</div>
+      </div>
+    </div>
+
+    <div class="setup-step">
+      <div class="step-number">2</div>
+      <div>
+        <h4>Open in Android Studio</h4>
+        <p style="color: var(--text-secondary);">Open Android Studio, select "Open an existing project", and choose the cloned Nexa folder. Let Gradle sync completely.</p>
+      </div>
+    </div>
+
+    <div class="setup-step">
+      <div class="step-number">3</div>
+      <div style="width: 100%;">
+        <h4>Firebase Setup</h4>
+        <p style="color: var(--text-secondary);">Nexa relies on Firebase for real-time sync, auth, and storage.</p>
+        <div class="warning-box">
+          <strong style="color: var(--amber);">Important:</strong> Register the package name <code>com.fairshare.app</code> in your Firebase Console project settings.
+        </div>
+        <p style="color: var(--text-secondary); margin-top: 10px;">Download your <code>google-services.json</code> file from Firebase and place it in the <code>app/</code> directory of the project.</p>
+      </div>
+    </div>
+
+    <div class="setup-step">
+      <div class="step-number">4</div>
+      <div>
+        <h4>Build and Run</h4>
+        <p style="color: var(--text-secondary);">Connect your Android device or start an emulator, then run:</p>
+        <div class="code-block">./gradlew assembleDebug</div>
+      </div>
+    </div>
+
+    <div style="text-align: center; margin: 60px 0;">
+      <a href="#" class="btn-primary" style="padding: 16px 32px; font-size: 18px;">View Source on GitHub</a>
+    </div>
+
+    <h2 style="margin: 80px 0 30px;">Frequently Asked Questions</h2>
+    
+    <div class="faq-item">
+      <div class="faq-q">Is Nexa free?</div>
+      <div class="faq-a">Yes, completely free and open source. There are no subscriptions, ads, or premium tiers.</div>
+    </div>
+    
+    <div class="faq-item">
+      <div class="faq-q">What Android version is supported?</div>
+      <div class="faq-a">Nexa supports Android 7.0 (API level 24) and higher.</div>
+    </div>
+    
+    <div class="faq-item">
+      <div class="faq-q">Does it work offline?</div>
+      <div class="faq-a">Yes, Firestore offline persistence is enabled. You can add tasks, notes, and expenses offline, and they will sync automatically when you reconnect.</div>
+    </div>
+    
+    <div class="faq-item">
+      <div class="faq-q">Is my data private?</div>
+      <div class="faq-a">Because you set up your own Firebase project, you own 100% of your data. The app connects directly to your Firebase instance.</div>
+    </div>
+    
+    <div class="faq-item">
+      <div class="faq-q">Can I contribute to the project?</div>
+      <div class="faq-a">Absolutely. Pull requests are welcome on GitHub for bug fixes, new features, or UI improvements.</div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-grid">
+      <div class="footer-col">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
+          <div class="navbar-logo" style="width: 32px; height: 32px; font-size: 16px;">N</div>
+          <span style="font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; color: white;">Nexa</span>
+        </div>
+        <p style="color: var(--text-secondary); font-size: 14px;">Your life, organized.<br>The ultimate personal daily super app.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="features.html">Features</a></li>
+          <li><a href="download.html">Download</a></li>
+          <li><a href="#">GitHub</a></li>
+          <li><a href="privacy.html">Privacy Policy</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Modules</h4>
+        <ul>
+          <li><a href="features.html#dashboard">Dashboard</a></li>
+          <li><a href="features.html#money">Money</a></li>
+          <li><a href="features.html#notes">Notes</a></li>
+          <li><a href="features.html#tasks">Tasks</a></li>
+          <li><a href="features.html#reminders">Reminders</a></li>
+          <li><a href="features.html#reports">Reports</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Connect</h4>
+        <ul>
+          <li><a href="#">Source Code</a></li>
+          <li style="color: var(--text-muted);">Built with passion</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>&copy; 2025 Nexa · All rights reserved</div>
+      <div>Made with ♥ for Android</div>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

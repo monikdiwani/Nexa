@@ -35,20 +35,36 @@ public class AnimationHelper {
         if (intent.getComponent() != null) {
             targetClass = intent.getComponent().getClassName();
         }
-        if (isSheetActivity(targetClass)) {
-            activity.overridePendingTransition(R.anim.sheet_slide_up, R.anim.hold);
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            if (isSheetActivity(targetClass)) {
+                activity.overrideActivityTransition(Activity.OVERRIDE_TRANSITION_OPEN, R.anim.sheet_slide_up, R.anim.hold);
+            } else {
+                activity.overrideActivityTransition(Activity.OVERRIDE_TRANSITION_OPEN, R.anim.slide_in_right, R.anim.slide_out_left);
+            }
         } else {
-            activity.overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
+            if (isSheetActivity(targetClass)) {
+                activity.overridePendingTransition(R.anim.sheet_slide_up, R.anim.hold);
+            } else {
+                activity.overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
+            }
         }
     }
 
     public static void applyFinishTransition(Activity activity) {
         if (activity == null) return;
         String currentClass = activity.getClass().getName();
-        if (isSheetActivity(currentClass)) {
-            activity.overridePendingTransition(R.anim.hold, R.anim.sheet_slide_down);
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            if (isSheetActivity(currentClass)) {
+                activity.overrideActivityTransition(Activity.OVERRIDE_TRANSITION_CLOSE, R.anim.hold, R.anim.sheet_slide_down);
+            } else {
+                activity.overrideActivityTransition(Activity.OVERRIDE_TRANSITION_CLOSE, R.anim.slide_in_left, R.anim.slide_out_right);
+            }
         } else {
-            activity.overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right);
+            if (isSheetActivity(currentClass)) {
+                activity.overridePendingTransition(R.anim.hold, R.anim.sheet_slide_down);
+            } else {
+                activity.overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right);
+            }
         }
     }
 }
