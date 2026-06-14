@@ -173,8 +173,8 @@ public class AddSharedExpenseActivity extends AppCompatActivity {
                     
                     for (DocumentSnapshot doc : snapshots) {
                         LedgerBook book = LedgerBook.fromDocument(doc);
-                        // Only add ledgers with > 1 member
-                        if (book.getMembers() != null && book.getMembers().size() > 1) {
+                        // Only add ledgers that are explicitly marked as a GROUP
+                        if ("GROUP".equals(book.getType())) {
                             sharedLedgers.add(book);
                             ledgerNames.add(book.getName());
                         }
