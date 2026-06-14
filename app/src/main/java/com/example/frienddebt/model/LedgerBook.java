@@ -21,6 +21,8 @@ public class LedgerBook implements Serializable {
 
     private Map<String, String> members; // map of userId to Role (e.g., "ADMIN", "VIEWER")
     private Map<String, Double> balances; // map of userId to personal Net Balance for shared ledgers
+    
+    private String type; // "PERSONAL" or "GROUP"
 
     public LedgerBook() {
         // Default constructor required for Firestore
@@ -38,6 +40,7 @@ public class LedgerBook implements Serializable {
         this.netBalance = 0.0;
         this.members = new HashMap<>();
         this.members.put(ownerId, "ADMIN");
+        this.type = "PERSONAL"; // Default
     }
 
     // Getters and Setters
@@ -58,6 +61,9 @@ public class LedgerBook implements Serializable {
 
     public long getCreatedAt() { return createdAt; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
+    
+    public String getType() { return type != null ? type : "PERSONAL"; }
+    public void setType(String type) { this.type = type; }
 
     public double getTotalCashIn() { return totalCashIn; }
     public void setTotalCashIn(double totalCashIn) { this.totalCashIn = totalCashIn; }
@@ -81,6 +87,7 @@ public class LedgerBook implements Serializable {
         book.setCurrency(doc.getString("currency"));
         book.setOwnerId(doc.getString("ownerId"));
         book.setInviteCode(doc.getString("inviteCode"));
+        book.setType(doc.getString("type"));
         book.setCreatedAt(doc.getLong("createdAt") != null ? doc.getLong("createdAt") : 0L);
         book.setTotalCashIn(doc.getDouble("totalCashIn") != null ? doc.getDouble("totalCashIn") : 0.0);
         book.setTotalCashOut(doc.getDouble("totalCashOut") != null ? doc.getDouble("totalCashOut") : 0.0);
@@ -115,6 +122,7 @@ public class LedgerBook implements Serializable {
         map.put("currency", currency);
         map.put("ownerId", ownerId);
         map.put("inviteCode", inviteCode);
+        map.put("type", getType());
         map.put("createdAt", createdAt);
         map.put("totalCashIn", totalCashIn);
         map.put("totalCashOut", totalCashOut);
