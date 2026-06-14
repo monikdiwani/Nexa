@@ -4,13 +4,16 @@ import { useEffect, useState } from "react";
 import { collection, query, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, CheckSquare, Trash2, Star, Clock, Loader2, Flag, X, ChevronRight, ListChecks } from "lucide-react";
+import { Plus, CheckSquare, Trash2, Star, Clock, Loader2, Flag, X, ChevronRight, ListChecks, Link as LinkIcon, RefreshCw } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 
 interface Task {
   id: string; title: string; description: string; priority: string;
   isCompleted: boolean; isImportant: boolean; isArchived: boolean;
   dueDate: number | null; createdAt: number;
   subtasks: { title: string; isCompleted: boolean }[];
+  isRecurring?: boolean; recurringPattern?: string;
+  linkedNoteId?: string; linkedBookId?: string;
 }
 
 const PRIORITIES = ["HIGH","MEDIUM","LOW"];
@@ -27,7 +30,19 @@ export default function TasksPage() {
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState("MEDIUM");
   const [dueDate, setDueDate] = useState("");
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringPattern, setRecurringPattern] = useState("DAILY");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const newTitle = searchParams.get("new");
+    if (newTitle) {
+      setTitle(decodeURIComponent(newTitle));
+      setShowForm(true);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!user) return;
@@ -46,9 +61,9 @@ export default function TasksPage() {
       title: title.trim(), description: "", priority,
       isCompleted: false, isImportant: false, isArchived: false,
       createdAt: Date.now(), dueDate: dueDate ? new Date(dueDate).getTime() : null,
-      recurringPattern: "NONE", isRecurring: false, subtasks: []
+      recurringPattern, isRecurring, subtasks: []
     });
-    setTitle(""); setDueDate(""); setAdding(false); setShowForm(false);
+    setTitle(""); setDueDate(""); setIsRecurring(false); setAdding(false); setShowForm(false);
   };
 
   const toggleComplete = async (task: Task) => {
@@ -149,6 +164,21 @@ export default function TasksPage() {
                   <input type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)} className="input text-sm" />
                 </div>
               </div>
+              
+              <div className="flex items-center gap-3 pt-1">
+                <label className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+                  <input type="checkbox" checked={isRecurring} onChange={e => setIsRecurring(e.target.checked)} className="w-4 h-4 rounded" style={{ accentColor: "var(--primary)" }} />
+                  Recurring Task
+                </label>
+                {isRecurring && (
+                  <select value={recurringPattern} onChange={e => setRecurringPattern(e.target.value)} className="input text-sm flex-1">
+                    <option value="DAILY">Daily</option>
+                    <option value="WEEKLY">Weekly</option>
+                    <option value="MONTHLY">Monthly</option>
+                    <option value="YEARLY">Yearly</option>
+                  </select>
+                )}
+              </div>
               <div className="flex gap-2 pt-1">
                 <button type="submit" disabled={adding} className="btn btn-primary btn-sm">
                   {adding ? <Loader2 size={14} className="animate-spin"/> : <Plus size={14}/>} Add Task
@@ -237,6 +267,11 @@ export default function TasksPage() {
                     <span className="chip text-xs" style={{background:PRIORITY_BG[task.priority],color:PRIORITY_COLORS[task.priority],padding:"2px 8px"}}>
                       <Flag size={9}/>{task.priority[0]+task.priority.slice(1).toLowerCase()}
                     </span>
+                    {task.isRecurring && (
+                      <span className="chip text-xs" style={{ background: "rgba(92,107,192,0.12)", color: "var(--primary)", padding: "2px 8px" }}>
+                        <RefreshCw size={9} /> {task.recurringPattern}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -296,6 +331,11 @@ export default function TasksPage() {
                           <Clock size={11} />
                           {isOverdue(selectedTask) ? "Overdue · " : "Due "}
                           {new Date(selectedTask.dueDate).toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "2-digit" })}
+                        </span>
+                      )}
+                      {selectedTask.isRecurring && (
+                        <span className="text-xs font-semibold flex items-center gap-1" style={{ color: "var(--primary)" }}>
+                           <RefreshCw size={11} /> Repeats {selectedTask.recurringPattern?.toLowerCase()}
                         </span>
                       )}
                     </div>

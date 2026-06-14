@@ -3,9 +3,14 @@ import { useAuth } from "@/context/AuthContext";
 import { useState, useEffect } from "react";
 import { updateProfile } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { LogOut, User, Mail, Loader2, Shield, Bell, Moon, Sun, Check, Smartphone } from "lucide-react";
+import { LogOut, User, Mail, Loader2, Shield, Bell, Moon, Sun, Check, Smartphone, Lock, Download, Key } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { doc, getDoc, setDoc, collection, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { sendPasswordResetEmail } from "firebase/auth";
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
 
 export default function SettingsPage() {
   const { user, signOut } = useAuth();
@@ -13,12 +18,21 @@ export default function SettingsPage() {
   const [name, setName] = useState(user?.displayName ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [dark, setDark] = useState(false);
+  const [appLockEnabled, setAppLockEnabled] = useState(false);
 
   useEffect(() => {
     const isDark = document.documentElement.classList.contains("dark");
     setDark(isDark);
-  }, []);
+    if (user) {
+      getDoc(doc(db, "users", user.uid, "settings", "app_lock")).then(snap => {
+        if (snap.exists() && snap.data()?.enabled) {
+          setAppLockEnabled(true);
+        }
+      });
+    }
+  }, [user]);
 
   const toggleDark = () => {
     const next = !dark;
@@ -28,6 +42,38 @@ export default function SettingsPage() {
     localStorage.setItem("nexa-dark", String(next));
   };
 
+  const toggleAppLock = async () => {
+    if (!user) return;
+    try {
+      const nextState = !appLockEnabled;
+      if (nextState) {
+        // Enrolling - Mock WebAuthn check
+        if (!window.PublicKeyCredential) {
+          alert("WebAuthn not supported. Please use a password/PIN fallback.");
+          return;
+        }
+        const challenge = new Uint8Array(32);
+        crypto.getRandomValues(challenge);
+        await navigator.credentials.create({
+          publicKey: {
+            challenge,
+            rp: { name: "Nexa Web" },
+            user: { id: new Uint8Array(16), name: user.email!, displayName: user.displayName! },
+            pubKeyCredParams: [{ type: "public-key", alg: -7 }],
+            authenticatorSelection: { userVerification: "required" },
+            timeout: 60000
+          }
+        });
+      }
+      setAppLockEnabled(nextState);
+      await setDoc(doc(db, "users", user.uid, "settings", "app_lock"), { enabled: nextState });
+      localStorage.setItem("nexa-app-lock", String(nextState));
+    } catch (err) {
+      console.error(err);
+      alert("Biometric setup failed or cancelled.");
+    }
+  };
+
   const updateName = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !name.trim()) return;
@@ -35,6 +81,58 @@ export default function SettingsPage() {
     await updateProfile(auth.currentUser!, { displayName: name.trim() });
     setSaving(false); setSaved(true);
     setTimeout(() => setSaved(false), 2500);
+  };
+
+  const handlePasswordReset = async () => {
+    if (!user?.email) return;
+    try {
+      await sendPasswordResetEmail(auth, user.email);
+      alert("Password reset email sent! Please check your inbox.");
+    } catch (e) {
+      alert("Failed to send reset email.");
+    }
+  };
+
+  const exportData = async () => {
+    if (!user) return;
+    setExporting(true);
+    try {
+      const zip = new JSZip();
+      
+      // Fetch notes
+      const notes = await getDocs(collection(db, "users", user.uid, "notes"));
+      let notesCsv = "ID,Title,Content,CreatedAt\n";
+      notes.forEach(d => {
+        const data = d.data();
+        notesCsv += `"${d.id}","${data.title}","${data.content?.replace(/"/g, '""')}","${data.createdAt}"\n`;
+      });
+      zip.file("notes.csv", notesCsv);
+      
+      // Fetch tasks
+      const tasks = await getDocs(collection(db, "users", user.uid, "tasks"));
+      let tasksCsv = "ID,Title,Status,Priority\n";
+      tasks.forEach(d => {
+        const data = d.data();
+        tasksCsv += `"${d.id}","${data.title}","${data.isCompleted ? 'Done' : 'Pending'}","${data.priority}"\n`;
+      });
+      zip.file("tasks.csv", tasksCsv);
+      
+      // Fetch reminders
+      const reminders = await getDocs(collection(db, "users", user.uid, "reminders"));
+      let remindersCsv = "ID,Title,Message,Time\n";
+      reminders.forEach(d => {
+        const data = d.data();
+        remindersCsv += `"${d.id}","${data.title}","${data.message || ''}","${data.triggerTime}"\n`;
+      });
+      zip.file("reminders.csv", remindersCsv);
+
+      const content = await zip.generateAsync({ type: "blob" });
+      saveAs(content, "Nexa_Backup.zip");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to export data.");
+    }
+    setExporting(false);
   };
 
   const handleSignOut = async () => { await signOut(); router.push("/"); };
@@ -122,12 +220,39 @@ export default function SettingsPage() {
         </div>
       </motion.div>
 
+      {/* Security */}
+      <motion.div initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} transition={{delay:0.08}} className="card mb-5 overflow-hidden">
+        <div className="px-5 pt-4 pb-2">
+          <p className="text-xs font-bold tracking-widest" style={{color:"var(--text-hint)"}}>SECURITY</p>
+        </div>
+        <div className="divide-y" style={{borderColor:"var(--divider)"}}>
+          <SettingRow icon={Lock} label="App Lock" desc="Require biometric authentication on open">
+            <button onClick={toggleAppLock}
+              className="relative w-11 h-6 rounded-full transition-all duration-300 flex-shrink-0"
+              style={{background: appLockEnabled ? "var(--primary)" : "var(--divider)"}}>
+              <div className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-300"
+                style={{left: appLockEnabled ? "calc(100% - 22px)" : "2px"}}/>
+            </button>
+          </SettingRow>
+        </div>
+      </motion.div>
+
       {/* Account */}
       <motion.div initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} transition={{delay:0.1}} className="card overflow-hidden">
         <div className="px-5 pt-4 pb-2">
           <p className="text-xs font-bold tracking-widest" style={{color:"var(--text-hint)"}}>ACCOUNT</p>
         </div>
-        <div className="p-3">
+        <div className="divide-y" style={{borderColor:"var(--divider)"}}>
+          <SettingRow icon={Key} label="Change Password" desc="Send a secure password reset link to your email">
+             <button onClick={handlePasswordReset} className="btn btn-outline btn-sm">Reset</button>
+          </SettingRow>
+          <SettingRow icon={Download} label="Export Data" desc="Download all your Notes, Tasks, and Reminders as CSV">
+             <button onClick={exportData} disabled={exporting} className="btn btn-outline btn-sm">
+                {exporting ? <Loader2 size={14} className="animate-spin" /> : "Export CSV"}
+             </button>
+          </SettingRow>
+        </div>
+        <div className="p-3 border-t" style={{borderColor:"var(--divider)"}}>
           <button onClick={handleSignOut}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left"
             style={{color:"var(--negative)"}}

@@ -4,15 +4,19 @@ import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
 import {
   doc, onSnapshot, collection, query, orderBy,
-  addDoc, updateDoc, deleteDoc, increment, getDoc, writeBatch, getDocs
+  addDoc, updateDoc, deleteDoc, increment, getDoc, writeBatch, getDocs, where
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { motion, AnimatePresence } from "framer-motion";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft, Plus, TrendingUp, TrendingDown, Copy, Check,
-  Trash2, Filter, Loader2, Users, DollarSign, Shield, Eye, Pencil, X, Search, Download, Calculator
+  Trash2, Filter, Loader2, Users, DollarSign, Shield, Eye, Pencil, X, Search, Download, Calculator, FileText, CheckCircle2, History, Camera
 } from "lucide-react";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
+import Tesseract from "tesseract.js";
+import { simplifyDebts, DebtEdge } from "@/lib/DebtSimplifier";
 
 interface LedgerBook {
   id: string; name: string; currency: string; ownerId: string;
@@ -24,6 +28,18 @@ interface Entry {
   id: string; date: number; particulars: string; type: string;
   medium: string; amount: number; category: string; note: string;
   createdByName?: string; createdBy?: string; createdAt: number;
+  splits?: Record<string, number>;
+  paidBy?: string;
+  isSettlement?: boolean;
+  settledWith?: string;
+  isRecurring?: boolean;
+  recurringPattern?: string;
+}
+
+interface LogEntry {
+  id: string; actionType: string; actorName: string;
+  particulars: string; transactionType: string; amount: number;
+  timestamp: number; details: string;
 }
 
 const categories = ["Sales", "Rent", "Salary", "Office", "Personal", "Food", "Transport", "Shopping", "Bills", "Other"];
@@ -47,11 +63,20 @@ export default function LedgerDetailPage() {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [filterType, setFilterType] = useState("ALL");
   const [search, setSearch] = useState("");
   const [showMembersPanel, setShowMembersPanel] = useState(false);
+  const [showLogsPanel, setShowLogsPanel] = useState(false);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
   const [roleUpdating, setRoleUpdating] = useState<string | null>(null);
   const [memberNames, setMemberNames] = useState<Record<string, string>>({});
+  const [simplifiedDebts, setSimplifiedDebts] = useState<DebtEdge[]>([]);
+  const [settling, setSettling] = useState<string | null>(null);
+  
+  const [filterType, setFilterType] = useState("ALL");
+  const [filterMedium, setFilterMedium] = useState("ALL");
+  const [filterTime, setFilterTime] = useState("ALL");
+  const [scanning, setScanning] = useState(false);
+
   const [form, setForm] = useState({
     date: new Date().toISOString().split("T")[0],
     particulars: "", type: "CASH_IN", medium: "CASH",
@@ -67,8 +92,22 @@ export default function LedgerDetailPage() {
     const entriesUnsub = onSnapshot(
       query(collection(db, "cashbooks", bookId, "entries"), orderBy("date", "desc")),
       (snap) => {
-        setEntries(snap.docs.map(d => ({ id: d.id, ...d.data() } as Entry)));
+        const data = snap.docs.map(d => ({ id: d.id, ...d.data() } as Entry));
+        setEntries(data);
         setLoading(false);
+        
+        // Calculate debts
+        const edges: DebtEdge[] = [];
+        data.forEach(e => {
+          if (e.isSettlement && e.createdBy && e.settledWith) {
+            edges.push({ from: e.createdBy, to: e.settledWith, amount: e.amount });
+          } else if (e.splits && e.paidBy) {
+            for (const [uid, amt] of Object.entries(e.splits)) {
+              if (uid !== e.paidBy) edges.push({ from: uid, to: e.paidBy, amount: amt as number });
+            }
+          }
+        });
+        setSimplifiedDebts(simplifyDebts(edges));
       }
     );
     return () => { bookUnsub(); entriesUnsub(); };
@@ -100,6 +139,36 @@ export default function LedgerDetailPage() {
   const myRole = book?.members?.[user?.uid ?? ""] ?? "VIEWER";
   const isAdmin = myRole === "ADMIN";
   const canEdit = myRole === "ADMIN" || myRole === "EDITOR"; // Feature 19: EDITOR can add entries
+
+  const loadLogs = async () => {
+    setShowLogsPanel(true);
+    const snap = await getDocs(query(collection(db, "cashbooks", bookId, "logs"), orderBy("timestamp", "desc")));
+    setLogs(snap.docs.map(d => ({ id: d.id, ...d.data() } as LogEntry)));
+  };
+
+  const settleUp = async (debt: DebtEdge) => {
+    if (!user || !book || !canEdit) return;
+    setSettling(debt.from + debt.to);
+    
+    // Create a settlement entry
+    await addDoc(collection(db, "cashbooks", bookId, "entries"), {
+      date: Date.now(), particulars: "Settlement", type: "CASH_OUT",
+      medium: "CASH", amount: debt.amount, category: "Settlement",
+      note: "Settle Up", createdBy: debt.from,
+      createdByName: memberNames[debt.from] ?? "Member",
+      createdAt: Date.now(), lastModifiedAt: Date.now(),
+      isSettlement: true, settledWith: debt.to
+    });
+    
+    await addDoc(collection(db, "cashbooks", bookId, "logs"), {
+      actionType: "SETTLE", actorId: user.uid,
+      actorName: user.displayName ?? "Unknown",
+      particulars: "Settlement", transactionType: "SETTLE",
+      amount: debt.amount, timestamp: Date.now(), details: "Debt simplified settlement"
+    });
+    
+    setSettling(null);
+  };
 
   const addEntry = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,6 +204,34 @@ export default function LedgerDetailPage() {
     setForm({ date: new Date().toISOString().split("T")[0], particulars: "", type: "CASH_IN", medium: "CASH", amount: "", category: "Other", note: "", isRecurring: false, recurringPattern: "MONTHLY" });
     setShowForm(false);
     setSaving(false);
+  };
+
+  const scanReceipt = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setScanning(true);
+    try {
+      const { data: { text } } = await Tesseract.recognize(file, 'eng');
+      
+      // Simple regex to find the largest currency-like number
+      const amounts = text.match(/\$?\s?\d+[\.,]\d{2}/g);
+      let maxAmt = 0;
+      if (amounts) {
+        amounts.forEach(a => {
+          const num = parseFloat(a.replace(/[^0-9\.]/g, ''));
+          if (num > maxAmt) maxAmt = num;
+        });
+      }
+      
+      if (maxAmt > 0) {
+        setForm(f => ({ ...f, amount: maxAmt.toString() }));
+      } else {
+        alert("Could not automatically detect amount from receipt.");
+      }
+    } catch (err) {
+      alert("Failed to scan receipt.");
+    }
+    setScanning(false);
   };
 
   const deleteEntry = async (entry: Entry) => {
@@ -190,32 +287,52 @@ export default function LedgerDetailPage() {
     });
   };
 
-  const exportCSV = () => {
-    const header = ["Date", "Particulars", "Type", "Medium", "Amount", "Category", "Note", "Created By"];
-    const rows = entries.map(e => [
+  const exportPDF = () => {
+    if (!book) return;
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text(`Ledger Report: ${book.name}`, 14, 22);
+    doc.setFontSize(11);
+    doc.text(`Total In: ${fmt(book.totalCashIn)} | Total Out: ${fmt(book.totalCashOut)} | Net: ${fmt(book.netBalance)}`, 14, 30);
+    
+    const tableData = filtered.map(e => [
       new Date(e.date).toLocaleDateString("en-IN"),
-      `"${e.particulars.replace(/"/g, '""')}"`,
-      e.type, e.medium, e.amount.toString(), e.category,
-      `"${(e.note || "").replace(/"/g, '""')}"`,
-      `"${(e.createdByName || "").replace(/"/g, '""')}"`
+      e.particulars,
+      e.type === "CASH_IN" ? "IN" : "OUT",
+      fmt(e.amount),
+      e.category,
+      e.createdByName || ""
     ]);
-    const csvContent = [header, ...rows].map(row => row.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", `${book?.name?.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'ledger'}_export.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+
+    (doc as any).autoTable({
+      startY: 40,
+      head: [["Date", "Particulars", "Type", "Amount", "Category", "Added By"]],
+      body: tableData,
+      theme: 'grid',
+      headStyles: { fillColor: [92, 107, 192] }
+    });
+    
+    doc.save(`${book.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_report.pdf`);
   };
 
   const filtered = entries.filter(e => {
-    const matchesType = filterType === "ALL" || e.type === filterType;
     const matchesSearch = !search || e.particulars.toLowerCase().includes(search.toLowerCase()) ||
       e.note?.toLowerCase().includes(search.toLowerCase()) ||
       e.category?.toLowerCase().includes(search.toLowerCase());
-    return matchesType && matchesSearch;
+      
+    const matchesType = filterType === "ALL" || e.type === filterType;
+    const matchesMedium = filterMedium === "ALL" || e.medium === filterMedium;
+    
+    let matchesTime = true;
+    if (filterTime !== "ALL") {
+      const msDay = 86400000;
+      const now = Date.now();
+      if (filterTime === "TODAY") matchesTime = (now - e.date) < msDay;
+      else if (filterTime === "WEEK") matchesTime = (now - e.date) < msDay * 7;
+      else if (filterTime === "MONTH") matchesTime = (now - e.date) < msDay * 30;
+    }
+    
+    return matchesSearch && matchesType && matchesMedium && matchesTime;
   });
 
   // Compute running balance (newest to oldest = subtract/add as we go from total)
@@ -284,9 +401,17 @@ export default function LedgerDetailPage() {
           <button onClick={() => router.push(`/dashboard/money/${bookId}/cash-counter`)} className="btn btn-ghost btn-sm flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
             <Calculator size={15} /> Cash Counter
           </button>
-          <button onClick={exportCSV} className="btn btn-ghost btn-sm flex items-center gap-1.5" style={{ color: "var(--primary)" }}>
-            <Download size={15} /> Export
+          <button onClick={loadLogs} className="btn btn-ghost btn-sm flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
+            <History size={15} /> Logs
           </button>
+          <button onClick={exportPDF} className="btn btn-ghost btn-sm flex items-center gap-1.5" style={{ color: "var(--primary)" }}>
+            <FileText size={15} /> Export PDF
+          </button>
+          {canEdit && (
+            <button onClick={() => router.push(`/dashboard/money/${bookId}/add-shared`)} className="btn btn-ghost btn-sm flex items-center gap-1.5" style={{ color: "var(--primary)" }}>
+              <Users size={15} /> Add Shared
+            </button>
+          )}
           {canEdit && (
             <button onClick={() => setShowForm(!showForm)} className="btn btn-primary btn-sm">
               <Plus size={15} /> Add Entry
@@ -365,6 +490,76 @@ export default function LedgerDetailPage() {
         )}
       </AnimatePresence>
 
+      {/* Activity Logs Panel */}
+      <AnimatePresence>
+        {showLogsPanel && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.2 }}
+            className="overflow-hidden mb-5">
+            <div className="card p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h3 style={{ color: "var(--text-primary)" }}>Activity Logs</h3>
+                <button onClick={() => setShowLogsPanel(false)} className="btn-icon"><X size={16} /></button>
+              </div>
+              <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
+                {logs.length === 0 && <p className="text-sm text-center py-4" style={{ color: "var(--text-hint)" }}>No logs found</p>}
+                {logs.map(log => (
+                  <div key={log.id} className="flex gap-3 text-sm pb-2 border-b" style={{ borderColor: "var(--divider)" }}>
+                    <div className="w-6 h-6 rounded flex items-center justify-center flex-shrink-0" style={{ background: "var(--primary-surface)" }}>
+                      <History size={12} style={{ color: "var(--primary)" }} />
+                    </div>
+                    <div>
+                      <p style={{ color: "var(--text-primary)" }}>
+                        <span className="font-bold">{log.actorName}</span> {log.actionType.toLowerCase()}{" "}
+                        <span className="font-semibold">{log.particulars}</span>
+                      </p>
+                      <p className="text-xs" style={{ color: "var(--text-hint)" }}>
+                        {new Date(log.timestamp).toLocaleString()} • {fmt(log.amount)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      {/* Debt Simplifier Banner */}
+      {simplifiedDebts.length > 0 && (
+        <div className="card mb-5 overflow-hidden" style={{ borderColor: "var(--primary)" }}>
+          <div className="px-4 py-2.5 text-sm font-bold flex items-center gap-2" style={{ background: "var(--primary-surface)", color: "var(--primary)" }}>
+            <DollarSign size={16} /> Pending Settlements
+          </div>
+          <div className="p-4 space-y-3">
+            {simplifiedDebts.map(d => {
+              const fromName = memberNames[d.from] || (user?.uid === d.from ? "You" : "Member");
+              const toName = memberNames[d.to] || (user?.uid === d.to ? "You" : "Member");
+              const amIOwing = user?.uid === d.from;
+              const amIReceiving = user?.uid === d.to;
+              
+              return (
+                <div key={d.from+d.to} className="flex items-center justify-between p-3 rounded-xl" style={{ background: "var(--bg)" }}>
+                  <div>
+                    <p className="text-sm" style={{ color: "var(--text-primary)" }}>
+                      <span className="font-bold">{fromName}</span> owes <span className="font-bold">{toName}</span>
+                    </p>
+                    <p className="font-black text-base" style={{ color: amIOwing ? "var(--negative)" : amIReceiving ? "var(--positive)" : "var(--text-secondary)" }}>
+                      {fmt(d.amount)}
+                    </p>
+                  </div>
+                  {canEdit && (amIOwing || amIReceiving || isAdmin) && (
+                    <button onClick={() => settleUp(d)} disabled={settling === d.from+d.to} className="btn btn-sm" style={{ background: "var(--cash-in-bg)", color: "var(--positive)", border: "none" }}>
+                      {settling === d.from+d.to ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />} Mark Paid
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Balance summary */}
       <div className="grid grid-cols-3 gap-3 mb-5">
         {[
@@ -426,9 +621,30 @@ export default function LedgerDetailPage() {
                   <option value="CASH">💵 Cash</option>
                   <option value="BANK">🏦 Bank</option>
                 </select>
-                <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="input text-sm">
-                  {categories.map(c => <option key={c}>{c}</option>)}
-                </select>
+                <div className="relative">
+                  <input type="file" accept="image/*" id="receiptScan" hidden onChange={scanReceipt} />
+                  <label htmlFor="receiptScan" className="btn btn-outline w-full h-full text-sm flex items-center justify-center gap-1.5 cursor-pointer">
+                    {scanning ? <Loader2 size={15} className="animate-spin" /> : <Camera size={15} />}
+                    {scanning ? "Scanning..." : "Scan Receipt"}
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium mb-1.5 block" style={{ color: "var(--text-secondary)" }}>Category</label>
+                <div className="flex gap-2 flex-wrap max-h-24 overflow-y-auto">
+                  {categories.map(c => (
+                    <button key={c} type="button" onClick={() => setForm({ ...form, category: c })}
+                      className="px-2 py-1 text-xs rounded-md border font-medium"
+                      style={{ 
+                        background: form.category === c ? "var(--primary)" : "var(--bg)", 
+                        color: form.category === c ? "white" : "var(--text-primary)",
+                        borderColor: form.category === c ? "var(--primary)" : "var(--divider)"
+                      }}>
+                      {c}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <input value={form.note} onChange={e => setForm({ ...form, note: e.target.value })}
@@ -481,10 +697,26 @@ export default function LedgerDetailPage() {
             style={filterType === f
               ? { background: "var(--primary)", color: "white" }
               : { background: "var(--surface)", color: "var(--text-secondary)", border: "1px solid var(--divider)" }}>
-            {f === "ALL" ? "All" : f === "CASH_IN" ? "↑ In" : "↓ Out"}
+            {f === "ALL" ? "All Type" : f === "CASH_IN" ? "↑ In" : "↓ Out"}
           </button>
         ))}
-        <span className="ml-auto text-xs" style={{ color: "var(--text-hint)" }}>{filtered.length} entries</span>
+        {["ALL", "CASH", "BANK"].map(f => (
+          <button key={f} onClick={() => setFilterMedium(f)} className="chip cursor-pointer text-xs"
+            style={filterMedium === f
+              ? { background: "var(--primary)", color: "white" }
+              : { background: "var(--surface)", color: "var(--text-secondary)", border: "1px solid var(--divider)" }}>
+            {f === "ALL" ? "All Media" : f === "CASH" ? "💵 Cash" : "🏦 Bank"}
+          </button>
+        ))}
+        {["ALL", "TODAY", "WEEK", "MONTH"].map(f => (
+          <button key={f} onClick={() => setFilterTime(f)} className="chip cursor-pointer text-xs"
+            style={filterTime === f
+              ? { background: "var(--primary)", color: "white" }
+              : { background: "var(--surface)", color: "var(--text-secondary)", border: "1px solid var(--divider)" }}>
+            {f === "ALL" ? "All Time" : f === "TODAY" ? "Today" : f === "WEEK" ? "7 Days" : "30 Days"}
+          </button>
+        ))}
+        <span className="ml-auto text-xs font-semibold" style={{ color: "var(--text-hint)" }}>{filtered.length} entries</span>
       </div>
 
 

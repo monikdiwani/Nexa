@@ -8,11 +8,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, DollarSign, StickyNote, CheckSquare,
   Bell, BarChart2, Settings, Menu, X, ChevronRight,
-  Sun, Moon, LogOut, Search, PieChart
+  Sun, Moon, LogOut, Search, PieChart, Lock
 } from "lucide-react";
 import { useReminderAlerts } from "@/hooks/useReminderAlerts";
 import NetworkBanner from "@/components/NetworkBanner";
 import GlobalSearch from "@/components/GlobalSearch";
+import { runRecurringEngine } from "@/lib/RecurringEngine";
 
 const NAV = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -32,14 +33,53 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [dark, setDark] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  
+  const [isLocked, setIsLocked] = useState(true); // Default to locked, unlock later
+  const [checkingLock, setCheckingLock] = useState(true);
 
   // 🔔 Reminder alarm — runs across all dashboard pages
   useReminderAlerts();
 
-  // Auth guard
+  // Auth guard and Recurring Engine check
   useEffect(() => {
-    if (!user) router.push("/login");
+    if (!user) {
+      router.push("/login");
+    } else {
+      runRecurringEngine(user.uid);
+      
+      // Check App Lock
+      const lockEnabled = localStorage.getItem("nexa-app-lock") === "true";
+      if (!lockEnabled) {
+        setIsLocked(false);
+        setCheckingLock(false);
+      } else {
+        setCheckingLock(false);
+      }
+    }
   }, [user, router]);
+
+  const unlockApp = async () => {
+    try {
+      if (!window.PublicKeyCredential) {
+        const pin = prompt("Enter PIN (default: 0000):");
+        if (pin === "0000") setIsLocked(false);
+        return;
+      }
+      const challenge = new Uint8Array(32);
+      crypto.getRandomValues(challenge);
+      await navigator.credentials.get({
+        publicKey: {
+          challenge,
+          rpId: window.location.hostname,
+          userVerification: "preferred"
+        }
+      });
+      setIsLocked(false);
+    } catch (err) {
+      console.error(err);
+      alert("Authentication failed.");
+    }
+  };
 
   // Persist dark mode
   useEffect(() => {
@@ -95,7 +135,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </nav>
   );
 
-  if (!user) return null;
+  if (!user || checkingLock) return null;
+
+  if (isLocked) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+           <div className="w-20 h-20 rounded-3xl mx-auto mb-6 bg-white dark:bg-gray-800 shadow-xl flex items-center justify-center">
+             <Lock size={32} className="text-blue-500" />
+           </div>
+           <h2 className="text-2xl font-bold mb-2">Nexa is Locked</h2>
+           <p className="text-gray-500 mb-8 max-w-xs mx-auto">Authenticate to access your dashboard and private notes.</p>
+           <button onClick={unlockApp} className="btn btn-primary px-8 py-3 rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all">
+             Unlock App
+           </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: "var(--bg)" }}>

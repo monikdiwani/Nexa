@@ -4,12 +4,15 @@ import { useEffect, useState } from "react";
 import { collection, query, orderBy, onSnapshot, addDoc, updateDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Bell, CheckCircle2, Clock, Loader2, AlarmClock, Trash2, X, AlarmClockOff } from "lucide-react";
+import { Plus, Bell, CheckCircle2, Clock, Loader2, AlarmClock, Trash2, X, AlarmClockOff, RefreshCw, MessageCircle } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 
 interface Reminder {
   id: string; title: string; message: string;
   triggerTime: number; priority: string; category: string;
   isCompleted: boolean; isSnoozed: boolean;
+  isRecurring?: boolean; recurringPattern?: string;
+  isWhatsApp?: boolean;
 }
 
 const CAT_EMOJI: Record<string,string> = {
@@ -31,8 +34,20 @@ export default function RemindersPage() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     title:"", message:"", triggerDate:"", triggerTime:"",
-    priority:"MEDIUM", category:"CUSTOM"
+    priority:"MEDIUM", category:"CUSTOM",
+    isRecurring: false, recurringPattern: "DAILY",
+    isWhatsApp: false
   });
+  
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const newTitle = searchParams.get("new");
+    if (newTitle) {
+      setForm(f => ({ ...f, title: decodeURIComponent(newTitle) }));
+      setShowForm(true);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!user) return;
@@ -52,10 +67,11 @@ export default function RemindersPage() {
       title:form.title, message:form.message, triggerTime:dt.getTime(),
       priority:form.priority, category:form.category,
       isCompleted:false, isSnoozed:false, createdAt:Date.now(),
-      recurringPattern:"NONE", isRecurring:false
+      recurringPattern: form.recurringPattern, isRecurring: form.isRecurring,
+      isWhatsApp: form.isWhatsApp
     });
     setShowForm(false); setSaving(false);
-    setForm({title:"",message:"",triggerDate:"",triggerTime:"",priority:"MEDIUM",category:"CUSTOM"});
+    setForm({title:"",message:"",triggerDate:"",triggerTime:"",priority:"MEDIUM",category:"CUSTOM", isRecurring: false, recurringPattern: "DAILY", isWhatsApp: false});
   };
 
   const markDone = async (r: Reminder) => {
@@ -161,7 +177,29 @@ export default function RemindersPage() {
                   </select>
                 </div>
               </div>
-              <div className="flex gap-2 pt-1">
+              
+              <div className="flex items-center gap-4 pt-1 flex-wrap">
+                <label className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+                  <input type="checkbox" checked={form.isRecurring} onChange={e => setForm({...form, isRecurring: e.target.checked})} className="w-4 h-4 rounded" style={{ accentColor: "var(--primary)" }} />
+                  Recurring
+                </label>
+                {form.isRecurring && (
+                  <select value={form.recurringPattern} onChange={e => setForm({...form, recurringPattern: e.target.value})} className="input text-sm w-auto">
+                    <option value="DAILY">Daily</option>
+                    <option value="WEEKLY">Weekly</option>
+                    <option value="MONTHLY">Monthly</option>
+                    <option value="YEARLY">Yearly</option>
+                  </select>
+                )}
+                
+                <label className="flex items-center gap-2 cursor-pointer text-sm font-medium text-green-600 dark:text-green-500 ml-auto">
+                  <MessageCircle size={16} />
+                  <input type="checkbox" checked={form.isWhatsApp} onChange={e => setForm({...form, isWhatsApp: e.target.checked})} className="w-4 h-4 rounded" style={{ accentColor: "#25D366" }} />
+                  Send to WhatsApp
+                </label>
+              </div>
+              
+              <div className="flex gap-2 pt-2 border-t" style={{ borderColor: "var(--divider)" }}>
                 <button type="submit" disabled={saving} className="btn btn-primary btn-sm">
                   {saving?<Loader2 size={14} className="animate-spin"/>:<AlarmClock size={14}/>} Save
                 </button>
@@ -222,6 +260,18 @@ export default function RemindersPage() {
                     <Clock size={11}/>
                     {fmtCountdown(r.triggerTime)} · {new Date(r.triggerTime).toLocaleString("en-IN",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}
                   </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    {r.isRecurring && (
+                      <span className="text-xs font-semibold flex items-center gap-1" style={{ color: "var(--primary)" }}>
+                         <RefreshCw size={11} /> Repeats {r.recurringPattern?.toLowerCase()}
+                      </span>
+                    )}
+                    {r.isWhatsApp && (
+                      <span className="text-xs font-semibold flex items-center gap-1 text-green-600 dark:text-green-500">
+                         <MessageCircle size={11} /> WhatsApp linked
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="flex flex-col items-end gap-1.5">
                   <span className={`chip text-xs ${r.priority==="HIGH"?"priority-high":r.priority==="LOW"?"priority-low":"priority-medium"}`}>
@@ -245,6 +295,14 @@ export default function RemindersPage() {
                           ))}
                         </div>
                       </div>
+                      
+                      {r.isWhatsApp && !r.isCompleted && (
+                        <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(r.title + " - " + r.message)}`, "_blank")}
+                          className="btn btn-sm flex items-center gap-1" style={{background:"#25D366",color:"white",border:"none",padding:"4px 8px"}}>
+                          <MessageCircle size={13}/> Send
+                        </button>
+                      )}
+
                       <button onClick={()=>markDone(r)} className="btn btn-sm" style={{background:"var(--cash-in-bg)",color:"var(--positive)",border:"none",padding:"4px 10px"}}>
                         <CheckCircle2 size={13}/> Done
                       </button>
