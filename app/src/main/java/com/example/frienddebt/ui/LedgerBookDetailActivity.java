@@ -45,6 +45,7 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
     private TextView chipAll, chipCash, chipBank, chipToday, chipWeek, chipMonth;
     private RecyclerView rvCashbookEntries;
     private RecyclerView rvDebtEdges;
+    private RecyclerView rvMemberBalances;
     private TextView txtOutstandingTotal;
     private android.widget.LinearLayout containerDebtSummary, layoutDebtEdges;
     private FloatingActionButton fabAddEntry;
@@ -99,6 +100,7 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
         containerDebtSummary  = findViewById(R.id.containerDebtSummary);
         layoutDebtEdges        = findViewById(R.id.layoutDebtEdges);
         rvDebtEdges            = findViewById(R.id.rvDebtEdges);
+        rvMemberBalances       = findViewById(R.id.rvMemberBalances);
         txtOutstandingTotal    = findViewById(R.id.txtOutstandingTotal);
         fabAddEntry = findViewById(R.id.fabAddEntry);
         btnBack = findViewById(R.id.btnBack);
@@ -401,7 +403,7 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                             if (txtCashOutLabel != null) txtCashOutLabel.setText("Group Spending");
 
                             List<com.example.frienddebt.model.DebtEdge> edges = com.example.frienddebt.dsa.DebtSimplifier.simplifyDebts(allEntries);
-                            updateDebtSummary(edges);
+                            updateDebtSummary(edges, allEntries);
 
                             double myBalance = 0;
                             String currentUid = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : "";
@@ -444,8 +446,10 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                 });
     }
 
-    private void updateDebtSummary(List<com.example.frienddebt.model.DebtEdge> edges) {
-        if (edges.isEmpty()) {
+    private void updateDebtSummary(List<com.example.frienddebt.model.DebtEdge> edges, List<CashbookEntry> entries) {
+        Map<String, Double> memberBalances = com.example.frienddebt.dsa.DebtSimplifier.calculateNetBalances(entries);
+        
+        if (edges.isEmpty() && memberBalances.isEmpty()) {
             containerDebtSummary.setVisibility(View.GONE);
             return;
         }
@@ -453,7 +457,7 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
         containerDebtSummary.setVisibility(View.VISIBLE);
 
         // Collect unique UIDs
-        List<String> allUids = new ArrayList<>();
+        List<String> allUids = new ArrayList<>(memberBalances.keySet());
         for (com.example.frienddebt.model.DebtEdge edge : edges) {
             if (!allUids.contains(edge.getFrom())) allUids.add(edge.getFrom());
             if (!allUids.contains(edge.getTo()))   allUids.add(edge.getTo());
@@ -472,9 +476,72 @@ public class LedgerBookDetailActivity extends AppCompatActivity {
                 txtOutstandingTotal.setText("\u20b9" + String.format(Locale.getDefault(), "%.2f", outstandingTotal) + " total outstanding");
             }
 
+            if (rvMemberBalances != null) {
+                rvMemberBalances.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+                rvMemberBalances.setAdapter(new MemberBalanceAdapter(memberBalances, nameMap, currentUid));
+            }
+
             rvDebtEdges.setLayoutManager(new LinearLayoutManager(this));
             rvDebtEdges.setAdapter(new DebtEdgeAdapter(edges, nameMap, currentUid));
         });
+    }
+
+    // ─── Member Balance Adapter (Horizontal List) ───────
+    private class MemberBalanceAdapter extends RecyclerView.Adapter<MemberBalanceAdapter.VH> {
+        private final List<Map.Entry<String, Double>> balances;
+        private final Map<String, String> nameMap;
+        private final String currentUid;
+
+        MemberBalanceAdapter(Map<String, Double> balanceMap, Map<String, String> nameMap, String currentUid) {
+            this.balances = new ArrayList<>(balanceMap.entrySet());
+            this.nameMap = nameMap;
+            this.currentUid = currentUid;
+        }
+
+        @NonNull
+        @Override
+        public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View v = android.view.LayoutInflater.from(parent.getContext())
+                .inflate(R.layout.item_member_balance, parent, false);
+            return new VH(v);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull VH h, int pos) {
+            Map.Entry<String, Double> entry = balances.get(pos);
+            String uid = entry.getKey();
+            double amount = entry.getValue();
+            
+            String name = uid.equals(currentUid) ? "You" : nameMap.getOrDefault(uid, "User");
+            h.txtName.setText(name);
+            
+            String initials = name.length() > 0 ? name.substring(0, 1).toUpperCase() : "?";
+            h.txtInitials.setText(initials);
+            
+            if (amount > 0.01) { // Owed
+                h.txtBalance.setText("+" + String.format(Locale.getDefault(), "₹%.2f", amount));
+                h.txtBalance.setTextColor(getResources().getColor(R.color.accent_positive));
+            } else if (amount < -0.01) { // Owes
+                h.txtBalance.setText("-" + String.format(Locale.getDefault(), "₹%.2f", Math.abs(amount)));
+                h.txtBalance.setTextColor(getResources().getColor(R.color.accent_negative));
+            } else {
+                h.txtBalance.setText("Settled");
+                h.txtBalance.setTextColor(getResources().getColor(R.color.text_secondary));
+            }
+        }
+
+        @Override
+        public int getItemCount() { return balances.size(); }
+
+        class VH extends RecyclerView.ViewHolder {
+            TextView txtInitials, txtName, txtBalance;
+            VH(View v) {
+                super(v);
+                txtInitials = v.findViewById(R.id.txtInitials);
+                txtName = v.findViewById(R.id.txtName);
+                txtBalance = v.findViewById(R.id.txtBalance);
+            }
+        }
     }
 
     // ─── Inline DebtEdge Adapter (Who Owes Whom card with Settle button) ───────

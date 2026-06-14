@@ -198,6 +198,16 @@
                     </LinearLayout>
                 </LinearLayout>
 
+                <!-- Member Balances (Horizontal) -->
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rvMemberBalances"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="16dp"
+                    android:clipToPadding="false"
+                    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+
                 <!-- Debt edges list (RecyclerView for premium cards) -->
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rvDebtEdges"

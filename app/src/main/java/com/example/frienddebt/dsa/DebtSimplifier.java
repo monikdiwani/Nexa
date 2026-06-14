@@ -11,16 +11,13 @@ import java.util.PriorityQueue;
 
 public class DebtSimplifier {
 
-    public static List<DebtEdge> simplifyDebts(List<CashbookEntry> entries) {
-        // Step 1: Compute net balances for everyone
+    public static Map<String, Double> calculateNetBalances(List<CashbookEntry> entries) {
         Map<String, Double> balances = new HashMap<>();
 
         for (CashbookEntry entry : entries) {
             String type = entry.getType();
 
             if ("SETTLEMENT".equals(type)) {
-                // For a settlement, paidBy paid someone else.
-                // We store the receiver in the 'participants' list at index 0.
                 String payer = entry.getPaidBy();
                 String receiver = entry.getParticipants() != null && !entry.getParticipants().isEmpty() ? entry.getParticipants().get(0) : null;
                 
@@ -30,7 +27,6 @@ public class DebtSimplifier {
                     balances.put(receiver, balances.getOrDefault(receiver, 0.0) - amt);
                 }
             } else if ("EXPENSE".equals(type) && entry.getSplits() != null) {
-                // Shared Expense
                 String payer = entry.getPaidBy();
                 if (payer == null) continue;
 
@@ -44,6 +40,12 @@ public class DebtSimplifier {
                 }
             }
         }
+        return balances;
+    }
+
+    public static List<DebtEdge> simplifyDebts(List<CashbookEntry> entries) {
+        // Step 1: Compute net balances for everyone
+        Map<String, Double> balances = calculateNetBalances(entries);
 
         // Step 2: Split into debtors (negative balance) and creditors (positive balance)
         // Max-heaps based on absolute value
