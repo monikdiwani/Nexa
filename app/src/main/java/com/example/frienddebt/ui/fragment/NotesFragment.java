@@ -7,10 +7,12 @@ import android.graphics.Paint;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.text.Html;
+import android.text.InputType;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.AnimationUtils;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ImageButton;
 import android.widget.TextView;
@@ -46,12 +48,15 @@ import android.net.Uri;
 import android.widget.ImageView;
 import androidx.cardview.widget.CardView;
 
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+
 public class NotesFragment extends Fragment {
 
     private DrawerLayout drawerLayout;
     private RecyclerView rvNotes;
     private FloatingActionButton fabAddNote;
     private LinearLayout layoutEmptyState;
+    private LinearLayout layoutCustomFolders;
     private TextView txtHeaderSubtitle;
     private ImageButton btnSearch, btnMenu, btnMore;
 
@@ -61,6 +66,7 @@ public class NotesFragment extends Fragment {
     private FirebaseFirestore db;
     private FirebaseAuth auth;
     private ListenerRegistration notesListener;
+    private ListenerRegistration foldersListener;
 
     private List<Note> allNotes = new ArrayList<>();
     private List<Object> displayItems = new ArrayList<>(); // String headers + Note objects
@@ -83,6 +89,7 @@ public class NotesFragment extends Fragment {
         rvNotes         = view.findViewById(R.id.rvNotes);
         fabAddNote      = view.findViewById(R.id.fabAddNote);
         layoutEmptyState = view.findViewById(R.id.layoutEmptyState);
+        layoutCustomFolders = view.findViewById(R.id.layoutCustomFolders);
         txtHeaderSubtitle = view.findViewById(R.id.txtHeaderSubtitle);
         btnSearch       = view.findViewById(R.id.btnSearch);
         btnMenu         = view.findViewById(R.id.btnMenu);
@@ -107,12 +114,14 @@ public class NotesFragment extends Fragment {
     public void onStart() {
         super.onStart();
         loadNotes();
+        loadFolders();
     }
 
     @Override
     public void onStop() {
         super.onStop();
         if (notesListener != null) { notesListener.remove(); notesListener = null; }
+        if (foldersListener != null) { foldersListener.remove(); foldersListener = null; }
     }
 
     // ─── Setup ────────────────────────────────────────────────────────────────
@@ -227,8 +236,13 @@ public class NotesFragment extends Fragment {
                 popup.getMenu().add("Select");
                 popup.getMenu().add("Sort by date");
                 popup.getMenu().add("Sort by name");
+                popup.getMenu().add("New folder");
                 popup.setOnMenuItemClickListener(item -> {
-                    Toast.makeText(requireContext(), item.getTitle(), Toast.LENGTH_SHORT).show();
+                    if ("New folder".contentEquals(item.getTitle())) {
+                        showCreateFolderDialog();
+                    } else {
+                        Toast.makeText(requireContext(), item.getTitle(), Toast.LENGTH_SHORT).show();
+                    }
                     return true;
                 });
                 popup.show();
@@ -257,6 +271,89 @@ public class NotesFragment extends Fragment {
                 });
     }
 
+    private void loadFolders() {
+        if (auth == null || auth.getCurrentUser() == null || db == null || layoutCustomFolders == null) return;
+        if (foldersListener != null) foldersListener.remove();
+
+        foldersListener = db.collection("users")
+                .document(auth.getCurrentUser().getUid())
+                .collection("noteFolders")
+                .orderBy("name")
+                .addSnapshotListener((snapshots, e) -> {
+                    if (snapshots == null || !isAdded()) return;
+                    renderCustomFolders(snapshots.getDocuments());
+                });
+    }
+
+    private void renderCustomFolders(List<DocumentSnapshot> folderDocs) {
+        if (layoutCustomFolders == null) return;
+        layoutCustomFolders.removeAllViews();
+
+        if (folderDocs.isEmpty()) {
+            return;
+        }
+
+        for (DocumentSnapshot doc : folderDocs) {
+            String folderName = doc.getString("name");
+            if (folderName == null || folderName.trim().isEmpty()) continue;
+
+            TextView folderView = new TextView(requireContext());
+            folderView.setLayoutParams(new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+            folderView.setText(folderName);
+            folderView.setTextSize(15f);
+            folderView.setTextColor(getResources().getColor(R.color.text_primary));
+            folderView.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            folderView.setPadding(dp(20), dp(12), dp(20), dp(12));
+            folderView.setBackgroundResource(androidx.appcompat.R.drawable.abc_list_selector_holo_dark);
+            folderView.setOnClickListener(v -> {
+                activeFilter = folderName;
+                if (drawerLayout != null) drawerLayout.closeDrawers();
+                applyFilter();
+            });
+            layoutCustomFolders.addView(folderView);
+        }
+    }
+
+    private void showCreateFolderDialog() {
+        if (!isAdded() || auth == null || auth.getCurrentUser() == null || db == null) return;
+
+        EditText input = new EditText(requireContext());
+        input.setHint("Folder name");
+        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS);
+        int padding = dp(16);
+        input.setPadding(padding, padding, padding, padding);
+
+        new android.app.AlertDialog.Builder(requireContext())
+                .setTitle("Create folder")
+                .setView(input)
+                .setPositiveButton("Create", (dialog, which) -> {
+                    String name = input.getText().toString().trim();
+                    if (name.isEmpty()) {
+                        Toast.makeText(requireContext(), "Folder name is required", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    createFolder(name);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void createFolder(String name) {
+        String folderId = name.toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z0-9]+", "_");
+        java.util.Map<String, Object> data = new java.util.HashMap<>();
+        data.put("name", name);
+        data.put("createdAt", System.currentTimeMillis());
+
+        db.collection("users").document(auth.getCurrentUser().getUid())
+                .collection("noteFolders")
+                .document(folderId)
+                .set(data)
+                .addOnSuccessListener(unused -> Toast.makeText(requireContext(), "Folder created", Toast.LENGTH_SHORT).show())
+                .addOnFailureListener(e -> Toast.makeText(requireContext(), "Failed to create folder", Toast.LENGTH_SHORT).show());
+    }
+
     private void applyFilter() {
         List<Note> filtered = new ArrayList<>();
         for (Note n : allNotes) {
@@ -266,7 +363,13 @@ public class NotesFragment extends Fragment {
                 case "work":     if ("Work".equalsIgnoreCase(n.getFolder()) && !n.isDeleted() && !n.isArchived()) filtered.add(n); break;
                 case "archived": if (n.isArchived() && !n.isDeleted()) filtered.add(n); break;
                 case "trash":    if (n.isDeleted()) filtered.add(n); break;
-                default:         if (!n.isDeleted() && !n.isArchived()) filtered.add(n); break;
+                default:
+                    if (!n.isDeleted() && !n.isArchived()) {
+                        if ("all".equalsIgnoreCase(activeFilter) || activeFilter.equalsIgnoreCase(n.getFolder())) {
+                            filtered.add(n);
+                        }
+                    }
+                    break;
             }
         }
 
@@ -318,6 +421,10 @@ public class NotesFragment extends Fragment {
     private boolean isSameDay(Calendar a, Calendar b) {
         return a.get(Calendar.YEAR) == b.get(Calendar.YEAR)
                 && a.get(Calendar.DAY_OF_YEAR) == b.get(Calendar.DAY_OF_YEAR);
+    }
+
+    private int dp(int value) {
+        return (int) (value * requireContext().getResources().getDisplayMetrics().density);
     }
 
     // ─── Firestore mutations ───────────────────────────────────────────────────

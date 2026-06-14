@@ -214,6 +214,6 @@
         android:src="@android:drawable/ic_input_add"
         android:contentDescription="Money Actions"
         app:backgroundTint="@color/primary"
-        app:tint="@color/white" />
+        app:tint="@color/fab_icon_tint" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

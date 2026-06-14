@@ -142,12 +142,9 @@ public class RecurringEngine {
         t.setArchived(false);
         t.setCreatedAt(System.currentTimeMillis());
         
-        t.setRecurring(true);
-        t.setRecurringPattern(old.getRecurringPattern());
-        t.setRecurringId(old.getRecurringId());
-        
-        long updatedNext = calculateNextOccurrence(old.getNextOccurrence(), old.getRecurringPattern());
-        t.setNextOccurrence(updatedNext); // The clone is also recurring!
+        // Clone represents a single occurrence — it must NOT be marked recurring
+        t.setRecurring(false);
+        // Do not set nextOccurrence on the clone; it's a one-off instance
         
         if (old.getDueDate() != null) {
             long newDueDate = calculateNextOccurrence(old.getDueDate(), old.getRecurringPattern());
@@ -179,15 +176,14 @@ public class RecurringEngine {
         r.setLinkedItemId(old.getLinkedItemId());
         r.setLinkedItemType(old.getLinkedItemType());
         
-        r.setRecurring(true);
+        // Clone is a discrete reminder occurrence — do not mark it recurring
+        r.setRecurring(false);
         r.setRecurringPattern(old.getRecurringPattern());
         r.setRecurringId(old.getRecurringId());
-        
+
         long newTrigger = calculateNextOccurrence(old.getTriggerTime(), old.getRecurringPattern());
         r.setTriggerTime(newTrigger);
-        
-        long updatedNext = calculateNextOccurrence(old.getNextOccurrence(), old.getRecurringPattern());
-        r.setNextOccurrence(updatedNext);
+        // Do NOT set nextOccurrence on the clone
         
         return r;
     }
@@ -212,15 +208,14 @@ public class RecurringEngine {
         c.setLastModifiedAt(System.currentTimeMillis());
         c.setCreatedBy(old.getCreatedBy());
         
-        c.setRecurring(true);
+        // Clone is a one-off entry — do not mark recurring
+        c.setRecurring(false);
         c.setRecurringPattern(old.getRecurringPattern());
         c.setRecurringId(old.getRecurringId());
-        
+
         long newDate = calculateNextOccurrence(old.getDate(), old.getRecurringPattern());
         c.setDate(newDate);
-        
-        long updatedNext = calculateNextOccurrence(old.getNextOccurrence(), old.getRecurringPattern());
-        c.setNextOccurrence(updatedNext);
+        // Do NOT set nextOccurrence on the clone
         
         return c;
     }

@@ -223,6 +223,12 @@
                 android:paddingHorizontal="20dp"
                 android:background="?attr/selectableItemBackground" />
 
+            <LinearLayout
+                android:id="@+id/layoutCustomFolders"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"

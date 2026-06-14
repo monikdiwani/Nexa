@@ -89,17 +89,12 @@ public class MoneyFragment extends Fragment {
 
         sheetView.findViewById(R.id.btnActionAddIncome).setOnClickListener(v -> {
             bottomSheetDialog.dismiss();
-            // Default to personal add cashbook entry (Wait, AddCashbookEntryActivity currently requires BOOK_ID)
-            // Let's just launch CreateLedgerBookActivity if no book is selected, or a ledger selector. 
-            // For now, if the user doesn't pass a BOOK_ID to AddCashbookEntryActivity, it might fail.
-            // Ideally we pass an intent without BOOK_ID and let the activity handle ledger selection, 
-            // or we just toast for now until we build the universal flow.
-            android.widget.Toast.makeText(requireContext(), "Select a ledger first to add income.", android.widget.Toast.LENGTH_SHORT).show();
+            showLedgerPicker("CASH_IN");
         });
 
         sheetView.findViewById(R.id.btnActionAddExpense).setOnClickListener(v -> {
             bottomSheetDialog.dismiss();
-            android.widget.Toast.makeText(requireContext(), "Select a ledger first to add expense.", android.widget.Toast.LENGTH_SHORT).show();
+            showLedgerPicker("CASH_OUT");
         });
 
         sheetView.findViewById(R.id.btnActionAddSharedExpense).setOnClickListener(v -> {
@@ -124,6 +119,57 @@ public class MoneyFragment extends Fragment {
 
         bottomSheetDialog.setContentView(sheetView);
         bottomSheetDialog.show();
+    }
+
+    private void showLedgerPicker(String defaultType) {
+        if (!isAdded() || auth == null || auth.getCurrentUser() == null || db == null) return;
+        String userId = auth.getCurrentUser().getUid();
+
+        // Load member ledgers
+        db.collection("cashbooks").whereNotEqualTo("members." + userId, null).get()
+                .addOnCompleteListener(memberTask -> {
+                    if (!isAdded()) return;
+                    java.util.List<com.google.firebase.firestore.DocumentSnapshot> docs = new java.util.ArrayList<>();
+                    if (memberTask.isSuccessful() && memberTask.getResult() != null) docs.addAll(memberTask.getResult().getDocuments());
+
+                    // Load owned ledgers and merge
+                    db.collection("cashbooks").whereEqualTo("ownerId", userId).get()
+                            .addOnCompleteListener(ownerTask -> {
+                                if (!isAdded()) return;
+                                if (ownerTask.isSuccessful() && ownerTask.getResult() != null) {
+                                    for (com.google.firebase.firestore.DocumentSnapshot d : ownerTask.getResult()) {
+                                        if (!docs.stream().anyMatch(x -> x.getId().equals(d.getId()))) docs.add(d);
+                                    }
+                                }
+
+                                if (docs.isEmpty()) {
+                                    android.widget.Toast.makeText(requireContext(), "No ledgers found. Create a ledger first.", android.widget.Toast.LENGTH_SHORT).show();
+                                    return;
+                                }
+
+                                java.util.List<LedgerBook> books = new java.util.ArrayList<>();
+                                java.util.List<String> names = new java.util.ArrayList<>();
+                                for (com.google.firebase.firestore.DocumentSnapshot d : docs) {
+                                    LedgerBook b = LedgerBook.fromDocument(d);
+                                    books.add(b);
+                                    names.add(b.getName() != null ? b.getName() : ("Ledger " + d.getId()));
+                                }
+
+                                CharSequence[] items = names.toArray(new CharSequence[0]);
+                                androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(requireContext());
+                                builder.setTitle("Select ledger");
+                                builder.setItems(items, (dialog, which) -> {
+                                    LedgerBook chosen = books.get(which);
+                                    android.content.Intent intent = new android.content.Intent(requireActivity(), com.example.frienddebt.ui.AddCashbookEntryActivity.class);
+                                    intent.putExtra("BOOK_ID", chosen.getId());
+                                    intent.putExtra("BOOK_NAME", chosen.getName());
+                                    intent.putExtra("DEFAULT_TYPE", defaultType);
+                                    startActivity(intent);
+                                });
+                                builder.setNegativeButton("Cancel", (d, which) -> d.dismiss());
+                                builder.show();
+                            });
+                });
     }
 
     private void setupTabs() {

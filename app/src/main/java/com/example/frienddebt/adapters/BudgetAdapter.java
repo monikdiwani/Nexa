@@ -63,16 +63,26 @@ public class BudgetAdapter extends RecyclerView.Adapter<BudgetAdapter.BudgetView
             holder.tvRemainingStatus.setTextColor(Color.parseColor("#757575")); // Secondary text color
         }
 
-        int progress = (int) ((budget.getSpentAmount() / budget.getAmountLimit()) * 100);
-        holder.pbBudget.setProgress(Math.min(progress, 100)); // Cap at 100%
-
-        // Color coding
-        if (progress >= 100) {
-            holder.pbBudget.setProgressTintList(ColorStateList.valueOf(Color.parseColor("#FF5252"))); // Red
-        } else if (progress >= 80) {
-            holder.pbBudget.setProgressTintList(ColorStateList.valueOf(Color.parseColor("#FFA000"))); // Orange
+        double limit = budget.getAmountLimit();
+        int progress = 0;
+        if (limit <= 0) {
+            // No limit set — show 0% and a clear message
+            holder.pbBudget.setProgress(0);
+            holder.tvRemainingStatus.setText("No limit set");
+            holder.tvRemainingStatus.setTextColor(Color.parseColor("#757575"));
+            holder.pbBudget.setProgressTintList(ColorStateList.valueOf(Color.parseColor("#4CAF50")));
         } else {
-            holder.pbBudget.setProgressTintList(ColorStateList.valueOf(Color.parseColor("#4CAF50"))); // Green
+            progress = (int) ((budget.getSpentAmount() / limit) * 100);
+            holder.pbBudget.setProgress(Math.min(Math.max(progress, 0), 100)); // Cap between 0-100
+
+            // Color coding
+            if (progress >= 100) {
+                holder.pbBudget.setProgressTintList(ColorStateList.valueOf(Color.parseColor("#FF5252"))); // Red
+            } else if (progress >= 80) {
+                holder.pbBudget.setProgressTintList(ColorStateList.valueOf(Color.parseColor("#FFA000"))); // Orange
+            } else {
+                holder.pbBudget.setProgressTintList(ColorStateList.valueOf(Color.parseColor("#4CAF50"))); // Green
+            }
         }
 
         holder.btnDeleteBudget.setOnClickListener(v -> {

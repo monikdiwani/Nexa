@@ -58,6 +58,7 @@ import com.example.frienddebt.ui.fragment.PageSettingsBottomSheet;
 import com.example.frienddebt.utils.StatusBarUtil;
 import com.example.frienddebt.utils.UndoRedoManager;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
 
@@ -65,6 +66,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 import java.util.concurrent.Executor;
 
 public class AddEditNoteActivity extends AppCompatActivity {
@@ -194,10 +196,15 @@ public class AddEditNoteActivity extends AppCompatActivity {
     // ─── Setup ────────────────────────────────────────────────────────────────
 
     private void setupButtons() {
-        btnBack.setOnClickListener(v -> { saveNote(false); finish(); });
+        btnBack.setOnClickListener(v -> {
+            // Save and finish only after save completes
+            saveNote(false, this::finish);
+        });
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
-            @Override public void handleOnBackPressed() { saveNote(false); finish(); }
+            @Override public void handleOnBackPressed() {
+                saveNote(false, AddEditNoteActivity.this::finish);
+            }
         });
 
         btnMenu.setOnClickListener(this::showSamsungMenu);
@@ -401,19 +408,106 @@ public class AddEditNoteActivity extends AppCompatActivity {
     // ─── Folder Picker ────────────────────────────────────────────────────────
 
     private void showFolderPicker() {
-        String[] folders = {"Personal", "Work"};
+        if (auth == null || auth.getCurrentUser() == null || db == null) return;
+
+        List<String> folders = new ArrayList<>();
+        folders.add("Personal");
+        folders.add("Work");
+
+        db.collection("users").document(auth.getCurrentUser().getUid())
+                .collection("noteFolders")
+                .orderBy("name")
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    for (DocumentSnapshot doc : queryDocumentSnapshots.getDocuments()) {
+                        String name = doc.getString("name");
+                        if (name != null && !containsIgnoreCase(folders, name)) {
+                            folders.add(name);
+                        }
+                    }
+                    showFolderDialog(folders);
+                })
+                .addOnFailureListener(e -> showFolderDialog(folders));
+    }
+
+    private void showFolderDialog(List<String> folders) {
+        String[] options = new String[folders.size() + 1];
+        for (int i = 0; i < folders.size(); i++) options[i] = folders.get(i);
+        options[folders.size()] = "Create new folder...";
+
+        int checkedIndex = 0;
+        for (int i = 0; i < folders.size(); i++) {
+            if (folders.get(i).equalsIgnoreCase(selectedFolder)) {
+                checkedIndex = i;
+                break;
+            }
+        }
+
         new android.app.AlertDialog.Builder(this)
                 .setTitle("Select folder")
-                .setSingleChoiceItems(folders,
-                        selectedFolder.equals("Work") ? 1 : 0,
-                        (dialog, which) -> {
-                            selectedFolder = folders[which];
-                            updateFolderChip();
-                            triggerAutoSave();
-                            dialog.dismiss();
-                        })
+                .setSingleChoiceItems(options, checkedIndex, (dialog, which) -> {
+                    if (which == folders.size()) {
+                        dialog.dismiss();
+                        showCreateFolderDialog();
+                        return;
+                    }
+                    selectedFolder = folders.get(which);
+                    updateFolderChip();
+                    triggerAutoSave();
+                    dialog.dismiss();
+                })
                 .setNegativeButton("Cancel", null)
                 .show();
+    }
+
+    private void showCreateFolderDialog() {
+        if (auth == null || auth.getCurrentUser() == null || db == null) return;
+
+        EditText input = new EditText(this);
+        input.setHint("Folder name");
+        input.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS);
+        int padding = (int) (16 * getResources().getDisplayMetrics().density);
+        input.setPadding(padding, padding, padding, padding);
+
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("Create folder")
+                .setView(input)
+                .setPositiveButton("Create", (dialog, which) -> {
+                    String name = input.getText().toString().trim();
+                    if (name.isEmpty()) {
+                        Toast.makeText(this, "Folder name is required", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    createFolderAndSelect(name);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void createFolderAndSelect(String name) {
+        String folderId = name.trim().toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "_");
+        Map<String, Object> data = new HashMap<>();
+        data.put("name", name.trim());
+        data.put("createdAt", System.currentTimeMillis());
+
+        db.collection("users").document(auth.getCurrentUser().getUid())
+                .collection("noteFolders")
+                .document(folderId)
+                .set(data, SetOptions.merge())
+                .addOnSuccessListener(unused -> {
+                    selectedFolder = name.trim();
+                    updateFolderChip();
+                    triggerAutoSave();
+                    Toast.makeText(this, "Folder created", Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(e -> Toast.makeText(this, "Failed to create folder", Toast.LENGTH_SHORT).show());
+    }
+
+    private boolean containsIgnoreCase(List<String> folders, String candidate) {
+        for (String folder : folders) {
+            if (folder != null && folder.equalsIgnoreCase(candidate)) return true;
+        }
+        return false;
     }
 
     private void updateFolderChip() {
@@ -1168,16 +1262,19 @@ public class AddEditNoteActivity extends AppCompatActivity {
         autoSaveHandler.postDelayed(autoSaveRunnable, 2000);
     }
 
-    public void saveNote(boolean force) {
-        if (hasSaved && !force) return;
+    public void saveNote(boolean force, Runnable onComplete) {
+        if (hasSaved && !force) {
+            if (onComplete != null) onComplete.run();
+            return;
+        }
 
         String title = etNoteTitle.getText().toString().trim();
         String contentHtml = Html.toHtml(etNoteContent.getText(), Html.TO_HTML_PARAGRAPH_LINES_CONSECUTIVE);
 
         if (isNewNote && title.isEmpty() && etNoteContent.getText().toString().trim().isEmpty()) {
-            hasSaved = true; return;
+            hasSaved = true; if (onComplete != null) onComplete.run(); return;
         }
-        if (auth.getCurrentUser() == null) { hasSaved = true; return; }
+        if (auth.getCurrentUser() == null) { hasSaved = true; if (onComplete != null) onComplete.run(); return; }
 
         hasSaved = true;
         String userId = auth.getCurrentUser().getUid();
@@ -1216,8 +1313,18 @@ public class AddEditNoteActivity extends AppCompatActivity {
 
         db.collection("users").document(userId).collection("notes").document(noteId)
                 .set(data, SetOptions.merge())
-                .addOnFailureListener(e -> hasSaved = false);
+                .addOnSuccessListener(aVoid -> {
+                    if (onComplete != null) onComplete.run();
+                })
+                .addOnFailureListener(e -> {
+                    hasSaved = false;
+                    // still call onComplete to avoid blocking UX
+                    if (onComplete != null) onComplete.run();
+                });
     }
+
+    // Backwards-compatible overload
+    public void saveNote(boolean force) { saveNote(force, null); }
 
     // ─── Public API (for history restore etc.) ────────────────────────────────
 

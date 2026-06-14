@@ -1,7 +1,12 @@
 package com.example.frienddebt.ui;
 
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.Toast;
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
@@ -33,6 +38,9 @@ public class DashboardActivity extends AppCompatActivity {
     private Fragment profileFragment;
     private Fragment activeFragment;
     private FragmentManager fm;
+    private View offlineBanner;
+    private ConnectivityManager connectivityManager;
+    private ConnectivityManager.NetworkCallback networkCallback;
 
     private long lastBackPressTime = 0;
 
@@ -70,6 +78,9 @@ public class DashboardActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_dashboard);
         StatusBarUtil.applyStatusBarPadding(this);
+
+        connectivityManager = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+        offlineBanner = findViewById(R.id.layoutOfflineBanner);
 
         fm = getSupportFragmentManager();
         BottomNavigationView navView = findViewById(R.id.bottom_navigation);
@@ -208,6 +219,20 @@ public class DashboardActivity extends AppCompatActivity {
                 }
             }
         });
+
+        updateOfflineBanner(isOnline());
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        registerConnectivityUpdates();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        unregisterConnectivityUpdates();
     }
 
     public void selectTab(int itemId) {
@@ -221,6 +246,60 @@ public class DashboardActivity extends AppCompatActivity {
     public void selectMoneyTab() {
         BottomNavigationView navView = findViewById(R.id.bottom_navigation);
         navView.setSelectedItemId(R.id.nav_money);
+    }
+
+    private void registerConnectivityUpdates() {
+        if (connectivityManager == null) return;
+
+        if (networkCallback != null) return;
+        networkCallback = new ConnectivityManager.NetworkCallback() {
+            @Override
+            public void onAvailable(@NonNull Network network) {
+                runOnUiThread(() -> updateOfflineBanner(true));
+            }
+
+            @Override
+            public void onLost(@NonNull Network network) {
+                runOnUiThread(() -> updateOfflineBanner(isOnline()));
+            }
+        };
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            connectivityManager.registerDefaultNetworkCallback(networkCallback);
+        }
+    }
+
+    private void unregisterConnectivityUpdates() {
+        if (connectivityManager == null || networkCallback == null) return;
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                connectivityManager.unregisterNetworkCallback(networkCallback);
+            }
+        } catch (Exception ignored) {
+        }
+        networkCallback = null;
+    }
+
+    private boolean isOnline() {
+        if (connectivityManager == null) return true;
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                android.net.Network activeNetwork = connectivityManager.getActiveNetwork();
+                if (activeNetwork == null) return false;
+                NetworkCapabilities caps = connectivityManager.getNetworkCapabilities(activeNetwork);
+                return caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
+            } else {
+                android.net.NetworkInfo info = connectivityManager.getActiveNetworkInfo();
+                return info != null && info.isConnected();
+            }
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
+    private void updateOfflineBanner(boolean online) {
+        if (offlineBanner == null) return;
+        offlineBanner.setVisibility(online ? View.GONE : View.VISIBLE);
     }
 
     private Fragment findVisibleFragment() {

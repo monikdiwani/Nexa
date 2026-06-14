@@ -56,16 +56,16 @@ public class DataExportHelper {
                 .get()
                 .addOnSuccessListener(taskSnapshots -> {
                     for (DocumentSnapshot doc : taskSnapshots) {
-                        Task task = Task.fromDocument(doc);
-                        String status = task.isCompleted() ? "Completed" : "Pending";
-                        csvRows.add(new String[]{
-                                "Task",
-                                sanitize(task.getTitle()),
-                                sanitize(task.getDescription() != null ? task.getDescription() : ""),
-                                "-",
-                                sdf.format(new Date(task.getDueDate())),
-                                status
-                        });
+                    Task task = Task.fromDocument(doc);
+                    String status = task.isCompleted() ? "Completed" : "Pending";
+                    csvRows.add(new String[]{
+                        "Task",
+                        sanitize(task.getTitle()),
+                        sanitize(task.getDescription() != null ? task.getDescription() : ""),
+                        "-",
+                        formatDate(task.getDueDate(), sdf),
+                        status
+                    });
                     }
 
                     // 2. Fetch Reminders
@@ -74,16 +74,16 @@ public class DataExportHelper {
                             .collection("reminders")
                             .get()
                             .addOnSuccessListener(reminderSnapshots -> {
-                                for (DocumentSnapshot doc : reminderSnapshots) {
+                                    for (DocumentSnapshot doc : reminderSnapshots) {
                                     Reminder r = Reminder.fromDocument(doc);
                                     String status = r.isCompleted() ? "Completed" : "Active";
                                     csvRows.add(new String[]{
-                                            "Reminder",
-                                            sanitize(r.getTitle()),
-                                            sanitize(r.getMessage() != null ? r.getMessage() : ""),
-                                            "-",
-                                            sdf.format(new Date(r.getTriggerTime())),
-                                            status
+                                        "Reminder",
+                                        sanitize(r.getTitle()),
+                                        sanitize(r.getMessage() != null ? r.getMessage() : ""),
+                                        "-",
+                                        formatDate(r.getTriggerTime(), sdf),
+                                        status
                                     });
                                 }
 
@@ -94,15 +94,15 @@ public class DataExportHelper {
                                         .get()
                                         .addOnSuccessListener(noteSnapshots -> {
                                             for (DocumentSnapshot doc : noteSnapshots) {
-                                                Note n = Note.fromDocument(doc);
-                                                csvRows.add(new String[]{
-                                                        "Note",
-                                                        sanitize(n.getTitle()),
-                                                        sanitize(n.getContent() != null ? n.getContent() : ""),
-                                                        "-",
-                                                        sdf.format(new Date(n.getCreatedAt())),
-                                                        "-"
-                                                });
+                                            Note n = Note.fromDocument(doc);
+                                            csvRows.add(new String[]{
+                                                "Note",
+                                                sanitize(n.getTitle()),
+                                                sanitize(n.getContent() != null ? n.getContent() : ""),
+                                                "-",
+                                                formatDate(n.getCreatedAt(), sdf),
+                                                "-"
+                                            });
                                             }
 
                                             // 4. Fetch Cashbook Entries
@@ -139,9 +139,9 @@ public class DataExportHelper {
                                                                                         sanitize(entry.getParticulars()),
                                                                                         sanitize(entry.getCategory()),
                                                                                         amt,
-                                                                                        sdf.format(new Date(entry.getDate())),
+                                                                                        formatDate(entry.getDate(), sdf),
                                                                                         "-"
-                                                                                });
+                                                                                    });
                                                                             }
                                                                         }
                                                                     }
@@ -207,5 +207,14 @@ public class DataExportHelper {
             return "\"" + escaped + "\"";
         }
         return escaped;
+    }
+
+    private static String formatDate(Long ms, SimpleDateFormat sdf) {
+        try {
+            if (ms == null) return "";
+            return sdf.format(new Date(ms));
+        } catch (Exception e) {
+            return "";
+        }
     }
 }

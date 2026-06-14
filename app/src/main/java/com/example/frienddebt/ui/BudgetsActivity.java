@@ -23,6 +23,11 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.List;
 
 import com.example.frienddebt.utils.StatusBarUtil;
@@ -36,7 +41,7 @@ public class BudgetsActivity extends AppCompatActivity {
 
     private BudgetAdapter adapter;
     private List<Budget> budgetList;
-    private List<CashbookEntry> currentMonthEntries;
+    private List<CashbookEntry> userEntries;
 
     private FirebaseAuth auth;
     private FirebaseFirestore db;
@@ -70,7 +75,7 @@ public class BudgetsActivity extends AppCompatActivity {
         fabAddBudget.setOnClickListener(v -> startActivity(new Intent(this, AddBudgetActivity.class)));
 
         budgetList = new ArrayList<>();
-        currentMonthEntries = new ArrayList<>();
+        userEntries = new ArrayList<>();
         
         adapter = new BudgetAdapter(this, budgetList, new BudgetAdapter.OnBudgetInteractionListener() {
             @Override
@@ -100,66 +105,65 @@ public class BudgetsActivity extends AppCompatActivity {
     }
 
     private void fetchBudgetsAndEntries() {
-        // 1. Fetch current month's expenses
-        Calendar cal = Calendar.getInstance();
-        cal.set(Calendar.DAY_OF_MONTH, 1);
-        cal.set(Calendar.HOUR_OF_DAY, 0);
-        cal.set(Calendar.MINUTE, 0);
-        cal.set(Calendar.SECOND, 0);
-        long startOfMonth = cal.getTimeInMillis();
+        loadUserEntriesAndApplyBudgets();
+    }
 
-        // 1. Fetch user's active cashbooks
-        db.collection("cashbooks")
-                .whereNotEqualTo("members." + userId, null)
-                .get()
-                .addOnSuccessListener(booksSnap -> {
-                    java.util.List<com.google.android.gms.tasks.Task<com.google.firebase.firestore.QuerySnapshot>> tasks = new java.util.ArrayList<>();
-                    for (DocumentSnapshot bookDoc : booksSnap.getDocuments()) {
-                        String bookId = bookDoc.getId();
-                        tasks.add(db.collection("cashbooks")
-                                .document(bookId)
-                                .collection("entries")
-                                .whereGreaterThanOrEqualTo("date", startOfMonth)
-                                .get());
-                    }
+    private void loadUserEntriesAndApplyBudgets() {
+        db.collection("cashbooks").whereNotEqualTo("members." + userId, null).get()
+                .addOnSuccessListener(memberBooksSnap -> db.collection("cashbooks").whereEqualTo("ownerId", userId).get()
+                        .addOnSuccessListener(ownerBooksSnap -> {
+                            Set<String> bookIds = new HashSet<>();
+                            for (DocumentSnapshot doc : memberBooksSnap.getDocuments()) {
+                                bookIds.add(doc.getId());
+                            }
+                            for (DocumentSnapshot doc : ownerBooksSnap.getDocuments()) {
+                                bookIds.add(doc.getId());
+                            }
 
-                    if (tasks.isEmpty()) {
-                        currentMonthEntries.clear();
-                        fetchBudgets();
-                        return;
-                    }
+                            if (bookIds.isEmpty()) {
+                                userEntries.clear();
+                                fetchBudgets();
+                                return;
+                            }
 
-                    com.google.android.gms.tasks.Tasks.whenAllSuccess(tasks)
-                            .addOnSuccessListener(results -> {
-                                currentMonthEntries.clear();
-                                for (Object res : results) {
-                                    com.google.firebase.firestore.QuerySnapshot entrySnap = (com.google.firebase.firestore.QuerySnapshot) res;
-                                    for (DocumentSnapshot entryDoc : entrySnap.getDocuments()) {
-                                        String type = entryDoc.getString("type");
-                                        String createdBy = entryDoc.getString("createdBy");
-                                        
-                                        if ("CASH_OUT".equals(type) && userId.equals(createdBy)) {
-                                            currentMonthEntries.add(CashbookEntry.fromDocument(entryDoc));
-                                        } else if ("EXPENSE".equals(type)) {
-                                            // Handle shared expense
-                                            CashbookEntry entry = CashbookEntry.fromDocument(entryDoc);
-                                            if (entry.getSplits() != null && entry.getSplits().containsKey(userId)) {
-                                                double userShare = entry.getSplits().get(userId);
-                                                // Create a dummy entry with just the user's share to count against the budget
-                                                CashbookEntry budgetEntry = new CashbookEntry(
-                                                    entry.getId(), entry.getBookId(), entry.getDate(),
-                                                    entry.getParticulars(), "CASH_OUT", entry.getMedium(),
-                                                    userShare, entry.getCategory(), entry.getNote(), entry.getCreatedAt()
-                                                );
-                                                currentMonthEntries.add(budgetEntry);
+                            List<com.google.android.gms.tasks.Task<com.google.firebase.firestore.QuerySnapshot>> tasks = new ArrayList<>();
+                            for (String bookId : bookIds) {
+                                tasks.add(db.collection("cashbooks")
+                                        .document(bookId)
+                                        .collection("entries")
+                                        .get());
+                            }
+
+                            com.google.android.gms.tasks.Tasks.whenAllSuccess(tasks)
+                                    .addOnSuccessListener(results -> {
+                                        userEntries.clear();
+                                        for (Object result : results) {
+                                            com.google.firebase.firestore.QuerySnapshot entrySnap = (com.google.firebase.firestore.QuerySnapshot) result;
+                                            for (DocumentSnapshot entryDoc : entrySnap.getDocuments()) {
+                                                CashbookEntry entry = CashbookEntry.fromDocument(entryDoc);
+                                                if (entry == null) continue;
+
+                                                String type = entry.getType();
+                                                if ("CASH_OUT".equals(type) && userId.equals(entry.getCreatedBy())) {
+                                                    userEntries.add(entry);
+                                                } else if ("EXPENSE".equals(type) && entry.getSplits() != null && entry.getSplits().containsKey(userId)) {
+                                                    Double userShare = entry.getSplits().get(userId);
+                                                    if (userShare != null && userShare > 0) {
+                                                        CashbookEntry budgetEntry = new CashbookEntry(
+                                                                entry.getId(), entry.getBookId(), entry.getDate(),
+                                                                entry.getParticulars(), "CASH_OUT", entry.getMedium(),
+                                                                userShare, entry.getCategory(), entry.getNote(), entry.getCreatedAt()
+                                                        );
+                                                        userEntries.add(budgetEntry);
+                                                    }
+                                                }
                                             }
                                         }
-                                    }
-                                }
-                                fetchBudgets();
-                            })
-                            .addOnFailureListener(e -> Toast.makeText(this, "Failed to load expenses: " + e.getMessage(), Toast.LENGTH_SHORT).show());
-                })
+                                        fetchBudgets();
+                                    })
+                                    .addOnFailureListener(e -> Toast.makeText(this, "Failed to load expenses: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                        })
+                        .addOnFailureListener(e -> Toast.makeText(this, "Failed to load ledgers: " + e.getMessage(), Toast.LENGTH_SHORT).show()))
                 .addOnFailureListener(e -> Toast.makeText(this, "Failed to load ledgers: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
 
@@ -170,14 +174,8 @@ public class BudgetsActivity extends AppCompatActivity {
                     budgetList.clear();
                     for (DocumentSnapshot doc : queryDocumentSnapshots.getDocuments()) {
                         Budget budget = Budget.fromDocument(doc);
-                        
-                        // Calculate spent amount
-                        double spent = 0;
-                        for (CashbookEntry entry : currentMonthEntries) {
-                            if (budget.getCategory().equalsIgnoreCase(entry.getCategory())) {
-                                spent += entry.getAmount();
-                            }
-                        }
+
+                        double spent = calculateSpentForBudget(budget, userEntries);
                         budget.setSpentAmount(spent);
                         
                         budgetList.add(budget);
@@ -194,6 +192,60 @@ public class BudgetsActivity extends AppCompatActivity {
                     }
                 })
                 .addOnFailureListener(e -> Toast.makeText(this, "Failed to load budgets: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+    }
+
+    private double calculateSpentForBudget(Budget budget, List<CashbookEntry> entries) {
+        if (budget == null || budget.getCategory() == null || entries == null) return 0.0;
+
+        long windowStart = getBudgetWindowStart(budget);
+        double spent = 0.0;
+        for (CashbookEntry entry : entries) {
+            if (entry == null || entry.getCategory() == null) continue;
+            if (entry.getDate() < windowStart) continue;
+            if (!budget.getCategory().equalsIgnoreCase(entry.getCategory())) continue;
+            spent += entry.getAmount();
+        }
+        return spent;
+    }
+
+    private long getBudgetWindowStart(Budget budget) {
+        long createdAt = budget.getCreatedAt() > 0 ? budget.getCreatedAt() : 0L;
+        Calendar cal = Calendar.getInstance();
+        switch (budget.getPeriod() != null ? budget.getPeriod().toUpperCase(Locale.getDefault()) : "MONTHLY") {
+            case "DAILY":
+                cal.set(Calendar.HOUR_OF_DAY, 0);
+                cal.set(Calendar.MINUTE, 0);
+                cal.set(Calendar.SECOND, 0);
+                cal.set(Calendar.MILLISECOND, 0);
+                break;
+            case "WEEKLY":
+                cal.set(Calendar.DAY_OF_WEEK, cal.getFirstDayOfWeek());
+                cal.set(Calendar.HOUR_OF_DAY, 0);
+                cal.set(Calendar.MINUTE, 0);
+                cal.set(Calendar.SECOND, 0);
+                cal.set(Calendar.MILLISECOND, 0);
+                break;
+            case "YEARLY":
+                cal.set(Calendar.DAY_OF_YEAR, 1);
+                cal.set(Calendar.HOUR_OF_DAY, 0);
+                cal.set(Calendar.MINUTE, 0);
+                cal.set(Calendar.SECOND, 0);
+                cal.set(Calendar.MILLISECOND, 0);
+                break;
+            case "MONTHLY":
+            default:
+                cal.set(Calendar.DAY_OF_MONTH, 1);
+                cal.set(Calendar.HOUR_OF_DAY, 0);
+                cal.set(Calendar.MINUTE, 0);
+                cal.set(Calendar.SECOND, 0);
+                cal.set(Calendar.MILLISECOND, 0);
+                break;
+        }
+        long windowStart = cal.getTimeInMillis();
+        if (createdAt > 0) {
+            windowStart = Math.max(windowStart, createdAt);
+        }
+        return windowStart;
     }
 
     private void deleteBudget(String budgetId) {

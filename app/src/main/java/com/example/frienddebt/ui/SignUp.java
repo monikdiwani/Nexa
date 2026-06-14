@@ -51,7 +51,7 @@ public class SignUp extends AppCompatActivity {
         nameInput             = findViewById(R.id.nameInput);
         emailInput            = findViewById(R.id.emailInput);
         passwordInput         = findViewById(R.id.editTextTextPassword);
-        confirmPasswordInput  = findViewById(R.id.confrimPassword);
+        confirmPasswordInput  = findViewById(R.id.confirmPassword);
         btnStartNav           = findViewById(R.id.btnStartNav);
         btnGoogleSignUp       = findViewById(R.id.btnGoogleSignUp);
         tvLogin               = findViewById(R.id.textView4);

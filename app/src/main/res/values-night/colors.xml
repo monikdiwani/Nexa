@@ -39,6 +39,7 @@
     <color name="text_secondary">#A5A5C0</color>
     <color name="text_hint">#6E6E85</color>
     <color name="text_on_dark">#FFFFFF</color>
+    <color name="fab_icon_tint">#FFFFFF</color>
 
     <!-- Semantic / Status -->
     <color name="accent_positive">#81C784</color>

@@ -3,9 +3,11 @@ package com.example.frienddebt.utils;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+import java.lang.reflect.Method;
 import com.example.frienddebt.R;
 
 public class AnimationHelper {
@@ -36,9 +38,9 @@ public class AnimationHelper {
             targetClass = intent.getComponent().getClassName();
         }
         if (isSheetActivity(targetClass)) {
-            activity.overridePendingTransition(R.anim.sheet_slide_up, R.anim.hold);
+            applyTransition(activity, R.anim.sheet_slide_up, R.anim.hold);
         } else {
-            activity.overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
+            applyTransition(activity, R.anim.slide_in_right, R.anim.slide_out_left);
         }
     }
 
@@ -46,9 +48,26 @@ public class AnimationHelper {
         if (activity == null) return;
         String currentClass = activity.getClass().getName();
         if (isSheetActivity(currentClass)) {
-            activity.overridePendingTransition(R.anim.hold, R.anim.sheet_slide_down);
+            applyTransition(activity, R.anim.hold, R.anim.sheet_slide_down);
         } else {
-            activity.overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right);
+            applyTransition(activity, R.anim.slide_in_left, R.anim.slide_out_right);
         }
+    }
+
+    private static void applyTransition(Activity activity, int enterResId, int exitResId) {
+        if (activity == null) return;
+        // Prefer new API on Android 14+ if available; fallback to overridePendingTransition
+        try {
+            if (Build.VERSION.SDK_INT >= 34) {
+                // Use reflection to call overrideActivityTransition if present to retain compilation compatibility
+                Method m = Activity.class.getMethod("overrideActivityTransition", int.class, int.class);
+                m.invoke(activity, enterResId, exitResId);
+                return;
+            }
+        } catch (NoSuchMethodException | IllegalAccessException | java.lang.reflect.InvocationTargetException ignored) {
+            // fall through to fallback
+        }
+
+        activity.overridePendingTransition(enterResId, exitResId);
     }
 }

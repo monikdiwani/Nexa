@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Nexa — Your Life, Organized</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-left container">
+      <div class="logo-circle">N</div>
+      <div class="nav-links"><a href="features.html">Features</a><a href="#modules">Modules</a><a href="download.html">Download</a></div>
+    </div>
+    <div class="nav-right container"><button class="btn-primary">Get the App</button></div>
+  </nav>
+
+  <main>
+    <section class="hero container" id="hero">
+      <div class="hero-inner">
+        <div class="hero-copy" data-animate="fadeInUp">
+          <div class="section-badge">🚀 Personal Daily Super App</div>
+          <h1>Your Life, Organized.<br><span class="gradient-text">Powered by Intelligence.</span></h1>
+          <div class="typewriter">Nexa helps you → <span id="typewriter-text"></span></div>
+          <div class="cta-row">
+            <button class="btn-primary">⬇ Download Free</button>
+            <a href="features.html" class="btn-secondary">Explore Features</a>
+          </div>
+          <p class="typewriter" style="margin-top:12px;color:var(--text-muted)">Free forever · No ads · Firebase-powered sync</p>
+        </div>
+        <div class="phone-mock" data-animate="fadeInUp">
+          <div class="phone-header">Good Morning, Monik 👋</div>
+          <div class="card"><div style="font-size:14px;color:var(--text-secondary)">Net Balance</div><div style="font-size:20px;font-weight:700;margin-top:6px">₹45,230</div></div>
+          <div style="height:18px"></div>
+          <div class="card">Tasks: <strong>3</strong> · Reminders: <strong>1</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="stats container" id="stats" data-animate="fadeInUp">
+      <div class="stat"><div class="num" data-count="8">0</div><div class="label">Core Modules</div></div>
+      <div class="stat"><div class="num" data-count="1">0</div><div class="label">Real-time</div></div>
+      <div class="stat"><div class="num" data-count="0">0</div><div class="label">External Charts</div></div>
+      <div class="stat"><div class="num" data-count="100">0</div><div class="label">Dark Mode</div></div>
+      <div class="stat"><div class="num" data-count="0">0</div><div class="label">Free</div></div>
+    </section>
+
+    <section class="container" id="modules">
+      <h2 data-animate="fadeInUp">Every tool you need, in one app.</h2>
+      <p data-animate="fadeInUp" data-delay="0.1">8 powerful modules working together seamlessly.</p>
+      <div class="features-grid">
+        <div class="feature-card" data-animate="fadeInUp">🏠<h3>Smart Dashboard</h3><p>See balance, tasks and reminders at a glance.</p></div>
+        <div class="feature-card" data-animate="fadeInUp" data-delay="0.05">💰<h3>Cashbook & Ledgers</h3><p>Double-entry cash & bank tracking.</p></div>
+        <div class="feature-card" data-animate="fadeInUp" data-delay="0.1">🤝<h3>Fair Share Splitting</h3><p>Smart debt simplification algorithm.</p></div>
+        <div class="feature-card" data-animate="fadeInUp" data-delay="0.15">✅<h3>Priority Tasks</h3><p>Subtasks, recurring patterns, priorities.</p></div>
+        <div class="feature-card" data-animate="fadeInUp" data-delay="0.2">📝<h3>Smart Notes</h3><p>Rich notes, attachments and conversions.</p></div>
+        <div class="feature-card" data-animate="fadeInUp" data-delay="0.25">🔔<h3>Precision Reminders</h3><p>Exact-minute alarms and snooze.</p></div>
+        <div class="feature-card" data-animate="fadeInUp" data-delay="0.3">📊<h3>Custom Reports</h3><p>7/30 day trends, export to PDF.</p></div>
+        <div class="feature-card" data-animate="fadeInUp" data-delay="0.35">🔍<h3>Universal Search</h3><p>Search tasks, notes, transactions.</p></div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <div class="container footer-grid">
+      <div><div class="logo-circle" style="width:48px;height:48px">N</div><p>Your life, organized.</p></div>
+      <div><h4>Product</h4><ul><li><a href="features.html">Features</a></li><li><a href="download.html">Download</a></li><li><a href="privacy.html">Privacy</a></li></ul></div>
+      <div><h4>Modules</h4><ul><li>Dashboard</li><li>Money</li><li>Notes</li><li>Tasks</li></ul></div>
+      <div><h4>Contact</h4><p>GitHub: <a href="#">nexa</a></p></div>
+    </div>
+    <div style="text-align:center;padding:18px 0;color:var(--text-muted)">© 2025 Nexa · All rights reserved</div>
+  </footer>
+
+  <canvas id="particles" style="position:fixed;left:0;top:0;right:0;bottom:0;z-index:-1;opacity:0.4"></canvas>
+  <script src="js/typewriter.js"></script>
+  <script src="js/scroll.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

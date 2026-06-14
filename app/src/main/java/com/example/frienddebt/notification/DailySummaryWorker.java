@@ -41,13 +41,13 @@ public class DailySummaryWorker extends Worker {
         String userId = auth.getCurrentUser().getUid();
         String email = auth.getCurrentUser().getEmail();
         String name = "User";
-        if (email != null) {
-            int index = email.indexOf('@');
-            name = index != -1 ? email.substring(0, index) : email;
-            if (name.length() > 0) {
-                name = name.substring(0, 1).toUpperCase() + name.substring(1);
+            if (email != null) {
+                int index = email.indexOf('@');
+                name = index != -1 ? email.substring(0, index) : email;
+                if (name.length() > 0) {
+                    name = name.substring(0, 1).toUpperCase(Locale.getDefault()) + name.substring(1);
+                }
             }
-        }
 
         FirebaseFirestore db = FirebaseFirestore.getInstance();
 
@@ -107,7 +107,7 @@ public class DailySummaryWorker extends Worker {
             }
 
             StringBuilder msg = new StringBuilder();
-            msg.append(String.format(Locale.getDefault(), "• %d tasks pending today\n", pendingTasksCount));
+            msg.append(String.format(Locale.getDefault(), "• %d tasks pending\n", pendingTasksCount));
             msg.append(String.format(Locale.getDefault(), "• ₹%.2f spent this week", weeklySpent));
 
             NotificationHelper.showNotification(
