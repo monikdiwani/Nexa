@@ -219,20 +219,36 @@ public class HomeFragment extends Fragment {
                                 // From shared/member cashbooks
                                 for (com.google.firebase.firestore.DocumentSnapshot doc : snapshots) {
                                     seenIds.add(doc.getId());
-                                    Double in = doc.getDouble("totalCashIn");
-                                    Double out = doc.getDouble("totalCashOut");
-                                    if (in != null) cashInSum += in;
-                                    if (out != null) cashOutSum += out;
+                                    
+                                    String type = doc.getString("type");
+                                    Object membersObj = doc.get("members");
+                                    int membersSize = membersObj instanceof Map ? ((Map) membersObj).size() : 0;
+                                    boolean isGroup = "GROUP".equals(type) || membersSize > 1;
+                                    
+                                    if (!isGroup) {
+                                        Double in = doc.getDouble("totalCashIn");
+                                        Double out = doc.getDouble("totalCashOut");
+                                        if (in != null) cashInSum += in;
+                                        if (out != null) cashOutSum += out;
+                                    }
                                 }
 
                                 // From owned cashbooks (avoid double-counting)
                                 if (ownedTask.isSuccessful() && ownedTask.getResult() != null) {
                                     for (com.google.firebase.firestore.DocumentSnapshot doc : ownedTask.getResult()) {
                                         if (seenIds.contains(doc.getId())) continue;
-                                        Double in = doc.getDouble("totalCashIn");
-                                        Double out = doc.getDouble("totalCashOut");
-                                        if (in != null) cashInSum += in;
-                                        if (out != null) cashOutSum += out;
+                                        
+                                        String type = doc.getString("type");
+                                        Object membersObj = doc.get("members");
+                                        int membersSize = membersObj instanceof Map ? ((Map) membersObj).size() : 0;
+                                        boolean isGroup = "GROUP".equals(type) || membersSize > 1;
+                                        
+                                        if (!isGroup) {
+                                            Double in = doc.getDouble("totalCashIn");
+                                            Double out = doc.getDouble("totalCashOut");
+                                            if (in != null) cashInSum += in;
+                                            if (out != null) cashOutSum += out;
+                                        }
                                     }
                                 }
 
