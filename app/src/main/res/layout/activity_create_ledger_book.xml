@@ -59,7 +59,40 @@
             android:background="@drawable/rounded_edittext"
             android:paddingHorizontal="16dp"
             android:inputType="textCapWords"
-            android:layout_marginBottom="24dp" />
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Ledger Type"
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp"
+            android:layout_marginBottom="8dp"/>
+
+        <RadioGroup
+            android:id="@+id/rgLedgerType"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="24dp">
+
+            <RadioButton
+                android:id="@+id/rbTypePersonal"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="Personal"
+                android:checked="true"
+                android:textColor="@color/text_primary" />
+
+            <RadioButton
+                android:id="@+id/rbTypeGroup"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="Shared Group"
+                android:textColor="@color/text_primary" />
+        </RadioGroup>
 
         <TextView
             android:layout_width="wrap_content"

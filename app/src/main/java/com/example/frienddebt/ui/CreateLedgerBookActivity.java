@@ -24,6 +24,8 @@ public class CreateLedgerBookActivity extends AppCompatActivity {
     private FirebaseAuth auth;
     private FirebaseFirestore db;
 
+    private android.widget.RadioGroup rgLedgerType;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -34,6 +36,7 @@ public class CreateLedgerBookActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
 
         etBookName = findViewById(R.id.etBookName);
+        rgLedgerType = findViewById(R.id.rgLedgerType);
         btnCreateBook = findViewById(R.id.btnCreateBook);
         btnBack = findViewById(R.id.btnBack);
 
@@ -77,6 +80,12 @@ public class CreateLedgerBookActivity extends AppCompatActivity {
 
         LedgerBook newBook = new LedgerBook(newId, bookName, "INR", userId, createdAt);
         newBook.setInviteCode(inviteCode);
+        
+        String ledgerType = "PERSONAL";
+        if (rgLedgerType.getCheckedRadioButtonId() == R.id.rbTypeGroup) {
+            ledgerType = "GROUP";
+        }
+        newBook.setType(ledgerType);
 
         db.collection("cashbooks").document(newId)
                 .set(newBook.toFirestoreMap())
